@@ -14,12 +14,12 @@ function sendEmail($to, $subject, $body) {
         $mail->isSMTP();
         $mail->Host       = 'smtp.gmail.com';
         $mail->SMTPAuth   = true;
-        $mail->Username   = 'your@gmail.com'; // replace with your email
-        $mail->Password   = 'your_app_password'; // replace with app password
+        $mail->Username   = 'cecilyado022@gmail.com'; // replace with your email
+        $mail->Password   = 'iahn tzbg zoog tuxk'; // replace with app password
         $mail->SMTPSecure = 'tls';
         $mail->Port       = 587;
 
-        $mail->setFrom('your@gmail.com', 'Smart Accommodation Kenya');
+        $mail->setFrom('cecilyado022@gmail.com', 'Smart Accommodation Kenya');
         $mail->addAddress($to);
         $mail->isHTML(true);
         $mail->Subject = $subject;
