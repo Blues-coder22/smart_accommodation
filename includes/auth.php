@@ -119,6 +119,7 @@ function hasRole($role) {
 // Redirect if not logged in
 function requireLogin() {
     if (!isLoggedIn()) {
+        $_SESSION['return_url'] = $_SERVER['REQUEST_URI'];
         header('Location: /smart_accommodation/login.php');
         exit;
     }
