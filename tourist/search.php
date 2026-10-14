@@ -454,8 +454,7 @@ $property_types = $pdo->query("
                         $photo = $photo_stmt->fetchColumn();
                         ?>
                         <?php if ($photo): ?>
-                            <img src="../uploads/accommodations/
-                                <?= htmlspecialchars($photo) ?>"
+                            <img src="../uploads/accommodations/<?= htmlspecialchars($photo) ?>"
                                  alt="<?= htmlspecialchars($acc['title'])?>">
                         <?php else: ?>
                             <div style="height:160px;background:#e8f8f3;
@@ -547,8 +546,7 @@ $property_types = $pdo->query("
                                     <?= htmlspecialchars($att['category'])?>
                                 </div>
                             </div>
-                            <a href="search.php?type=accommodation
-                                     &attraction_id=<?= $att['attraction_id']?>"
+                            <a href="search.php?type=accommodation&attraction_id=<?= $att['attraction_id'] ?>"
                                class="btn btn-primary btn-full"
                                style="margin-top:10px;display:block;
                                       text-align:center">
@@ -634,8 +632,7 @@ L.marker(
     <?= $att['entry_fee'] > 0 
         ? 'KES ' . number_format($att['entry_fee']) 
         : 'Free entry' ?><br>
-    <a href="search.php?type=accommodation
-             &attraction_id=<?= $att['attraction_id'] ?>">
+    <a href="search.php?type=accommodation&attraction_id=<?= $att['attraction_id'] ?>">
         Find Nearby Stays
     </a>
 `);
@@ -645,8 +642,7 @@ L.marker(
 
 // Geocoding — convert location text to coordinates using Nominatim
 <?php if (!empty($location) && !$attraction_id): ?>
-fetch(`https://nominatim.openstreetmap.org/search?format=json
-      &q=<?= urlencode($location) ?>,Kenya&limit=1`)
+fetch(`https://nominatim.openstreetmap.org/search?format=json&q=<?= urlencode($location) ?>,Kenya&limit=1`)
 .then(r => r.json())
 .then(data => {
     if (data.length > 0) {

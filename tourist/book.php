@@ -50,7 +50,7 @@ $check_in_dt  = new DateTime($check_in);
 $check_out_dt = new DateTime($check_out);
 $nights       = $check_in_dt->diff($check_out_dt)->days;
 $subtotal     = $nights * $acc['price_per_night'];
-$tax          = round($subtotal * 0.08);
+$tax          = round($subtotal * 0.08, -2);
 $total        = $subtotal + $tax;
 
 // Check availability
@@ -296,8 +296,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="summary-card">
                 <div class="summary-img">
                     <?php if ($photo): ?>
-                        <img src="../uploads/accommodations/
-                             <?= htmlspecialchars($photo) ?>"
+                        <img src="../uploads/accommodations/<?= htmlspecialchars($photo) ?>"
                              alt="<?= htmlspecialchars($acc['title']) ?>">
                     <?php else: ?>
                         &#127968;
@@ -319,7 +318,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <span>KES <?= number_format($subtotal) ?></span>
                         </div>
                         <div class="p-row">
-                            <span>Service and local taxes</span>
+                            <span>Service and local taxes (rounded to nearest KES 100)</span>
                             <span>KES <?= number_format($tax) ?></span>
                         </div>
                         <div class="p-row total">

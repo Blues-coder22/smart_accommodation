@@ -1,10 +1,9 @@
 <?php
-require_once 'db.php';
-
-// Start session if not already started
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
+
+require_once 'db.php';
 
 // Register new user
 function registerUser($full_name, $email, $password, $role, $phone) {
@@ -151,7 +150,9 @@ function getCurrentUser() {
 
 // Logout
 function logoutUser() {
-    session_start();
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
     session_unset();
     session_destroy();
     header('Location: /smart_accommodation/login.php');

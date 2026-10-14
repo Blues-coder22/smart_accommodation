@@ -250,8 +250,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
     <?php if (!empty($photos)): ?>
     <div class="photo-gallery">
         <?php foreach (array_slice($photos, 0, 5) as $i => $photo): ?>
-        <img src="../uploads/accommodations/
-             <?= htmlspecialchars($photo['photo_path']) ?>"
+        <img src="../uploads/accommodations/<?= htmlspecialchars($photo['photo_path']) ?>"
              alt="<?= htmlspecialchars($acc['title']) ?>"
              class="<?= $i === 0 ? 'main-photo' : '' ?>">
         <?php endforeach; ?>
@@ -370,6 +369,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
                             ? 'KES ' . number_format($att['entry_fee'])
                             : 'Free entry' ?>
                     </p>
+                    <a href="search.php?type=accommodation&attraction_id=<?= $att['attraction_id'] ?>">
+                        Find Nearby Stays
+                    </a>
                 </div>
             </div>
             <?php endforeach; ?>
