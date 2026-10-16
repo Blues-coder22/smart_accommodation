@@ -56,10 +56,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <?php include 'includes/header.php'; ?>
 
-<div class="auth-container">
-    <div class="auth-card">
-        <h1>Create Account</h1>
-        <p class="auth-subtitle">Join Smart Accommodation Kenya</p>
+<main class="auth-page">
+    <section class="auth-visual">
+        <div class="auth-copy">
+            <div class="eyebrow" style="color:#efb59e">Join the journey</div>
+            <h1>Create your account</h1>
+            <p>Choose how you use StayExplore. Your account role controls which part of the website you can access.</p>
+        </div>
+    </section>
+    <section class="auth-form">
+      <div class="auth-box">
+        <div class="eyebrow">Join the journey</div>
+        <h1>Create your account.</h1>
+        <p class="small">It only takes a minute. Verify your email to get started.</p>
 
         <?php if (!empty($errors)): ?>
             <div class="alert alert-error">
@@ -75,71 +84,71 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
         <?php else: ?>
 
-        <form method="POST" action="register.php">
-            <div class="form-group">
-                <label for="full_name">Full Name</label>
+        <form method="POST" action="register.php" class="grid grid-2" autocomplete="on" style="margin-top:25px">
+            <div class="field full">
+                <label for="full_name">Full name</label>
                 <input type="text" id="full_name" name="full_name"
                        value="<?= htmlspecialchars($_POST['full_name'] ?? '') ?>"
-                       placeholder="Enter your full name" required>
+                       autocomplete="name" placeholder="Amina Wanjiku" required>
             </div>
 
-            <div class="form-group">
-                <label for="email">Email Address</label>
+            <div class="field">
+                <label for="email">Email</label>
                 <input type="email" id="email" name="email"
                        value="<?= htmlspecialchars($_POST['email'] ?? '') ?>"
-                       placeholder="Enter your email" required>
+                       autocomplete="email" placeholder="amina@example.com" required>
             </div>
 
-            <div class="form-group">
-                <label for="phone">Phone Number</label>
+            <div class="field">
+                <label for="phone">Phone number</label>
                 <input type="tel" id="phone" name="phone"
                        value="<?= htmlspecialchars($_POST['phone'] ?? '') ?>"
-                       placeholder="+254 7XX XXX XXX">
+                       autocomplete="tel" placeholder="+254 7XX XXX XXX">
             </div>
 
-            <div class="form-group">
-                <label for="role">I am a</label>
+            <div class="field full">
+                <label for="role">Account type</label>
                 <select id="role" name="role" required>
                     <option value="">Select role</option>
                     <option value="tourist" 
-                        <?= (($_POST['role'] ?? '') === 'tourist') 
+                        <?= (($_POST['role'] ?? $_GET['role'] ?? '') === 'tourist')
                             ? 'selected' : '' ?>>
-                        Tourist — I want to find accommodation
+                        Tourist — search, book and review stays
                     </option>
                     <option value="host"
-                        <?= (($_POST['role'] ?? '') === 'host') 
+                        <?= (($_POST['role'] ?? $_GET['role'] ?? '') === 'host')
                             ? 'selected' : '' ?>>
-                        Host — I want to list my property
+                        Host — list and manage properties
                     </option>
                 </select>
             </div>
 
-            <div class="form-group">
+            <div class="field">
                 <label for="password">Password</label>
                 <input type="password" id="password" name="password"
-                       placeholder="Minimum 8 characters" required>
+                       minlength="8" autocomplete="new-password" placeholder="At least 8 characters" required>
             </div>
 
-            <div class="form-group">
+            <div class="field">
                 <label for="confirm_password">Confirm Password</label>
                 <input type="password" id="confirm_password"
                        name="confirm_password"
-                       placeholder="Repeat your password" required>
+                       minlength="8" autocomplete="new-password" placeholder="Repeat your password" required>
             </div>
 
-            <button type="submit" class="btn btn-primary btn-full">
-                Create Account
+            <button type="submit" class="btn full">
+                Create account
             </button>
         </form>
 
         <?php endif; ?>
 
-        <p class="auth-link">
-            Already have an account? 
-            <a href="login.php">Sign in</a>
+        <p class="small" style="margin-top:18px">
+            Already have an account? <a class="home-link" href="login.php">Sign in</a>
         </p>
-    </div>
-</div>
+      </div>
+    </section>
+</main>
 
 <?php include 'includes/footer.php'; ?>
 

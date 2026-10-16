@@ -87,204 +87,161 @@ $attractions = $stmt->fetchAll();
                           color: #085041; margin-bottom: 12px; }
     </style>
 </head>
-<body>
+<body class="homepage">
 
 <?php include 'includes/header.php'; ?>
 
-<!-- Hero Section -->
-<div class="hero">
-    <h1>Discover Stays. Explore Attractions.</h1>
-    <p>Find the best places to stay and amazing attractions — all in one platform.</p>
-
-    <!-- Search Tabs -->
-    <div class="search-tabs">
-        <button class="tab active" onclick="switchTab('accommodation', this)">
-            🏠 Find Accommodation
-        </button>
-        <button class="tab" onclick="switchTab('attraction', this)">
-            📍 Explore Attractions
-        </button>
-    </div>
-
-    <!-- Accommodation Search -->
-    <div class="search-box" id="accommodation-search">
-        <form method="GET" action="tourist/search.php">
-            <input type="hidden" name="type" value="accommodation">
-            <div class="search-row">
-                <input type="text" name="location"
-                       placeholder="Where are you going?"
-                       value="<?= htmlspecialchars($_GET['location'] ?? '') ?>">
-                <input type="date" name="check_in"
-                       min="<?= date('Y-m-d') ?>">
-                <input type="date" name="check_out"
-                       min="<?= date('Y-m-d') ?>">
-                <button type="submit">Search</button>
-            </div>
-        </form>
-    </div>
-
-    <!-- Attraction Search -->
-    <div class="search-box" id="attraction-search" style="display:none">
-        <form method="GET" action="tourist/search.php">
-            <input type="hidden" name="type" value="attraction">
-            <div class="search-row">
-                <input type="text" name="attraction_name"
-                       placeholder="Search attractions...">
-                <select name="category">
-                    <option value="">All Categories</option>
-                    <option value="National Parks">National Parks</option>
-                    <option value="Museums">Museums</option>
-                    <option value="Beaches">Beaches</option>
-                    <option value="Historical Sites">Historical Sites</option>
-                    <option value="Adventure">Adventure</option>
-                    <option value="Culture">Culture</option>
-                    <option value="Restaurants">Restaurants & Eateries</option>
-                    <option value="Shopping">Shopping</option>
-                    <option value="Entertainment">Entertainment</option>
-                    <option value="Religious sites">Religious sites</option>
-                </select>
-                <button type="submit">Search</button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<!-- Feature Highlights -->
-<div class="features">
-    <div class="feature-item">
-        <div class="feature-icon">🎯</div>
-        <h3>Smart Recommendations</h3>
-        <p>Personalized suggestions based on location, rating, and price</p>
-    </div>
-    <div class="feature-item">
-        <div class="feature-icon">✅</div>
-        <h3>Verified and Trusted</h3>
-        <p>Reviews from confirmed guests only — no fake reviews</p>
-    </div>
-    <div class="feature-item">
-        <div class="feature-icon">💳</div>
-        <h3>Secure Payments</h3>
-        <p>Track payments and book with confidence</p>
-    </div>
-    <div class="feature-item">
-        <div class="feature-icon">🏡</div>
-        <h3>Support Local Hosts</h3>
-        <p>Empowering local property owners across Kenya</p>
-    </div>
-</div>
-
-<!-- Map Section -->
-<div class="map-section">
-    <h2>Explore on the Map</h2>
-    <p style="font-size:14px;color:#666;margin-bottom:12px">
-        Green pins = Accommodations &nbsp;|&nbsp; Purple pins = Attractions
-    </p>
-    <div id="map"></div>
-</div>
-
-<!-- Featured Accommodations -->
-<div class="container section">
-    <div style="display:flex;justify-content:space-between;align-items:center;
-                margin-bottom:20px">
-        <h2 class="section-title" style="margin-bottom:0">
-            Featured Accommodations
-        </h2>
-        <a href="tourist/search.php?type=accommodation" 
-           style="font-size:14px;color:#1D9E75">View all →</a>
-    </div>
-    <div class="grid grid-3">
-        <?php foreach ($featured as $acc): ?>
-        <div class="card">
-            <?php if ($acc['primary_photo']): ?>
-                <img class="card-img"
-                     src="uploads/accommodations/<?= 
-                         htmlspecialchars($acc['primary_photo']) ?>"
-                     alt="<?= htmlspecialchars($acc['title']) ?>">
-            <?php else: ?>
-                <div class="card-img" 
-                     style="background:#e8f8f3;display:flex;
-                            align-items:center;justify-content:center;
-                            font-size:40px">🏠</div>
-            <?php endif; ?>
-            <div class="card-body">
-                <div class="card-title">
-                    <?= htmlspecialchars($acc['title']) ?>
-                </div>
-                <div class="card-location">
-                    📍 <?= htmlspecialchars($acc['location_name']) ?>
-                </div>
-                <div class="card-footer">
-                    <div class="card-price">
-                        KES <?= number_format($acc['price_per_night']) ?>/night
-                    </div>
-                    <div class="card-rating">
-                        ⭐ <?= number_format($acc['avg_rating'], 1) ?>
-                    </div>
-                </div>
-                <a href="tourist/details.php?id=<?= $acc['accommodation_id'] ?>"
-                   class="btn btn-primary btn-full" 
-                   style="margin-top:12px;display:block;text-align:center">
-                    View Details
-                </a>
-            </div>
+<section class="hp-hero">
+    <div class="hp-hero-inner">
+        <span class="hp-badge">Smart recommendations for Kenya and beyond</span>
+        <h1>Discover Kenya.<br>Stay. Explore.<br>Experience.</h1>
+        <p>From cosy rooms in Nairobi to lodges at the foot of Mt. Kenya, find where to stay and discover nearby attractions.</p>
+        <div class="actions" style="justify-content:center;margin-top:28px">
+            <a class="btn btn-light" href="tourist/search.php?type=accommodation">Find a stay</a>
+            <a class="btn btn-outline" style="color:#fff;border-color:rgba(255,255,255,.8)" href="tourist/search.php?type=attraction">Explore attractions</a>
         </div>
+        <div class="search-tabs" style="justify-content:center;margin-top:28px">
+            <button class="tab active" type="button" onclick="switchTab('accommodation', this)">Find accommodation</button>
+            <button class="tab" type="button" onclick="switchTab('attraction', this)">Explore attractions</button>
+        </div>
+        <div class="hp-search" id="accommodation-search">
+            <form method="GET" action="tourist/search.php" class="field" style="grid-column:1/-1">
+                <input type="hidden" name="type" value="accommodation">
+                <div class="field">
+                    <label for="home-location">DESTINATION</label>
+                    <input id="home-location" type="search" name="location" placeholder="Where are you going?" value="<?= htmlspecialchars($_GET['location'] ?? '') ?>">
+                </div>
+                <div class="grid grid-2">
+                    <div class="field">
+                        <label for="home-check-in">CHECK IN</label>
+                        <input id="home-check-in" type="date" name="check_in" min="<?= date('Y-m-d') ?>">
+                    </div>
+                    <div class="field">
+                        <label for="home-check-out">CHECK OUT</label>
+                        <input id="home-check-out" type="date" name="check_out" min="<?= date('Y-m-d') ?>">
+                    </div>
+                </div>
+                <button class="btn" type="submit" style="margin-top:10px">Search stays</button>
+            </form>
+        </div>
+        <div class="hp-search" id="attraction-search" style="display:none">
+            <form method="GET" action="tourist/search.php" class="field" style="grid-column:1/-1">
+                <input type="hidden" name="type" value="attraction">
+                <div class="field">
+                    <label for="home-attraction">ATTRACTION OR DESTINATION</label>
+                    <input id="home-attraction" type="search" name="location" placeholder="Search attractions...">
+                </div>
+                <div class="field">
+                    <label for="home-category">CATEGORY</label>
+                    <select id="home-category" name="category">
+                        <option value="">All categories</option>
+                        <option value="National Parks">National Parks</option>
+                        <option value="Museums">Museums</option>
+                        <option value="Beaches">Beaches</option>
+                        <option value="Historical Sites">Historical Sites</option>
+                        <option value="Adventure">Adventure</option>
+                        <option value="Culture">Culture</option>
+                        <option value="Restaurants">Restaurants &amp; Eateries</option>
+                        <option value="Shopping">Shopping</option>
+                        <option value="Entertainment">Entertainment</option>
+                        <option value="Religious Sites">Religious sites</option>
+                    </select>
+                </div>
+                <button class="btn" type="submit" style="margin-top:10px">Search attractions</button>
+            </form>
+        </div>
+    </div>
+</section>
+
+<section class="hp-intro">
+    <div class="hp-benefits">
+        <div class="hp-benefit"><div class="icon">✧</div><h3>Smart recommendations</h3><p>Results ranked to help you choose with confidence.</p></div>
+        <div class="hp-benefit"><div class="icon">◉</div><h3>Verified reviews</h3><p>Only guests with confirmed bookings can leave reviews.</p></div>
+        <div class="hp-benefit"><div class="icon">◉</div><h3>Secure payments</h3><p>Track payments and book with confidence.</p></div>
+        <div class="hp-benefit"><div class="icon">⌁</div><h3>Local hosts</h3><p>Supporting Kenyan property owners and communities.</p></div>
+    </div>
+</section>
+
+<section class="hp-section hp-map-section">
+    <div class="hp-kicker">Search anywhere in Kenya</div>
+    <h2>Find a stay or an attraction on the map</h2>
+    <p class="hp-caption">Green pins show stays; purple pins show attractions.</p>
+    <div id="map" aria-label="Map of accommodations and attractions across Kenya"></div>
+</section>
+
+<section class="hp-section">
+    <div class="hp-section-head">
+        <div><div class="hp-kicker">Curated for your journey</div><h2>Featured stays</h2><p class="hp-caption">Hand-picked places to unwind, each close to something worth exploring.</p></div>
+        <a class="home-link hp-viewall" href="tourist/search.php?type=accommodation">View all stays &rarr;</a>
+    </div>
+    <div class="hp-stay-grid">
+        <?php foreach ($featured as $acc): ?>
+        <article class="hp-stay-card">
+            <a href="tourist/details.php?id=<?= $acc['accommodation_id'] ?>">
+                <img src="<?= $acc['primary_photo'] ? 'uploads/accommodations/' . rawurlencode($acc['primary_photo']) : 'assets/user-house.jpg' ?>" alt="<?= htmlspecialchars($acc['title']) ?>">
+            </a>
+            <div class="copy">
+                <h3><?= htmlspecialchars($acc['title']) ?></h3>
+                <p><?= htmlspecialchars($acc['location_name']) ?></p>
+                <div class="actions" style="justify-content:space-between">
+                    <strong>KES <?= number_format($acc['price_per_night']) ?><small> / night</small></strong>
+                    <span class="rating">★ <?= number_format($acc['avg_rating'], 1) ?></span>
+                </div>
+                <a class="home-link" href="tourist/details.php?id=<?= $acc['accommodation_id'] ?>">View stay &rarr;</a>
+            </div>
+        </article>
         <?php endforeach; ?>
     </div>
-</div>
+</section>
 
-<!-- Featured Attractions -->
-<div style="background:#f0faf6">
-    <div class="container section">
-        <div style="display:flex;justify-content:space-between;
-                    align-items:center;margin-bottom:20px">
-            <h2 class="section-title" style="margin-bottom:0">
-                Popular Attractions
-            </h2>
-            <a href="tourist/search.php?type=attraction"
-               style="font-size:14px;color:#1D9E75">View all →</a>
-        </div>
-        <div class="grid grid-3">
-            <?php foreach ($attractions as $att): ?>
-            <div class="card">
-                <?php if ($att['photo_path']): ?>
-                    <img class="card-img"
-                         src="uploads/attractions/<?= 
-                             htmlspecialchars($att['photo_path']) ?>"
-                         alt="<?= htmlspecialchars($att['name']) ?>">
-                <?php else: ?>
-                    <div class="card-img"
-                         style="background:#eeedfe;display:flex;
-                                align-items:center;justify-content:center;
-                                font-size:40px">📍</div>
-                <?php endif; ?>
-                <div class="card-body">
-                    <div class="card-title">
-                        <?= htmlspecialchars($att['name']) ?>
-                    </div>
-                    <div class="card-location">
-                        📍 <?= htmlspecialchars($att['location_name']) ?>
-                        &nbsp;|&nbsp; 
-                        🏷️ <?= htmlspecialchars($att['category']) ?>
-                    </div>
-                    <div class="card-footer">
-                        <div class="card-price">
-                            <?= $att['entry_fee'] > 0 
-                                ? 'KES ' . number_format($att['entry_fee']) 
-                                : 'Free entry' ?>
-                        </div>
-                    </div>
-                    <a href="tourist/search.php?type=accommodation
-                             &attraction_id=<?= $att['attraction_id'] ?>"
-                       class="btn btn-primary btn-full"
-                       style="margin-top:12px;display:block;text-align:center">
-                        Find Nearby Stays
-                    </a>
-                </div>
+<section class="hp-section" id="attractions">
+    <div class="hp-section-head">
+        <div><div class="hp-kicker">Explore by destination</div><h2>Popular attractions</h2><p class="hp-caption">Discover Kenya's iconic landscapes, wildlife reserves, and coastal escapes.</p></div>
+        <a class="home-link hp-viewall" href="tourist/search.php?type=attraction">View all attractions &rarr;</a>
+    </div>
+    <div class="hp-attraction-layout">
+        <?php if (!empty($attractions)): $featured_attraction = $attractions[0]; ?>
+        <article class="hp-attraction-feature">
+            <?php if ($featured_attraction['photo_path']): ?>
+                <img src="uploads/attractions/<?= rawurlencode($featured_attraction['photo_path']) ?>" alt="<?= htmlspecialchars($featured_attraction['name']) ?>" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:9px">
+            <?php endif; ?>
+            <div class="copy">
+                <div class="hp-kicker" style="color:#efb59e">Featured destination</div>
+                <h3><?= htmlspecialchars($featured_attraction['name']) ?></h3>
+                <p><?= htmlspecialchars($featured_attraction['location_name']) ?> &middot; <?= htmlspecialchars($featured_attraction['category']) ?></p>
+                <a class="btn btn-light" href="tourist/search.php?type=accommodation&amp;attraction_id=<?= $featured_attraction['attraction_id'] ?>">Find nearby stays</a>
             </div>
+        </article>
+        <div class="hp-attraction-grid">
+            <?php foreach (array_slice($attractions, 1, 4) as $att): ?>
+            <article class="hp-attraction-card">
+                <?php if ($att['photo_path']): ?>
+                    <img src="uploads/attractions/<?= rawurlencode($att['photo_path']) ?>" alt="<?= htmlspecialchars($att['name']) ?>" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
+                <?php endif; ?>
+                <div class="copy">
+                    <h3><?= htmlspecialchars($att['name']) ?></h3>
+                    <p><?= htmlspecialchars($att['location_name']) ?> &middot; <?= htmlspecialchars($att['category']) ?></p>
+                    <a class="btn btn-light btn-sm" href="tourist/search.php?type=accommodation&amp;attraction_id=<?= $att['attraction_id'] ?>">Find nearby stays</a>
+                </div>
+            </article>
             <?php endforeach; ?>
         </div>
+        <?php endif; ?>
     </div>
-</div>
+</section>
+
+<section class="hp-host">
+    <img src="assets/user-house.jpg" alt="A welcoming Kenyan host home">
+    <div class="hp-host-copy">
+        <div class="hp-kicker">For Kenyan hosts</div>
+        <h2>Your place belongs in someone's story.</h2>
+        <p class="sub">List your property, manage bookings and connect with travellers looking for an authentic Kenyan stay.</p>
+        <div class="actions">
+            <a class="btn" href="register.php?role=host">List your property</a>
+            <a class="btn btn-outline" href="how-it-works.php">How hosting works</a>
+        </div>
+    </div>
+</section>
 
 <?php include 'includes/footer.php'; ?>
 

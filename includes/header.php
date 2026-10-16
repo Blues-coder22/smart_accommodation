@@ -3,44 +3,48 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 require_once __DIR__ . '/functions.php';
+$is_homepage = basename($_SERVER['PHP_SELF']) === 'index.php';
 ?>
-<header class="site-header">
-    <div class="header-inner">
-        <a href="/smart_accommodation/index.php" class="logo">
-            <span class="logo-dot"></span>
-            Smart Accommodation Kenya
-        </a>
-        <nav class="nav-links">
+<header class="<?= $is_homepage ? 'hp-header' : 'public-nav' ?>">
+    <a href="/smart_accommodation/index.php"
+       class="<?= $is_homepage ? 'hp-brand' : 'public-brand' ?>">
+        <span class="brand-mark">SE</span>
+        <span>StayExplore<small>KENYA</small></span>
+    </a>
+    <?php if ($is_homepage): ?>
+        <nav class="hp-nav" aria-label="Main navigation">
+            <a href="/smart_accommodation/tourist/search.php?type=accommodation">Discover</a>
+            <a href="/smart_accommodation/how-it-works.php">How it works</a>
+            <a href="/smart_accommodation/about.php">About us</a>
+        </nav>
+        <div class="hp-actions">
+    <?php else: ?>
+        <nav class="public-links" aria-label="Main navigation">
+            <a href="/smart_accommodation/index.php">Home</a>
+            <a href="/smart_accommodation/tourist/search.php?type=accommodation">Stays</a>
+            <a href="/smart_accommodation/tourist/search.php?type=attraction">Attractions</a>
+        </nav>
+        <div class="public-actions">
+    <?php endif; ?>
             <?php if (isLoggedIn()): ?>
                 <?php if (hasRole('tourist')): ?>
-                    <a href="/smart_accommodation/tourist/bookings.php">
-                        My Bookings
-                    </a>
-                    <a href="/smart_accommodation/tourist/favourites.php">
-                        Favourites
-                    </a>
+                    <span class="role-pill">Tourist</span>
+                    <a href="/smart_accommodation/tourist/bookings.php">My bookings</a>
                 <?php elseif (hasRole('host')): ?>
-                    <a href="/smart_accommodation/host/dashboard.php">
-                        Dashboard
-                    </a>
-                    <a href="/smart_accommodation/host/add_listing.php">
-                        Add Listing
-                    </a>
+                    <span class="role-pill">Host</span>
+                    <a href="/smart_accommodation/host/dashboard.php">Host dashboard</a>
                 <?php elseif (hasRole('admin')): ?>
-                    <a href="/smart_accommodation/admin/dashboard.php">
-                        Admin Panel
-                    </a>
+                    <span class="role-pill">Admin</span>
+                    <a href="/smart_accommodation/admin/dashboard.php">Admin panel</a>
                 <?php endif; ?>
                 <a href="/smart_accommodation/logout.php" class="btn btn-outline">
-                    Sign Out
+                    Sign out
                 </a>
             <?php else: ?>
-                <a href="/smart_accommodation/login.php">Sign In</a>
-                <a href="/smart_accommodation/register.php" 
-                   class="btn btn-primary">
-                    Sign Up
+                <a href="/smart_accommodation/login.php">Sign in</a>
+                <a href="/smart_accommodation/register.php" class="btn">
+                    Sign up
                 </a>
             <?php endif; ?>
-        </nav>
-    </div>
+        </div>
 </header>
