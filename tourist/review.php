@@ -231,7 +231,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             margin-bottom:20px; line-height:1.6 }
     </style>
 </head>
-<body>
+<body class="tourist-review">
 
 <?php include '../includes/header.php'; ?>
 

@@ -3,6 +3,8 @@
    NOTE: browser-only demo security. Real security needs a server (hashed passwords, sessions, role checks). */
 (function () {
 'use strict';
+if (window.__smartAccommodationServerRendered) return;
+if (/\.php$/i.test(window.location.pathname)) return;
 if (window.__stayExploreLoaded) return;   // guards against the script being included twice on a page
 window.__stayExploreLoaded = true;
 

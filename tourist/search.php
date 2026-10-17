@@ -208,7 +208,7 @@ $property_types = $pdo->query("
         }
     </style>
 </head>
-<body>
+<body class="tourist-search">
 
 <?php include '../includes/header.php'; ?>
 

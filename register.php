@@ -85,7 +85,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php else: ?>
 
         <form method="POST" action="register.php" class="grid grid-2" autocomplete="on" style="margin-top:25px">
-            <div class="field full">
+            <div class="field">
                 <label for="full_name">Full name</label>
                 <input type="text" id="full_name" name="full_name"
                        value="<?= htmlspecialchars($_POST['full_name'] ?? '') ?>"
@@ -135,6 +135,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                        name="confirm_password"
                        minlength="8" autocomplete="new-password" placeholder="Repeat your password" required>
             </div>
+
+            <label class="check full">
+                <input type="checkbox" required>
+                <span>By continuing, you agree to our <a class="home-link" href="terms.php">terms</a> and <a class="home-link" href="privacy.php">privacy policy</a>.</span>
+            </label>
 
             <button type="submit" class="btn full">
                 Create account

@@ -191,7 +191,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     </style>
 </head>
-<body>
+<body class="tourist-payment">
 
 <?php include '../includes/header.php'; ?>
 

@@ -28,14 +28,35 @@ $stmt = $pdo->prepare("
 $stmt->execute();
 $featured = $stmt->fetchAll();
 
-// Get featured attractions (top 6)
-$stmt = $pdo->prepare("
-    SELECT * FROM attractions 
-    ORDER BY created_at DESC 
-    LIMIT 6
-");
-$stmt->execute();
-$attractions = $stmt->fetchAll();
+$homeDestinations = [
+    [
+        'name' => 'Maasai Mara',
+        'county' => 'Narok',
+        'category' => 'Wildlife',
+        'tagline' => 'Iconic savannah landscapes, wildlife and the Great Migration.',
+        'image' => 'assets/user-sunset.jpg',
+        'latitude' => -1.4900,
+        'longitude' => 35.1400
+    ],
+    [
+        'name' => 'Mount Kenya',
+        'county' => 'Laikipia',
+        'category' => 'Mountain',
+        'tagline' => 'Alpine lakes, forest trails and dramatic mountain scenery.',
+        'image' => 'assets/user-mount-kenya.jpg',
+        'latitude' => -0.1521,
+        'longitude' => 37.3084
+    ],
+    [
+        'name' => 'Lamu Old Town',
+        'county' => 'Lamu',
+        'category' => 'Culture',
+        'tagline' => 'A historic Swahili town with dhow trips, beaches and quiet lanes.',
+        'image' => 'assets/user-lamu.jpg',
+        'latitude' => -2.2696,
+        'longitude' => 40.9006
+    ]
+];
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -48,44 +69,6 @@ $attractions = $stmt->fetchAll();
     <link rel="stylesheet" 
           href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <style>
-        .hero { background: linear-gradient(135deg, #085041, #1D9E75);
-                color: white; padding: 60px 24px; text-align: center; }
-        .hero h1 { font-size: 36px; margin-bottom: 10px; }
-        .hero p  { font-size: 16px; opacity: 0.9; margin-bottom: 30px; }
-        .search-tabs { display: flex; justify-content: center;
-                       gap: 10px; margin-bottom: 20px; }
-        .tab { padding: 10px 24px; border-radius: 25px; font-size: 14px;
-               cursor: pointer; border: 2px solid white;
-               background: transparent; color: white; transition: 0.2s; }
-        .tab.active { background: white; color: #085041; font-weight: 600; }
-        .search-box { background: white; border-radius: 12px;
-                      padding: 20px; max-width: 600px;
-                      margin: 0 auto; box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
-        .search-row { display: flex; gap: 10px; }
-        .search-row input,
-        .search-row select { flex: 1; padding: 10px 14px;
-                              border: 1px solid #ddd; border-radius: 6px;
-                              font-size: 14px; }
-        .search-row button { background: #1D9E75; color: white;
-                              border: none; padding: 10px 20px;
-                              border-radius: 6px; cursor: pointer;
-                              font-size: 14px; white-space: nowrap; }
-        .features { display: grid;
-                    grid-template-columns: repeat(auto-fit, minmax(200px,1fr));
-                    gap: 20px; padding: 40px 24px;
-                    max-width: 1200px; margin: 0 auto; }
-        .feature-item { text-align: center; padding: 20px; }
-        .feature-icon { font-size: 32px; margin-bottom: 10px; }
-        .feature-item h3 { font-size: 15px; color: #085041;
-                           margin-bottom: 6px; }
-        .feature-item p { font-size: 13px; color: #666; }
-        #map { height: 400px; margin: 0 24px 40px;
-               border-radius: 12px; border: 1px solid #ddd; }
-        .map-section { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
-        .map-section h2 { font-size: 20px; font-weight: 700;
-                          color: #085041; margin-bottom: 12px; }
-    </style>
 </head>
 <body class="homepage">
 
@@ -94,61 +77,11 @@ $attractions = $stmt->fetchAll();
 <section class="hp-hero">
     <div class="hp-hero-inner">
         <span class="hp-badge">Smart recommendations for Kenya and beyond</span>
-        <h1>Discover Kenya.<br>Stay. Explore.<br>Experience.</h1>
-        <p>From cosy rooms in Nairobi to lodges at the foot of Mt. Kenya, find where to stay and discover nearby attractions.</p>
+        <h1>Discover Kenya.<br>Stay.Explore.<br>Experience.</h1>
+        <p>From cosy rooms in Nairobi to lodges at the foot of Mt. Kenya, find where to stay and discover nearby attractions or start with a place you want to see and find the best stays around it.</p>
         <div class="actions" style="justify-content:center;margin-top:28px">
             <a class="btn btn-light" href="tourist/search.php?type=accommodation">Find a stay</a>
             <a class="btn btn-outline" style="color:#fff;border-color:rgba(255,255,255,.8)" href="tourist/search.php?type=attraction">Explore attractions</a>
-        </div>
-        <div class="search-tabs" style="justify-content:center;margin-top:28px">
-            <button class="tab active" type="button" onclick="switchTab('accommodation', this)">Find accommodation</button>
-            <button class="tab" type="button" onclick="switchTab('attraction', this)">Explore attractions</button>
-        </div>
-        <div class="hp-search" id="accommodation-search">
-            <form method="GET" action="tourist/search.php" class="field" style="grid-column:1/-1">
-                <input type="hidden" name="type" value="accommodation">
-                <div class="field">
-                    <label for="home-location">DESTINATION</label>
-                    <input id="home-location" type="search" name="location" placeholder="Where are you going?" value="<?= htmlspecialchars($_GET['location'] ?? '') ?>">
-                </div>
-                <div class="grid grid-2">
-                    <div class="field">
-                        <label for="home-check-in">CHECK IN</label>
-                        <input id="home-check-in" type="date" name="check_in" min="<?= date('Y-m-d') ?>">
-                    </div>
-                    <div class="field">
-                        <label for="home-check-out">CHECK OUT</label>
-                        <input id="home-check-out" type="date" name="check_out" min="<?= date('Y-m-d') ?>">
-                    </div>
-                </div>
-                <button class="btn" type="submit" style="margin-top:10px">Search stays</button>
-            </form>
-        </div>
-        <div class="hp-search" id="attraction-search" style="display:none">
-            <form method="GET" action="tourist/search.php" class="field" style="grid-column:1/-1">
-                <input type="hidden" name="type" value="attraction">
-                <div class="field">
-                    <label for="home-attraction">ATTRACTION OR DESTINATION</label>
-                    <input id="home-attraction" type="search" name="location" placeholder="Search attractions...">
-                </div>
-                <div class="field">
-                    <label for="home-category">CATEGORY</label>
-                    <select id="home-category" name="category">
-                        <option value="">All categories</option>
-                        <option value="National Parks">National Parks</option>
-                        <option value="Museums">Museums</option>
-                        <option value="Beaches">Beaches</option>
-                        <option value="Historical Sites">Historical Sites</option>
-                        <option value="Adventure">Adventure</option>
-                        <option value="Culture">Culture</option>
-                        <option value="Restaurants">Restaurants &amp; Eateries</option>
-                        <option value="Shopping">Shopping</option>
-                        <option value="Entertainment">Entertainment</option>
-                        <option value="Religious Sites">Religious sites</option>
-                    </select>
-                </div>
-                <button class="btn" type="submit" style="margin-top:10px">Search attractions</button>
-            </form>
         </div>
     </div>
 </section>
@@ -162,11 +95,67 @@ $attractions = $stmt->fetchAll();
     </div>
 </section>
 
-<section class="hp-section hp-map-section">
+<section class="hp-section hp-map-section" id="kenyaMap">
     <div class="hp-kicker">Search anywhere in Kenya</div>
     <h2>Find a stay or an attraction on the map</h2>
-    <p class="hp-caption">Green pins show stays; purple pins show attractions.</p>
-    <div id="map" aria-label="Map of accommodations and attractions across Kenya"></div>
+    <p class="hp-caption">Start from a place you want to visit and see the best stays around it, or start from a stay and see what is nearby.</p>
+    <form class="map-search" method="GET" action="tourist/search.php">
+        <input type="hidden" name="type" value="accommodation">
+        <div class="map-search-box">
+            <input id="mapSearch" type="search" name="location" placeholder="Try “Diani”, “Maasai Mara”, “Nanyuki”…" autocomplete="off" aria-label="Search a place, attraction or stay in Kenya">
+        </div>
+        <button class="btn" id="mapGo" type="submit">Search</button>
+        <button class="btn btn-outline" id="mapNear" type="button">◎ Use my location</button>
+        <select id="mapRadius" name="radius" aria-label="Search radius">
+            <option value="25">Within 25 km</option>
+            <option value="50">Within 50 km</option>
+            <option value="100" selected>Within 100 km</option>
+            <option value="250">Within 250 km</option>
+        </select>
+        <details class="home-date-options">
+            <summary>Choose travel dates</summary>
+            <div class="grid grid-2" style="margin-top:10px">
+                <div class="field">
+                    <label for="home-check-in">CHECK IN</label>
+                    <input id="home-check-in" type="date" name="check_in" min="<?= date('Y-m-d') ?>">
+                </div>
+                <div class="field">
+                    <label for="home-check-out">CHECK OUT</label>
+                    <input id="home-check-out" type="date" name="check_out" min="<?= date('Y-m-d') ?>">
+                </div>
+            </div>
+        </details>
+    </form>
+    <div class="map-chips" role="group" aria-label="Show on map">
+        <button type="button" class="chip on" data-kind="all" aria-pressed="true">All</button>
+        <button type="button" class="chip" data-kind="attractions" aria-pressed="false"><span class="near-dot attraction"></span>Attractions</button>
+        <button type="button" class="chip" data-kind="stays" aria-pressed="false"><span class="near-dot stay"></span>Stays</button>
+    </div>
+    <div class="map-layout">
+        <div class="home-map" id="map" aria-label="Map of accommodations and attractions across Kenya"></div>
+        <aside class="card pad map-results" id="mapResults" aria-live="polite">
+            <h3>Explore around Kenya</h3>
+            <p class="small">Featured stays and attractions to start planning your next trip.</p>
+            <section class="near-section">
+                <div class="near-head"><h4>Featured stays</h4></div>
+                <?php foreach (array_slice($featured, 0, 4) as $acc): ?>
+                    <a class="near-item" href="tourist/details.php?id=<?= (int)$acc['accommodation_id'] ?>">
+                        <span class="near-dot stay"></span>
+                        <span><strong><?= htmlspecialchars($acc['title']) ?></strong><span class="small"><?= htmlspecialchars($acc['location_name']) ?> · KES <?= number_format($acc['price_per_night']) ?>/night</span></span>
+                    </a>
+                <?php endforeach; ?>
+            </section>
+            <section class="near-section">
+                <div class="near-head"><h4>Popular attractions</h4></div>
+                <?php foreach ($homeDestinations as $destination): ?>
+                    <a class="near-item" href="tourist/search.php?type=accommodation&amp;lat=<?= $destination['latitude'] ?>&amp;lng=<?= $destination['longitude'] ?>&amp;radius=100">
+                        <span class="near-dot attraction"></span>
+                        <span><strong><?= htmlspecialchars($destination['name']) ?></strong><span class="small"><?= htmlspecialchars($destination['county']) ?> County · <?= htmlspecialchars($destination['category']) ?></span></span>
+                    </a>
+                <?php endforeach; ?>
+            </section>
+        </aside>
+    </div>
 </section>
 
 <section class="hp-section">
@@ -200,33 +189,25 @@ $attractions = $stmt->fetchAll();
         <a class="home-link hp-viewall" href="tourist/search.php?type=attraction">View all attractions &rarr;</a>
     </div>
     <div class="hp-attraction-layout">
-        <?php if (!empty($attractions)): $featured_attraction = $attractions[0]; ?>
-        <article class="hp-attraction-feature">
-            <?php if ($featured_attraction['photo_path']): ?>
-                <img src="uploads/attractions/<?= rawurlencode($featured_attraction['photo_path']) ?>" alt="<?= htmlspecialchars($featured_attraction['name']) ?>" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:9px">
-            <?php endif; ?>
+        <?php $featuredDestination = $homeDestinations[0]; ?>
+        <article class="hp-attraction-feature" style="background-image:linear-gradient(180deg,transparent 42%,rgba(0,0,0,.76)),url('<?= htmlspecialchars($featuredDestination['image'], ENT_QUOTES) ?>');background-size:cover;background-position:center">
             <div class="copy">
-                <div class="hp-kicker" style="color:#efb59e">Featured destination</div>
-                <h3><?= htmlspecialchars($featured_attraction['name']) ?></h3>
-                <p><?= htmlspecialchars($featured_attraction['location_name']) ?> &middot; <?= htmlspecialchars($featured_attraction['category']) ?></p>
-                <a class="btn btn-light" href="tourist/search.php?type=accommodation&amp;attraction_id=<?= $featured_attraction['attraction_id'] ?>">Find nearby stays</a>
+                <div class="hp-kicker" style="color:#efb59e"><?= htmlspecialchars($featuredDestination['name']) ?> · <?= htmlspecialchars($featuredDestination['county']) ?> County · <?= htmlspecialchars($featuredDestination['category']) ?></div>
+                <h3><?= htmlspecialchars($featuredDestination['tagline']) ?></h3>
+                <a class="btn btn-light" href="tourist/search.php?type=accommodation&amp;lat=<?= $featuredDestination['latitude'] ?>&amp;lng=<?= $featuredDestination['longitude'] ?>&amp;radius=100">Find nearby stays</a>
             </div>
         </article>
         <div class="hp-attraction-grid">
-            <?php foreach (array_slice($attractions, 1, 4) as $att): ?>
-            <article class="hp-attraction-card">
-                <?php if ($att['photo_path']): ?>
-                    <img src="uploads/attractions/<?= rawurlencode($att['photo_path']) ?>" alt="<?= htmlspecialchars($att['name']) ?>" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
-                <?php endif; ?>
+            <?php foreach (array_slice($homeDestinations, 1) as $destination): ?>
+            <article class="hp-attraction-card" style="background-image:linear-gradient(180deg,transparent 40%,rgba(0,0,0,.72)),url('<?= htmlspecialchars($destination['image'], ENT_QUOTES) ?>')">
                 <div class="copy">
-                    <h3><?= htmlspecialchars($att['name']) ?></h3>
-                    <p><?= htmlspecialchars($att['location_name']) ?> &middot; <?= htmlspecialchars($att['category']) ?></p>
-                    <a class="btn btn-light btn-sm" href="tourist/search.php?type=accommodation&amp;attraction_id=<?= $att['attraction_id'] ?>">Find nearby stays</a>
+                    <div class="hp-kicker" style="color:#efb59e"><?= htmlspecialchars($destination['category']) ?> · <?= htmlspecialchars($destination['county']) ?></div>
+                    <h3><?= htmlspecialchars($destination['tagline']) ?></h3>
+                    <a class="btn btn-light btn-sm" href="tourist/search.php?type=accommodation&amp;lat=<?= $destination['latitude'] ?>&amp;lng=<?= $destination['longitude'] ?>&amp;radius=100">Find nearby stays</a>
                 </div>
             </article>
             <?php endforeach; ?>
         </div>
-        <?php endif; ?>
     </div>
 </section>
 
@@ -254,21 +235,23 @@ const map = L.map('map').setView([-1.2921, 36.8219], 7);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OpenStreetMap contributors'
 }).addTo(map);
+const stayMarkers = L.layerGroup().addTo(map);
+const attractionMarkers = L.layerGroup().addTo(map);
 
 // Custom icons
 const greenIcon = L.divIcon({
     className: '',
-    html: '<div style="background:#1D9E75;color:white;padding:4px 8px;
+    html: `<div style="background:#1D9E75;color:white;padding:4px 8px;
                        border-radius:10px;font-size:11px;
-                       font-weight:600;white-space:nowrap">🏠 Stay</div>',
+                       font-weight:600;white-space:nowrap">🏠 Stay</div>`,
     iconAnchor: [20, 10]
 });
 
 const purpleIcon = L.divIcon({
     className: '',
-    html: '<div style="background:#534AB7;color:white;padding:4px 8px;
+    html: `<div style="background:#bd5d3c;color:white;padding:4px 8px;
                        border-radius:10px;font-size:11px;
-                       font-weight:600;white-space:nowrap">📍 Visit</div>',
+                       font-weight:600;white-space:nowrap">📍 Visit</div>`,
     iconAnchor: [20, 10]
 });
 
@@ -278,7 +261,7 @@ const purpleIcon = L.divIcon({
 L.marker(
     [<?= $acc['latitude'] ?>, <?= $acc['longitude'] ?>],
     { icon: greenIcon }
-).addTo(map).bindPopup(`
+).addTo(stayMarkers).bindPopup(`
     <b><?= htmlspecialchars($acc['title']) ?></b><br>
     <?= htmlspecialchars($acc['location_name']) ?><br>
     KES <?= number_format($acc['price_per_night']) ?>/night<br>
@@ -290,72 +273,55 @@ L.marker(
 <?php endif; ?>
 <?php endforeach; ?>
 
-// Plot attractions
-<?php foreach ($attractions as $att): ?>
-<?php if ($att['latitude'] && $att['longitude']): ?>
-L.marker(
-    [<?= $att['latitude'] ?>, <?= $att['longitude'] ?>],
-    { icon: purpleIcon }
-).addTo(map).bindPopup(`
-    <b><?= htmlspecialchars($att['name']) ?></b><br>
-    <?= htmlspecialchars($att['location_name']) ?><br>
-    Category: <?= htmlspecialchars($att['category']) ?><br>
-    <?= $att['entry_fee'] > 0 
-        ? 'Entry: KES ' . number_format($att['entry_fee']) 
-        : 'Free entry' ?><br>
-    <a href="tourist/search.php?type=accommodation
-             &attraction_id=<?= $att['attraction_id'] ?>">
-        Find Nearby Stays
-    </a>
-`);
-<?php endif; ?>
-<?php endforeach; ?>
+// Show the same featured destinations as the standalone frontend.
+const homeDestinations = <?= json_encode($homeDestinations, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
+homeDestinations.forEach(destination => {
+    const nearbyUrl = `tourist/search.php?type=accommodation&lat=${destination.latitude}&lng=${destination.longitude}&radius=100`;
+    L.marker([destination.latitude, destination.longitude], { icon: purpleIcon })
+        .addTo(attractionMarkers)
+        .bindPopup(`<b>${destination.name}</b><br>${destination.county} County · ${destination.category}<br>${destination.tagline}<br><a href="${nearbyUrl}">Find Nearby Stays</a>`);
+});
 
 // Detect current location button
-document.addEventListener('DOMContentLoaded', function() {
-    const locBtn = L.control({ position: 'topleft' });
-    locBtn.onAdd = function() {
-        const btn = L.DomUtil.create('button', '');
-        btn.innerHTML = '📍 Use my location';
-        btn.style.cssText = 'background:white;border:1px solid #ddd;
-                             padding:8px 12px;border-radius:6px;
-                             cursor:pointer;font-size:13px;margin:10px';
-        btn.onclick = function() {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(function(pos) {
-                    const lat = pos.coords.latitude;
-                    const lng = pos.coords.longitude;
-                    map.setView([lat, lng], 12);
-                    L.marker([lat, lng]).addTo(map)
-                     .bindPopup('You are here').openPopup();
-                    // Redirect to search with current location
-                    window.location.href = 
-                        `tourist/search.php?type=accommodation
-                         &lat=${lat}&lng=${lng}`;
-                });
-            } else {
-                alert('Geolocation is not supported by your browser');
-            }
-        };
-        return btn;
-    };
-    locBtn.addTo(map);
+document.querySelectorAll('.map-chips [data-kind]').forEach(chip => {
+    chip.addEventListener('click', () => {
+        const kind = chip.dataset.kind;
+        document.querySelectorAll('.map-chips [data-kind]').forEach(option => {
+            const active = option === chip;
+            option.classList.toggle('on', active);
+            option.setAttribute('aria-pressed', String(active));
+        });
+        if (kind === 'all' || kind === 'stays') {
+            if (!map.hasLayer(stayMarkers)) stayMarkers.addTo(map);
+        } else {
+            map.removeLayer(stayMarkers);
+        }
+        if (kind === 'all' || kind === 'attractions') {
+            if (!map.hasLayer(attractionMarkers)) attractionMarkers.addTo(map);
+        } else {
+            map.removeLayer(attractionMarkers);
+        }
+    });
 });
-</script>
 
-<!-- Tab switching script -->
-<script>
-function switchTab(type, btn) {
-    // Update tab styles
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    btn.classList.add('active');
-
-    // Show correct search box
-    document.getElementById('accommodation-search').style.display =
-        type === 'accommodation' ? 'block' : 'none';
-    document.getElementById('attraction-search').style.display =
-        type === 'attraction' ? 'block' : 'none';
-}
+document.getElementById('mapNear').addEventListener('click', function() {
+    if (!navigator.geolocation) {
+        alert('Geolocation is not supported by your browser.');
+        return;
+    }
+    this.disabled = true;
+    navigator.geolocation.getCurrentPosition(function(pos) {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        map.setView([lat, lng], 12);
+        L.marker([lat, lng]).addTo(map).bindPopup('You are here').openPopup();
+        const radius = encodeURIComponent(document.getElementById('mapRadius').value);
+        window.location.href = `tourist/search.php?type=accommodation&lat=${lat}&lng=${lng}&radius=${radius}`;
+    }, function() {
+        alert('Your location could not be determined. Check your location permissions and try again.');
+        document.getElementById('mapNear').disabled = false;
+    }, { enableHighAccuracy: true, timeout: 10000 });
+});
 </script>
 
 </body>

@@ -1,5 +1,6 @@
 <?php
-require_once 'includes/auth.php';
+require_once __DIR__ . '/includes/auth.php';
+require_once __DIR__ . '/includes/functions.php';
 
 $token = sanitize($_GET['token'] ?? '');
 

@@ -32,10 +32,10 @@ $is_homepage = basename($_SERVER['PHP_SELF']) === 'index.php';
                     <a href="/smart_accommodation/tourist/bookings.php">My bookings</a>
                 <?php elseif (hasRole('host')): ?>
                     <span class="role-pill">Host</span>
-                    <a href="/smart_accommodation/host/dashboard.php">Host dashboard</a>
+                    <a href="/smart_accommodation/index.php">Browse stays</a>
                 <?php elseif (hasRole('admin')): ?>
                     <span class="role-pill">Admin</span>
-                    <a href="/smart_accommodation/admin/dashboard.php">Admin panel</a>
+                    <a href="/smart_accommodation/index.php">Home</a>
                 <?php endif; ?>
                 <a href="/smart_accommodation/logout.php" class="btn btn-outline">
                     Sign out

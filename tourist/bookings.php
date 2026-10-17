@@ -139,7 +139,7 @@ $current = $tab === 'completed' ? $completed
                          margin-bottom:20px }
     </style>
 </head>
-<body>
+<body class="tourist-bookings">
 
 <?php include '../includes/header.php'; ?>
 
@@ -272,7 +272,7 @@ $current = $tab === 'completed' ? $completed
                     <?php endif; ?>
 
                     <?php if ($b['status'] === 'completed'): ?>
-                        <a href="report.php?booking_id=<?= $b['booking_id'] ?>"
+                        <a href="../contact.php"
                            class="btn-sm btn-sm-outline">
                             Report
                         </a>

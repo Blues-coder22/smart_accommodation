@@ -23,3 +23,5 @@
         <a href="/smart_accommodation/terms.php">Terms</a>
     </div>
 </footer>
+<script>window.__smartAccommodationServerRendered = true;</script>
+<script src="/smart_accommodation/assets/js/app.js" defer></script>

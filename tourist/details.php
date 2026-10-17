@@ -233,7 +233,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
         }
     </style>
 </head>
-<body>
+<body class="tourist-details">
 
 <?php include '../includes/header.php'; ?>
 
@@ -423,8 +423,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
             <?php if (isLoggedIn() && hasRole('tourist')): ?>
             <div style="margin-top:24px;padding-top:16px;
                         border-top:1px solid #eee">
-                <a href="report.php?type=listing
-                         &target_id=<?= $accommodation_id ?>"
+                <a href="../contact.php"
                    style="font-size:13px;color:#e74c3c">
                     🚩 Report this listing
                 </a>

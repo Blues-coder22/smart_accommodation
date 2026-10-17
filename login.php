@@ -21,17 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $result = loginUser($email, $password);
 
         if ($result['success']) {
-            // Redirect based on role
-            switch ($result['role']) {
-                case 'admin':
-                    redirect('admin/dashboard.php');
-                    break;
-                case 'host':
-                    redirect('host/dashboard.php');
-                    break;
-                default:
-                    redirect('index.php');
-            }
+            redirect('index.php');
         } else {
             $errors[] = $result['message'];
         }
@@ -63,6 +53,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="eyebrow">Welcome back</div>
         <h1>Continue exploring.</h1>
         <p class="small">Sign in to manage your trips, saved places or properties.</p>
+        <p class="notice" style="margin-top:16px">
+            Accounts created in the standalone frontend demo are stored only in that browser demo and are not connected to this PHP app. Use an account registered here, and verify its email before signing in.
+        </p>
 
         <?= showFlash() ?>
 

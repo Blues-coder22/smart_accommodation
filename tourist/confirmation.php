@@ -143,7 +143,7 @@ $nearby = getNearbyAttractions(
                          border:0.5px solid var(--border-strong) }
     </style>
 </head>
-<body>
+<body class="tourist-confirmation">
 
 <?php include '../includes/header.php'; ?>
 
