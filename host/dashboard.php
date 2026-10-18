@@ -81,6 +81,40 @@ $pending_reviews = $pdo->prepare("
 ");
 $pending_reviews->execute([$host_id]);
 $pending_reviews = $pending_reviews->fetchColumn();
+
+$earnings_by_month = array_column($monthly, 'earnings', 'month_key');
+$chart_months = [];
+$chart_values = [];
+$chart_start = (new DateTimeImmutable('first day of this month'))
+    ->modify('-5 months');
+for ($i = 0; $i < 6; $i++) {
+    $chart_month = $chart_start->modify("+$i months");
+    $chart_months[] = $chart_month;
+    $chart_values[] = (float)($earnings_by_month[
+        $chart_month->format('Y-m')
+    ] ?? 0);
+}
+$chart_max = max($chart_values) ?: 1;
+$chart_x_start = 42;
+$chart_x_end = 490;
+$chart_y_top = 24;
+$chart_y_bottom = 154;
+$chart_x_at = static function ($index) use ($chart_x_start, $chart_x_end) {
+    return $chart_x_start
+        + ($chart_x_end - $chart_x_start) * $index / 5;
+};
+$chart_y_at = static function ($value) use (
+    $chart_max,
+    $chart_y_top,
+    $chart_y_bottom
+) {
+    return $chart_y_bottom
+        - ($value / $chart_max) * ($chart_y_bottom - $chart_y_top);
+};
+$chart_points = [];
+foreach ($chart_values as $i => $value) {
+    $chart_points[] = $chart_x_at($i) . ',' . $chart_y_at($value);
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -171,17 +205,19 @@ $pending_reviews = $pending_reviews->fetchColumn();
         .s-pending   { color:#D97706; font-weight:500 }
         .s-completed { color:#1A4DB3; font-weight:500 }
         .s-cancelled { color:#DC2626 }
-        .chart-wrap  { padding:18px }
-        .chart-bars  { display:flex; align-items:flex-end;
-                       gap:8px; height:120px;
-                       border-bottom:0.5px solid var(--border);
-                       padding-bottom:8px; margin-bottom:8px }
-        .bar-col    { flex:1; display:flex; flex-direction:column;
-                      align-items:center; gap:4px; height:100% }
-        .bar        { width:100%; background:#1D9E75;
-                      border-radius:3px 3px 0 0;
-                      min-height:2px; transition:.3s }
-        .bar-label  { font-size:10px; color:var(--text-secondary) }
+        .chart-heading { padding:18px 18px 0 }
+        .chart-eyebrow { font-size:10px; letter-spacing:.13em;
+                         text-transform:uppercase; color:#BD5D3C;
+                         font-weight:700; margin-bottom:8px }
+        .chart-heading h2 { font-family:Georgia,'Times New Roman',serif;
+                            font-size:29px; font-weight:500;
+                            letter-spacing:-.02em; margin:0 }
+        .chart-wrap  { padding:12px 18px 18px }
+        .line-chart  { height:200px; position:relative;
+                       background:linear-gradient(180deg,transparent 0,
+                       transparent 49%,#eee 50%,transparent 51%) }
+        .line-chart svg { width:100%; height:100% }
+        .chart-note { font-size:12px; color:var(--text-secondary) }
         .empty-row  { text-align:center; padding:32px;
                       color:var(--text-secondary); font-size:13px }
         @media(max-width:900px){
@@ -353,40 +389,64 @@ $pending_reviews = $pending_reviews->fetchColumn();
 
             <!-- Monthly Trend Chart -->
             <div class="section-card">
-                <div class="card-header">
-                    <h3>Monthly trend</h3>
+                <div class="chart-heading">
+                    <div class="chart-eyebrow">Income</div>
+                    <h2>Monthly trend</h2>
                 </div>
                 <div class="chart-wrap">
-                    <?php if (!empty($monthly)): ?>
                     <?php
-                    $max_earn = max(array_column($monthly, 'earnings'));
-                    $max_earn = $max_earn > 0 ? $max_earn : 1;
+                    $chart_description =
+                        'Host income from confirmed payments over the last six months';
                     ?>
-                    <div class="chart-bars">
-                        <?php foreach ($monthly as $m): ?>
-                        <div class="bar-col">
-                            <div class="bar" style="height:<?= round(
-                                ($m['earnings'] / $max_earn) * 100
-                            ) ?>%"
-                                 title="KES <?= number_format(
-                                     $m['earnings']) ?>">
-                            </div>
-                            <div class="bar-label">
-                                <?= $m['month'] ?>
-                            </div>
-                        </div>
-                        <?php endforeach; ?>
+                    <div class="line-chart">
+                        <svg viewBox="0 0 500 200" role="img"
+                             aria-label="<?= htmlspecialchars(
+                                 $chart_description,
+                                 ENT_QUOTES,
+                                 'UTF-8'
+                             ) ?>"
+                             preserveAspectRatio="none">
+                            <title><?= htmlspecialchars(
+                                $chart_description,
+                                ENT_QUOTES,
+                                'UTF-8'
+                            ) ?></title>
+                            <?php foreach ([24, 89, 154] as $grid_y): ?>
+                            <line x1="<?= $chart_x_start ?>"
+                                  y1="<?= $grid_y ?>"
+                                  x2="<?= $chart_x_end ?>"
+                                  y2="<?= $grid_y ?>"
+                                  stroke="#d9d5ca" stroke-width="1"/>
+                            <?php endforeach; ?>
+                            <polyline
+                                points="<?= implode(' ', $chart_points) ?>"
+                                fill="none" stroke="#0d3b2e" stroke-width="3"
+                                stroke-linejoin="round"
+                                stroke-linecap="round"/>
+                            <?php foreach ($chart_values as $i => $value): ?>
+                            <circle cx="<?= $chart_x_at($i) ?>"
+                                    cy="<?= $chart_y_at($value) ?>"
+                                    r="4" fill="#0d3b2e">
+                                <title><?= htmlspecialchars(
+                                    $chart_months[$i]->format('F Y') . ': KES '
+                                        . number_format($value),
+                                    ENT_QUOTES,
+                                    'UTF-8'
+                                ) ?></title>
+                            </circle>
+                            <?php endforeach; ?>
+                            <?php foreach ($chart_months as $i => $month): ?>
+                            <text x="<?= $chart_x_at($i) ?>" y="183"
+                                  text-anchor="middle" fill="#6f746d"
+                                  font-size="11"><?= $month->format('M y') ?></text>
+                            <?php endforeach; ?>
+                        </svg>
                     </div>
-                    <div style="font-size:12px;color:var(--text-secondary)">
-                        Earnings last 6 months
+                    <div class="chart-note">
+                        <?= !empty($monthly)
+                            ? 'Monthly income from confirmed payments over the last six months.'
+                            : 'No confirmed payments yet; the trend is zero for the last six months.' ?>
                     </div>
-                    <?php else: ?>
-                    <div style="text-align:center;padding:40px 0;
-                                font-size:13px;
-                                color:var(--text-secondary)">
-                        No earnings data yet
-                    </div>
-                    <?php endif; ?>
                 </div>
             </div>
 
