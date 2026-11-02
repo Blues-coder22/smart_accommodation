@@ -2,6 +2,7 @@
 require_once '../includes/auth.php';
 require_once '../includes/functions.php';
 require_once '../includes/db.php';
+require_once '../includes/upload_helpers.php';
 require_once '../includes/email.php';
 
 if (session_status() === PHP_SESSION_NONE) session_start();
@@ -38,10 +39,22 @@ if ($report_type === 'incident' && $booking_id) {
     $target_name = $booking['title'] ?? '';
 }
 
+// Stays this tourist can report an incident about (used when the form was not opened from My bookings).
+$my_stays = $pdo->prepare("
+    SELECT b.booking_id, b.check_in_date, a.title
+    FROM bookings b
+    JOIN accommodations a ON a.accommodation_id = b.accommodation_id
+    WHERE b.tourist_id = ? AND b.status IN ('confirmed','completed','no_show')
+    ORDER BY b.check_in_date DESC
+");
+$my_stays->execute([$_SESSION['user_id']]);
+$my_stays = $my_stays->fetchAll();
+
 $errors  = [];
 $success = false;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    requireCsrf();
     $type        = sanitize($_POST['report_type'] ?? '');
     $description = sanitize($_POST['description'] ?? '');
     $incident_t  = sanitize($_POST['incident_type'] ?? '');
@@ -62,15 +75,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif ($_FILES['evidence']['size'] > 5 * 1024 * 1024) {
             $errors[] = 'Evidence file must be under 5MB.';
         } else {
-            $ext      = pathinfo(
-                $_FILES['evidence']['name'], PATHINFO_EXTENSION
+            $filename = saveUploadedImage(
+                $_FILES['evidence']['tmp_name'], $ftype,
+                'evidence', 'evidence', 5 * 1024 * 1024
             );
-            $filename = 'evidence_' . uniqid() . '.' . $ext;
-            $dest     = '../uploads/evidence/' . $filename;
-            if (move_uploaded_file(
-                $_FILES['evidence']['tmp_name'], $dest)) {
+            if ($filename !== false) {
                 $evidence = $filename;
+            } else {
+                $errors[] = 'The evidence image could not be saved. Please try again.';
             }
+        }
+    }
+
+    // Only these report types exist for tourists.
+    if (!in_array($type, ['listing', 'incident', 'review', 'tourist'], true)) {
+        $errors[] = 'Please choose a valid report type.';
+    }
+
+    // An incident must be tied to a stay the tourist really booked (confirmed or completed).
+    // The listing to suspend comes from that booking, never from the URL.
+    $critical_types = ['theft', 'physical_abuse', 'sexual_harassment', 'safety_hazard', 'privacy_violation'];
+    if ($type === 'incident') {
+        $post_booking = (int)($_POST['booking_id'] ?? $booking_id);
+        $chk = $pdo->prepare("
+            SELECT accommodation_id FROM bookings
+            WHERE booking_id = ? AND tourist_id = ?
+            AND status IN ('confirmed','completed','no_show')
+        ");
+        $chk->execute([$post_booking, $_SESSION['user_id']]);
+        $own_acc = $chk->fetchColumn();
+        if (!$own_acc) {
+            $errors[] = 'Incidents can only be reported for a stay you booked. Open this form from My bookings.';
+        } else {
+            $target_id = (int)$own_acc;
+        }
+        if ($incident_t === '') {
+            $errors[] = 'Please select the type of incident.';
+        }
+    } else {
+        // Other reports must point at a real listing.
+        $chk = $pdo->prepare("SELECT COUNT(*) FROM accommodations WHERE accommodation_id = ?");
+        $chk->execute([$target_id]);
+        if (!$chk->fetchColumn()) {
+            $errors[] = 'Please open this form from a listing page so we know what you are reporting.';
         }
     }
 
@@ -84,8 +131,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             VALUES (?, ?, ?, ?, ?, ?, 'pending', ?)
         ");
 
-        // Auto suspend listing on critical incident
-        $suspend = ($type === 'incident') ? 1 : 0;
+        // Auto-suspend the listing only for critical incidents
+        $suspend = ($type === 'incident' && in_array($incident_t, $critical_types, true)) ? 1 : 0;
 
         $stmt->execute([
             $_SESSION['user_id'],
@@ -100,7 +147,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $report_id = $pdo->lastInsertId();
 
         // Suspend listing if critical incident
-        if ($type === 'incident' && $target_id) {
+        if ($suspend && $target_id) {
             $pdo->prepare("
                 UPDATE accommodations
                 SET status = 'suspended'
@@ -115,19 +162,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ")->fetch();
 
         if ($admin) {
-            $urgency = ($type === 'incident') ? '*** URGENT *** ' : '';
+            $urgency = $suspend ? '*** URGENT *** ' : '';
             sendEmail(
                 $admin['email'],
                 $urgency . 'New Report Submitted — Smart Accommodation Kenya',
                 "
                 <h2>{$urgency}New Report #RPT{$report_id}</h2>
                 <p><strong>Type:</strong> $type</p>
-                <p><strong>Property:</strong> $target_name</p>
-                <p><strong>Description:</strong> $description</p>
+                <p><strong>Property:</strong> " . h($target_name) . "</p>
+                <p><strong>Description:</strong> " . h($description) . "</p>
                 " . ($incident_t
                     ? "<p><strong>Incident type:</strong> $incident_t</p>"
                     : "") . "
-                " . ($type === 'incident'
+                " . ($suspend
                     ? "<p style='color:red'><strong>
                        The listing has been automatically suspended
                        pending your review.</strong></p>"
@@ -160,7 +207,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                          grid-template-columns:1fr 260px;
                          gap:20px; align-items:start }
         .report-card { background:var(--surface-2);
-                       border:0.5px solid var(--border);
+                       border:1px solid var(--border);
                        border-radius:8px; padding:24px }
         .report-card h3 { font-size:15px; font-weight:500;
                           margin-bottom:18px }
@@ -170,7 +217,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .form-group input,
         .form-group select,
         .form-group textarea { width:100%; padding:10px 12px;
-                               border:0.5px solid var(--border-strong);
+                               border:1px solid var(--border-strong);
                                border-radius:6px; font-size:13px;
                                color:var(--text-primary);
                                background:var(--surface-2);
@@ -188,7 +235,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                        font-size:14px; font-weight:500; cursor:pointer }
         .submit-btn:hover { background:#b91c1c }
         .side-card   { background:var(--surface-2);
-                       border:0.5px solid var(--border);
+                       border:1px solid var(--border);
                        border-radius:8px; padding:18px;
                        margin-bottom:12px }
         .side-card.urgent { border-color:#DC2626;
@@ -205,7 +252,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                          background:#E1F5EE; border-radius:50%;
                          display:flex; align-items:center;
                          justify-content:center; margin:0 auto 16px;
-                         border:0.5px solid #9FE1CB }
+                         border:1px solid #9FE1CB }
         .success-icon svg { width:22px; height:22px; stroke:#1D9E75 }
         @media(max-width:768px){
             .report-layout { grid-template-columns:1fr }
@@ -223,7 +270,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <p class="page-sub">
         Your report is private and reviewed by our trust team.
         <?php if ($target_name): ?>
-            Related to: <strong><?= htmlspecialchars($target_name) ?></strong>
+            Related to: <strong><?= h($target_name) ?></strong>
         <?php endif; ?>
     </p>
 
@@ -265,7 +312,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php if (!empty($errors)): ?>
         <div class="alert alert-error" style="margin-bottom:20px">
             <?php foreach ($errors as $e): ?>
-                <p><?= $e ?></p>
+                <p><?= h($e) ?></p>
             <?php endforeach; ?>
         </div>
         <?php endif; ?>
@@ -277,6 +324,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <h3>Tell us what happened</h3>
 
                 <form method="POST" enctype="multipart/form-data">
+<input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
 
                     <?php if ($target_id): ?>
                         <input type="hidden" name="target_id"
@@ -341,9 +389,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <input type="text" readonly
                                value="#BK<?= str_pad($booking_id, 5, '0',
                                    STR_PAD_LEFT) ?> &middot;
-                                   <?= htmlspecialchars($target_name) ?>">
+                                   <?= h($target_name) ?>">
                         <input type="hidden" name="booking_id"
                                value="<?= $booking_id ?>">
+                    </div>
+                    <?php else: ?>
+                    <div class="form-group" id="incidentBookingGroup"
+                         style="display:<?= $report_type === 'incident' ? 'block' : 'none' ?>">
+                        <label for="incident_booking">Which stay is this about?</label>
+                        <select id="incident_booking" name="booking_id">
+                            <option value="">Select one of your stays</option>
+                            <?php foreach ($my_stays as $st): ?>
+                                <option value="<?= (int)$st['booking_id'] ?>">
+                                    #BK<?= str_pad($st['booking_id'], 5, '0', STR_PAD_LEFT) ?> &middot; <?= h($st['title']) ?> &middot; <?= date('d M Y', strtotime($st['check_in_date'])) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <?php if (empty($my_stays)): ?>
+                            <p style="font-size:12px;margin-top:6px">Incidents can only be reported for stays you have booked.</p>
+                        <?php endif; ?>
                     </div>
                     <?php endif; ?>
 
@@ -418,9 +482,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <script>
 function toggleIncidentType(sel) {
-    const group = document.getElementById('incidentTypeGroup');
-    group.style.display =
-        sel.value === 'incident' ? 'block' : 'none';
+    const show = sel.value === 'incident' ? 'block' : 'none';
+    document.getElementById('incidentTypeGroup').style.display = show;
+    const bk = document.getElementById('incidentBookingGroup');
+    if (bk) bk.style.display = show;
 }
 </script>
 

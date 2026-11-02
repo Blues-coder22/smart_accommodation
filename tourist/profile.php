@@ -16,8 +16,51 @@ $profile_errors  = [];
 $password_errors = [];
 $profile_success = false;
 $password_success= false;
+$close_errors = [];
+$delete_errors = [];
+$verify_errors = [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    requireCsrf();
+
+    if (isset($_POST['submit_verification'])) {
+        $vr = submitHostVerification($pdo, $user_id, $_POST, $_FILES['id_photo'] ?? null, 'tourist');
+        if ($vr['success']) {
+            setFlash('success', 'Your verification request was sent. An administrator will review it and email you the result.');
+            redirect('profile.php#verification');
+        }
+        $verify_errors = $vr['errors'];
+    }
+
+    if (isset($_POST['delete_account'])) {
+        $deleteResult = deleteUserAccount($pdo, $user_id, $_POST['delete_password'] ?? '', $_POST['delete_confirm'] ?? '');
+        if ($deleteResult['success']) {
+            $_SESSION = [];
+            if (ini_get('session.use_cookies')) {
+                $params = session_get_cookie_params();
+                setcookie(session_name(), '', time() - 42000, $params['path'], $params['domain'], $params['secure'], $params['httponly']);
+            }
+            session_destroy();
+            header('Location: ' . appBasePath() . '/index.php?account=deleted');
+            exit;
+        }
+        $delete_errors = $deleteResult['errors'] ?? ['The account could not be deleted.'];
+    }
+
+    if (isset($_POST['close_account'])) {
+        $closeResult = closeUserAccount($pdo, $user_id, $_POST['close_password'] ?? '');
+        if ($closeResult['success']) {
+            $_SESSION = [];
+            if (ini_get('session.use_cookies')) {
+                $params = session_get_cookie_params();
+                setcookie(session_name(), '', time() - 42000, $params['path'], $params['domain'], $params['secure'], $params['httponly']);
+            }
+            session_destroy();
+            header('Location: ' . appBasePath() . '/index.php?account=closed');
+            exit;
+        }
+        $close_errors = $closeResult['errors'] ?? ['The account could not be closed.'];
+    }
 
     if (isset($_POST['update_profile'])) {
         $result = updateProfile($pdo, $user_id, [
@@ -83,7 +126,7 @@ $tstats = $tstats->fetch();
                        margin-bottom:24px }
         .profile-header { display:flex; align-items:center;
                           gap:20px; background:var(--surface-2);
-                          border:0.5px solid var(--border);
+                          border:1px solid var(--border);
                           border-radius:8px; padding:20px;
                           margin-bottom:20px }
         .avatar      { width:72px; height:72px; border-radius:50%;
@@ -99,13 +142,13 @@ $tstats = $tstats->fetch();
         .profile-role { font-size:11px; font-weight:600;
                         padding:2px 9px; border-radius:3px;
                         background:#E0E7FF; color:#3730A3;
-                        border:0.5px solid #A5B4FC;
+                        border:1px solid #A5B4FC;
                         display:inline-block }
         .stats-row   { display:grid;
                        grid-template-columns:repeat(4,1fr);
                        gap:10px; margin-bottom:20px }
         .stat-chip   { background:var(--surface-2);
-                       border:0.5px solid var(--border);
+                       border:1px solid var(--border);
                        border-radius:8px; padding:12px;
                        text-align:center }
         .stat-num    { font-size:22px; font-weight:500;
@@ -113,19 +156,19 @@ $tstats = $tstats->fetch();
         .stat-label  { font-size:11px; color:var(--text-secondary);
                        margin-top:2px }
         .form-card   { background:var(--surface-2);
-                       border:0.5px solid var(--border);
+                       border:1px solid var(--border);
                        border-radius:8px; padding:22px;
                        margin-bottom:16px }
         .form-card h3{ font-size:14px; font-weight:500;
                        margin-bottom:18px; padding-bottom:12px;
-                       border-bottom:0.5px solid var(--border) }
+                       border-bottom:1px solid var(--border) }
         .form-group  { margin-bottom:14px }
         .form-group label { font-size:12px; font-weight:600;
                             letter-spacing:.04em; text-transform:uppercase;
                             display:block; margin-bottom:5px;
                             color:var(--text-secondary) }
         .form-group input { width:100%; padding:9px 12px;
-                            border:0.5px solid var(--border-strong);
+                            border:1px solid var(--border-strong);
                             border-radius:6px; font-size:13px;
                             color:var(--text-primary);
                             background:var(--surface-2) }
@@ -136,7 +179,7 @@ $tstats = $tstats->fetch();
         .btn-save    { padding:9px 22px; background:#085041;
                        color:#fff; border:none; border-radius:6px;
                        font-size:13px; font-weight:500; cursor:pointer }
-        .success-msg { background:#E1F5EE; border:0.5px solid #9FE1CB;
+        .success-msg { background:#E1F5EE; border:1px solid #9FE1CB;
                        border-radius:6px; padding:10px 14px;
                        font-size:13px; color:#0F6E56;
                        margin-bottom:14px }
@@ -159,19 +202,18 @@ $tstats = $tstats->fetch();
     <div class="profile-header">
         <div class="avatar">
             <?php if ($user['profile_photo']): ?>
-                <img src="../uploads/profiles/<?= htmlspecialchars(
-                    $user['profile_photo']) ?>"
-                     alt="Profile photo">
+                <img src="<?= h(profilePhotoUrl($user['user_id'], $user['profile_photo'])) ?>"
+                         alt="Profile photo">
             <?php else: ?>
-                <?= strtoupper(substr($user['full_name'], 0, 1)) ?>
+                <?= h(strtoupper(substr($user['full_name'], 0, 1))) ?>
             <?php endif; ?>
         </div>
         <div>
             <div class="profile-name">
-                <?= htmlspecialchars($user['full_name']) ?>
+                <?= h($user['full_name']) ?>
             </div>
             <div class="profile-email">
-                <?= htmlspecialchars($user['email']) ?>
+                <?= h($user['email']) ?>
             </div>
             <span class="profile-role">Tourist</span>
         </div>
@@ -208,26 +250,27 @@ $tstats = $tstats->fetch();
         <?php if (!empty($profile_errors)): ?>
         <div class="alert alert-error" style="margin-bottom:14px">
             <?php foreach ($profile_errors as $e): ?>
-                <p><?= $e ?></p>
+                <p><?= h($e) ?></p>
             <?php endforeach; ?>
         </div>
         <?php endif; ?>
 
         <form method="POST" enctype="multipart/form-data">
+<input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
             <input type="hidden" name="update_profile" value="1">
 
             <div class="form-row">
                 <div class="form-group">
                     <label>Full name</label>
                     <input type="text" name="full_name"
-                           value="<?= htmlspecialchars(
+                           value="<?= h(
                                $user['full_name']) ?>"
                            required>
                 </div>
                 <div class="form-group">
                     <label>Phone number</label>
                     <input type="tel" name="phone"
-                           value="<?= htmlspecialchars(
+                           value="<?= h(
                                $user['phone_number'] ?? '') ?>"
                            placeholder="+254 7XX XXX XXX">
                 </div>
@@ -246,6 +289,10 @@ $tstats = $tstats->fetch();
     </div>
 
     <!-- Change Password -->
+    <?php include __DIR__ . '/../includes/guest_reputation_card.php'; ?>
+
+    <?php include __DIR__ . '/../includes/tourist_verification_card.php'; ?>
+
     <div class="form-card">
         <h3>Change password</h3>
 
@@ -256,12 +303,13 @@ $tstats = $tstats->fetch();
         <?php if (!empty($password_errors)): ?>
         <div class="alert alert-error" style="margin-bottom:14px">
             <?php foreach ($password_errors as $e): ?>
-                <p><?= $e ?></p>
+                <p><?= h($e) ?></p>
             <?php endforeach; ?>
         </div>
         <?php endif; ?>
 
         <form method="POST">
+<input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
             <input type="hidden" name="update_password" value="1">
 
             <div class="form-group">
@@ -287,6 +335,27 @@ $tstats = $tstats->fetch();
             </button>
         </form>
     </div>
+
+    <div class="form-card" style="border:1px solid #e6b7b7">
+        <h3 style="color:#a12b2b">Close account</h3>
+        <p style="font-size:13px;color:var(--text-secondary)">Closing your account signs you out and prevents future logins. Your booking, payment and review history is retained for record-keeping. If you are a host, approved listings are suspended so they cannot receive new bookings. Contact the administrator if you need to request reactivation.</p>
+        <?php if (!empty($close_errors)): ?>
+            <div class="alert alert-error" style="margin-bottom:14px">
+                <?php foreach ($close_errors as $e): ?><p><?= h($e, ENT_QUOTES, 'UTF-8') ?></p><?php endforeach; ?>
+            </div>
+        <?php endif; ?>
+        <form method="POST" onsubmit="return confirm('Close your account? You will be signed out and will not be able to log in again unless an administrator reactivates it.');">
+            <input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
+            <input type="hidden" name="close_account" value="1">
+            <div class="form-group">
+                <label for="close_password">Confirm with your current password</label>
+                <input type="password" id="close_password" name="close_password" autocomplete="current-password" required>
+            </div>
+            <button type="submit" class="btn-save" style="background:#a12b2b;color:#fff">Close my account</button>
+        </form>
+    </div>
+
+    <?php include __DIR__ . '/../includes/delete_account_card.php'; ?>
 
 </div>
 

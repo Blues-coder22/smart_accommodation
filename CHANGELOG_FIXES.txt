@@ -1,0 +1,26 @@
+Smart Accommodation — fixes in this package
+
+1. Homepage attraction photo paths now use uploads/attractions/ for filename-only values, rather than the accommodation-photo directory. Legacy attraction paths incorrectly prefixed with uploads/accommodations/ are redirected to the attractions folder. Missing photos still use a local fallback image.
+2. OpenStreetMap discovery searches more tourism, historic, nature, recreation, landmark and cultural categories. Imported places still enter the admin review queue; they are not published until approved. If an OSM record includes a direct HTTPS image URL in an image tag, it can be stored as the attraction photo; most records will still need an admin-uploaded photo.
+3. Host and admin dashboards now have an explicit View Website link. Hosts already have a View live action for approved property listings.
+4. Tourist and host profile pages include a password-confirmed Close account action. This is a soft closure, not hard deletion: historical bookings, reviews and payment records remain. Closing a host account suspends approved listings. Admins can restore a closed account from user management.
+
+REQUIRED DATABASE STEP FOR ACCOUNT CLOSURE
+Before testing the Close account feature, open phpMyAdmin, select the smart_accommodation database, choose Import, and import database/migration_account_closure.sql. This adds users.account_closed_at. Run this migration only once. Do not import it repeatedly.
+
+Validation
+All PHP files in this package passed PHP syntax checks. The application was not connected to the user's live MySQL database or browser in this environment, so runtime workflows still need to be tested locally.
+
+
+2026-10-29 — Booking, OSM area search and messaging updates
+- Added area-name geocoding to admin OpenStreetMap discovery, with manual coordinates retained as an advanced fallback.
+- Separated payment-detail submission from host booking confirmation.
+- Added host Confirm booking / Decline booking actions and payment-reference visibility.
+- Added tourist cancellation for eligible future bookings.
+- Added database-backed tourist-host messaging and a migration script.
+
+2026-10-29 — Photo visibility and interface polish
+- Accommodation images on the homepage, search results, and details page now use contain-style fitting so the complete uploaded image remains visible instead of being cropped.
+- Search/homepage image selection now prefers the primary photo but falls back to another uploaded photo when no primary is marked; broken or missing images fall back to a real bundled property image instead of a house emoji.
+- Photo paths saved as either filenames or uploads paths are normalized on the details and search pages.
+- Added subtle responsive animations, card hover elevation, smoother buttons/forms, and reduced-motion accessibility support across the public pages and shared dashboard styles.

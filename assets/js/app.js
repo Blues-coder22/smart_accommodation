@@ -147,11 +147,12 @@ function renderChrome(){
    One store (localStorage) read by tourist, host and admin screens, so a change
    made by a host or admin is what tourists actually see.
    ====================================================================== */
+const ASSET_BASE = (window.APP_BASE_PATH || '/smart_accommodation') + '/assets/';
 const IMG = {
-  maraSunset:'/smart_accommodation/assets/user-sunset.jpg', maraTent:'/smart_accommodation/assets/mara-safari-tent.jpg', maraDeck:'/smart_accommodation/assets/mara-river-deck.jpg', maraBoma:'/smart_accommodation/assets/mara-boma-firepit.jpg',
-  kenyaPeaks:'/smart_accommodation/assets/user-mount-kenya.jpg', kenyaLodge:'/smart_accommodation/assets/user-lodge.jpg', kenyaLake:'/smart_accommodation/assets/kenya-lake-shore.jpg',
-  lamuTown:'/smart_accommodation/assets/user-lamu.jpg', coastBeach:'/smart_accommodation/assets/user-beach.jpg',
-  nairobiApt:'/smart_accommodation/assets/user-house.jpg', karenCottage:'/smart_accommodation/assets/karen-cottage-garden.jpg', nairobiDusk:'/smart_accommodation/assets/nairobi-dusk-view.jpg'
+  maraSunset:ASSET_BASE+'user-sunset.jpg', maraTent:ASSET_BASE+'mara-safari-tent.jpg', maraDeck:ASSET_BASE+'mara-river-deck.jpg', maraBoma:ASSET_BASE+'mara-boma-firepit.jpg',
+  kenyaPeaks:ASSET_BASE+'user-mount-kenya.jpg', kenyaLodge:ASSET_BASE+'user-lodge.jpg', kenyaLake:ASSET_BASE+'kenya-lake-shore.jpg',
+  lamuTown:ASSET_BASE+'user-lamu.jpg', coastBeach:ASSET_BASE+'user-beach.jpg',
+  nairobiApt:ASSET_BASE+'user-house.jpg', karenCottage:ASSET_BASE+'karen-cottage-garden.jpg', nairobiDusk:ASSET_BASE+'nairobi-dusk-view.jpg'
 };
 /* region = landscape. Each region carries its own photos: dry savannah / forested highlands / sandy coast / city */
 const REGIONS = {
@@ -531,7 +532,7 @@ function initAdminListings(){
       fillListingForm(form,l); form.querySelectorAll('input[type=file]').forEach(i=>i.value='');
       document.querySelector('#adminListingTitle').textContent=`Edit “${l.name}”`;
       const c=document.querySelector('#adminListingCover'); if(c) c.style.backgroundImage=`url('${coverOf(l)}')`;
-      document.querySelector('#integrityList').innerHTML=integrityChecks(l).map(c=>`<li class="${c.level}">${c.level==='ok'?'✔':'⚠'} ${esc(c.text)}</li>`).join('');
+      document.querySelector('#integrityList').innerHTML=integrityChecks(l).map(c=>`<li class="${c.level}">${c.level==='ok'?'✓':'!'} ${esc(c.text)}</li>`).join('');
       panel.hidden=false; { const pm=form.querySelector('[data-pick-map]'); if(pm&&pm.__pick) pm.__pick.refresh(); }
       panel.scrollIntoView({behavior:'smooth',block:'start'});
     }

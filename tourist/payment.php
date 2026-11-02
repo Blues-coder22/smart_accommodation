@@ -3,6 +3,7 @@ require_once '../includes/auth.php';
 require_once '../includes/functions.php';
 require_once '../includes/db.php';
 require_once '../includes/email.php';
+require_once '../includes/onsite_experience.php';
 
 if (session_status() === PHP_SESSION_NONE) session_start();
 
@@ -15,10 +16,12 @@ if (!$booking_id) {
     redirect('bookings.php');
 }
 
+ensureOnsiteExperienceColumns($pdo);
 // Get booking with accommodation details
 $stmt = $pdo->prepare("
     SELECT b.*,
            a.title, a.location_name, a.price_per_night,
+           a.onsite_experience_name,
            a.host_id,
            u.full_name AS host_name,
            u.email AS host_email,
@@ -44,11 +47,13 @@ if (!$booking) {
 $check_in  = new DateTime($booking['check_in_date']);
 $check_out = new DateTime($booking['check_out_date']);
 $nights    = $check_in->diff($check_out)->days;
+$br        = bookingPriceBreakdown($booking);
 
 // Handle form submission
 $errors = [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    requireCsrf();
     $method    = sanitize($_POST['payment_method'] ?? '');
     $reference = sanitize($_POST['payment_reference'] ?? '');
     $confirmed = isset($_POST['confirmed']) ? 1 : 0;
@@ -63,55 +68,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (empty($errors)) {
-        // Record payment
-        $stmt = $pdo->prepare("
-            INSERT INTO payments
-            (booking_id, tourist_id, host_id, amount,
-             payment_method, payment_status, payment_date)
-            VALUES (?, ?, ?, ?, ?, 'confirmed', NOW())
-        ");
-        $stmt->execute([
-            $booking_id,
-            $_SESSION['user_id'],
-            $booking['host_id'],
-            $booking['total_amount'],
-            $method
-        ]);
+        // Record payment details as pending for host review. Reuse the existing row if the form is resubmitted.
+        $existingPayment = $pdo->prepare("SELECT payment_id FROM payments WHERE booking_id = ? ORDER BY payment_id DESC LIMIT 1");
+        $existingPayment->execute([$booking_id]);
+        $existingPaymentId = (int)$existingPayment->fetchColumn();
+        if ($existingPaymentId) {
+            $stmt = $pdo->prepare("UPDATE payments SET payment_method = ?, payment_reference = ?, payment_status = 'pending', payment_date = NOW() WHERE payment_id = ? AND booking_id = ?");
+            $stmt->execute([$method, $reference !== '' ? $reference : null, $existingPaymentId, $booking_id]);
+        } else {
+            $stmt = $pdo->prepare("INSERT INTO payments (booking_id, tourist_id, host_id, amount, payment_method, payment_reference, payment_status, payment_date) VALUES (?, ?, ?, ?, ?, ?, 'pending', NOW())");
+            $stmt->execute([$booking_id, $_SESSION['user_id'], $booking['host_id'], $booking['total_amount'], $method, $reference !== '' ? $reference : null]);
+        }
 
-        // Update booking status to confirmed
-        $pdo->prepare("
-            UPDATE bookings SET status = 'confirmed'
-            WHERE booking_id = ?
-        ")->execute([$booking_id]);
-
-        // Get tourist details for email
-        $tourist = $pdo->prepare("
-            SELECT full_name, email FROM users WHERE user_id = ?
-        ");
-        $tourist->execute([$_SESSION['user_id']]);
-        $tourist = $tourist->fetch();
-
-        // Send confirmation emails
-        $booking_data = [
-            'booking_id'    => $booking_id,
-            'title'         => $booking['title'],
-            'check_in_date' => $booking['check_in_date'],
-            'check_out_date'=> $booking['check_out_date'],
-            'total_amount'  => $booking['total_amount']
-        ];
-
-        // Email tourist
-        sendPaymentConfirmationEmail(
-            $tourist['email'],
-            $tourist['full_name'],
-            $booking_data
-        );
-
-        // Email host
-        sendBookingConfirmationEmail(
+        // The tourist has submitted payment details, but the booking remains pending.
+        // Notify the host about the request; this is not a confirmation email.
+        sendEmail(
             $booking['host_email'],
-            $booking['host_name'],
-            $booking_data
+            'New booking request — Smart Accommodation Kenya',
+            '<p>You have a new booking request for <strong>' . h($booking['title'], ENT_QUOTES, 'UTF-8') . '</strong>.</p>' .
+            '<p>Booking reference: #BK' . str_pad((string)$booking_id, 5, '0', STR_PAD_LEFT) . '</p>' .
+            '<p>The request is still pending. Sign in to review the payment details and either confirm or decline the booking.</p>'
         );
 
         redirect("confirmation.php?booking_id=$booking_id");
@@ -133,13 +109,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .page-sub    { font-size:14px; color:var(--text-secondary);
                        margin-bottom:32px }
         .pay-layout  { display:grid; grid-template-columns:1fr 300px; gap:28px }
-        .pay-card    { background:var(--surface-2); border:0.5px solid var(--border);
+        .pay-card    { background:var(--surface-2); border:1px solid var(--border);
                        border-radius:8px; padding:28px }
         .pay-card h3 { font-size:15px; font-weight:500; margin-bottom:20px }
         .method-list { display:flex; flex-direction:column; gap:8px;
                        margin-bottom:20px }
         .method-opt  { display:flex; align-items:flex-start; gap:12px;
-                       padding:14px; border:0.5px solid var(--border);
+                       padding:14px; border:1px solid var(--border);
                        border-radius:6px; cursor:pointer; transition:.15s }
         .method-opt:has(input:checked) {
                        border-color:#1D9E75;
@@ -150,7 +126,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                              display:block; margin-bottom:2px }
         .method-opt small  { font-size:12px; color:var(--text-secondary) }
         .ref-field   { margin-top:16px }
-        .notice-box  { background:#FFF8E1; border:0.5px solid #F9D57C;
+        .notice-box  { background:#FFF8E1; border:1px solid #F9D57C;
                        border-radius:6px; padding:12px 14px; font-size:13px;
                        color:#9A6A00; margin-top:16px; display:none }
         .confirm-row { display:flex; align-items:flex-start; gap:10px;
@@ -164,7 +140,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                        font-size:14px; font-weight:500; cursor:pointer }
         .pay-btn:hover { background:#0a6350 }
         .summary-card { background:var(--surface-2);
-                        border:0.5px solid var(--border);
+                        border:1px solid var(--border);
                         border-radius:8px; overflow:hidden;
                         position:sticky; top:80px }
         .summary-img  { height:150px; background:#E1F5EE;
@@ -180,11 +156,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         margin-bottom:8px }
         .p-row.total  { font-size:14px; font-weight:600;
                         color:var(--text-primary);
-                        border-top:0.5px solid var(--border);
+                        border-top:1px solid var(--border);
                         padding-top:10px; margin-top:4px }
         .status-note  { font-size:12px; color:var(--text-secondary);
                         margin-top:12px; padding-top:12px;
-                        border-top:0.5px solid var(--border) }
+                        border-top:1px solid var(--border) }
         @media(max-width:768px){
             .pay-layout { grid-template-columns:1fr }
             .summary-card { position:static }
@@ -200,7 +176,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="page-tag">Payment</div>
     <h1 class="page-title">Choose how you will pay.</h1>
     <p class="page-sub">
-        StayExplore records and tracks your payment for you and your host.
+        This prototype records your selected payment method for host review; it does not process a live M-Pesa or bank transaction.
         We do not process card details or move money —
         your host confirms when they have received it.
     </p>
@@ -208,12 +184,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <?php if (!empty($errors)): ?>
     <div class="alert alert-error" style="margin-bottom:20px">
         <?php foreach ($errors as $e): ?>
-            <p><?= $e ?></p>
+            <p><?= h($e) ?></p>
         <?php endforeach; ?>
     </div>
     <?php endif; ?>
 
     <form method="POST">
+<input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
     <div class="pay-layout">
 
         <!-- Left — Payment Form -->
@@ -284,7 +261,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
 
             <button type="submit" class="pay-btn">
-                Confirm booking &mdash;
+                Submit payment details &mdash;
                 KES <?= number_format($booking['total_amount']) ?>
             </button>
         </div>
@@ -294,19 +271,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="summary-card">
                 <div class="summary-img">
                     <?php if ($booking['primary_photo']): ?>
-                        <img src="../uploads/accommodations/
-                             <?= htmlspecialchars($booking['primary_photo']) ?>"
-                             alt="<?= htmlspecialchars($booking['title']) ?>">
+                        <img src="../uploads/accommodations/<?= h($booking['primary_photo']) ?>"
+                             alt="<?= h($booking['title']) ?>">
                     <?php else: ?>
-                        &#127968;
+                        <span style="font-size:12px;color:#8a948e">No photo</span>
                     <?php endif; ?>
                 </div>
                 <div class="summary-body">
                     <div class="summary-name">
-                        <?= htmlspecialchars($booking['title']) ?>
+                        <?= h($booking['title']) ?>
                     </div>
                     <div class="summary-loc">
-                        <?= htmlspecialchars($booking['location_name']) ?>
+                        <?= h($booking['location_name']) ?>
                     </div>
                     <div class="p-row">
                         <span>
@@ -319,6 +295,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             ) ?>
                         </span>
                     </div>
+                    <?php if ($br['extra'] > 0): ?>
+                    <div class="p-row">
+                        <span><?= h($br['extra_name']) ?> (KES <?= number_format($br['extra_per_guest']) ?> &times; <?= (int)$br['guests'] ?> guest<?= $br['guests'] > 1 ? 's' : '' ?>)</span>
+                        <span>KES <?= number_format($br['extra']) ?></span>
+                    </div>
+                    <?= bookingExtraNoteHtml($br) ?>
+                    <?php endif; ?>
                     <div class="p-row">
                         <span>
                             <?= date('d M', strtotime($booking['check_in_date'])) ?>
@@ -338,7 +321,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </span>
                     </div>
                     <div class="status-note">
-                        Payment status: awaiting confirmation until
+                        Booking status remains pending until
                         your host marks it as received.
                     </div>
                 </div>
@@ -347,6 +330,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     </div>
     </form>
+    <?php if (in_array($booking['status'], ['pending','confirmed'], true) && $booking['check_in_date'] > date('Y-m-d')): ?>
+        <form method="post" action="bookings.php" style="margin-top:14px;text-align:center" onsubmit="return confirm('Cancel this booking? This cannot be undone.');">
+            <input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
+            <input type="hidden" name="action" value="cancel_booking">
+            <input type="hidden" name="booking_id" value="<?= (int)$booking['booking_id'] ?>">
+            <button type="submit" style="background:none;border:0;color:#b42318;font:inherit;font-size:13px;cursor:pointer;text-decoration:underline">Cancel this booking</button>
+        </form>
+        <?php endif; ?>
 
 </div>
 
@@ -378,5 +369,48 @@ function showHint(input) {
 }
 </script>
 
+
+<!-- Processing overlay shown briefly while the payment details are submitted -->
+<style>
+#payProcessing{position:fixed;inset:0;background:rgba(13,59,46,.55);display:none;align-items:center;justify-content:center;z-index:9999;padding:20px}
+#payProcessing.show{display:flex}
+.pp-box{background:#fff;border-radius:14px;padding:30px 28px;width:100%;max-width:380px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+.pp-box h4{margin:0 0 6px;font-size:18px;color:#0d3b2e}
+.pp-step{font-size:13px;color:#68776f;min-height:20px;margin:0 0 18px}
+.pp-track{height:10px;background:#e8e5dc;border-radius:99px;overflow:hidden;position:relative}
+.pp-fill{height:100%;width:0;background:linear-gradient(90deg,#16866b,#c0623a);border-radius:99px;transition:width .35s ease}
+.pp-pct{font-size:12px;font-weight:700;color:#0d3b2e;margin-top:10px}
+</style>
+<div id="payProcessing" role="alertdialog" aria-live="polite" aria-label="Processing payment">
+  <div class="pp-box">
+    <h4>Processing payment</h4>
+    <p class="pp-step" id="ppStep">Getting things ready…</p>
+    <div class="pp-track"><div class="pp-fill" id="ppFill"></div></div>
+    <div class="pp-pct" id="ppPct">0%</div>
+  </div>
+</div>
+<script>
+(function () {
+    var pm = document.querySelector('input[name="payment_method"]');
+    var form = pm ? pm.form : null;
+    if (!form) return;
+    var overlay = document.getElementById('payProcessing');
+    var fill = document.getElementById('ppFill'), pct = document.getElementById('ppPct'), step = document.getElementById('ppStep');
+    var steps = [[0, 'Getting things ready…'], [30, 'Checking your booking details…'], [60, 'Recording your payment…'], [85, 'Letting your host know…'], [100, 'All done, taking you to your confirmation']];
+    var busy = false;
+    form.addEventListener('submit', function (e) {
+        if (busy) return;
+        e.preventDefault();               // native validation has already passed at this point
+        busy = true;
+        overlay.classList.add('show');
+        var n = 0, timer = setInterval(function () {
+            n = Math.min(100, n + Math.floor(Math.random() * 9) + 5);
+            fill.style.width = n + '%'; pct.textContent = n + '%';
+            for (var i = steps.length - 1; i >= 0; i--) { if (n >= steps[i][0]) { step.textContent = steps[i][1]; break; } }
+            if (n >= 100) { clearInterval(timer); setTimeout(function () { form.submit(); }, 450); }
+        }, 160);
+    });
+})();
+</script>
 </body>
 </html>

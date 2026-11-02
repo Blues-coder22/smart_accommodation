@@ -18,6 +18,7 @@ $profile_success = false;
 $password_success= false;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    requireCsrf();
     if (isset($_POST['update_profile'])) {
         $result = updateProfile($pdo, $user_id, [
             'full_name'      => $_POST['full_name'] ?? '',
@@ -68,12 +69,11 @@ $pstats = $pdo->query("
     <title>Admin Profile — Smart Accommodation Kenya</title>
     <link rel="stylesheet" href="../assets/css/style.css">
     <style>
-        body         { display:flex; flex-direction:column;
-                       min-height:100vh }
+        
         .dash-wrap   { display:grid;
                        grid-template-columns:200px 1fr; flex:1 }
         .sidebar     { background:var(--surface-2);
-                       border-right:0.5px solid var(--border);
+                       border-right:1px solid var(--border);
                        padding:24px 0; position:sticky;
                        top:52px; height:calc(100vh - 52px);
                        overflow-y:auto }
@@ -98,7 +98,7 @@ $pstats = $pdo->query("
                        margin-bottom:20px }
         .profile-header { display:flex; align-items:center;
                           gap:20px; background:var(--surface-2);
-                          border:0.5px solid var(--border);
+                          border:1px solid var(--border);
                           border-radius:8px; padding:20px;
                           margin-bottom:16px }
         .avatar      { width:72px; height:72px; border-radius:50%;
@@ -114,13 +114,13 @@ $pstats = $pdo->query("
         .profile-role { font-size:11px; font-weight:600;
                         padding:2px 9px; border-radius:3px;
                         background:#FEF2F2; color:#991B1B;
-                        border:0.5px solid #FECACA;
+                        border:1px solid #FECACA;
                         display:inline-block }
         .stats-row   { display:grid;
                        grid-template-columns:repeat(4,1fr);
                        gap:10px; margin-bottom:16px }
         .stat-chip   { background:var(--surface-2);
-                       border:0.5px solid var(--border);
+                       border:1px solid var(--border);
                        border-radius:8px; padding:12px;
                        text-align:center }
         .stat-num    { font-size:20px; font-weight:500;
@@ -128,19 +128,19 @@ $pstats = $pdo->query("
         .stat-label  { font-size:11px; color:var(--text-secondary);
                        margin-top:2px }
         .form-card   { background:var(--surface-2);
-                       border:0.5px solid var(--border);
+                       border:1px solid var(--border);
                        border-radius:8px; padding:22px;
                        margin-bottom:16px }
         .form-card h3{ font-size:14px; font-weight:500;
                        margin-bottom:18px; padding-bottom:12px;
-                       border-bottom:0.5px solid var(--border) }
+                       border-bottom:1px solid var(--border) }
         .form-group  { margin-bottom:14px }
         .form-group label { font-size:12px; font-weight:600;
                             letter-spacing:.04em; text-transform:uppercase;
                             display:block; margin-bottom:5px;
                             color:var(--text-secondary) }
         .form-group input { width:100%; padding:9px 12px;
-                            border:0.5px solid var(--border-strong);
+                            border:1px solid var(--border-strong);
                             border-radius:6px; font-size:13px;
                             color:var(--text-primary);
                             background:var(--surface-2) }
@@ -151,7 +151,7 @@ $pstats = $pdo->query("
         .btn-save    { padding:9px 22px; background:#085041;
                        color:#fff; border:none; border-radius:6px;
                        font-size:13px; font-weight:500; cursor:pointer }
-        .success-msg { background:#E1F5EE; border:0.5px solid #9FE1CB;
+        .success-msg { background:#E1F5EE; border:1px solid #9FE1CB;
                        border-radius:6px; padding:10px 14px;
                        font-size:13px; color:#0F6E56;
                        margin-bottom:14px }
@@ -165,27 +165,8 @@ $pstats = $pdo->query("
 </head>
 <body>
 
-<?php include '../includes/header.php'; ?>
 
-<div class="dash-wrap">
-
-    <aside class="sidebar">
-        <div class="sidebar-role">Admin</div>
-        <a href="dashboard.php" class="sidebar-link">Overview</a>
-        <a href="listings.php" class="sidebar-link">
-            Listing approvals
-        </a>
-        <a href="users.php" class="sidebar-link">Users</a>
-        <a href="reviews.php" class="sidebar-link">
-            Review moderation
-        </a>
-        <a href="reports.php" class="sidebar-link">Reports</a>
-        <a href="attractions.php" class="sidebar-link">Attractions</a>
-        <a href="profile.php"
-           class="sidebar-link active">Profile</a>
-    </aside>
-
-    <main class="main">
+<?php require_once __DIR__ . '/../includes/app_shell.php'; appShellStart(); ?>
 
         <div class="page-tag">Admin</div>
         <h1 class="page-title">Profile</h1>
@@ -194,8 +175,7 @@ $pstats = $pdo->query("
         <div class="profile-header">
             <div class="avatar">
                 <?php if ($user['profile_photo']): ?>
-                    <img src="../uploads/profiles/<?= htmlspecialchars(
-                        $user['profile_photo']) ?>"
+                    <img src="<?= h(profilePhotoUrl($user['user_id'], $user['profile_photo'])) ?>"
                          alt="Profile photo">
                 <?php else: ?>
                     <?= strtoupper(substr($user['full_name'],0,1)) ?>
@@ -203,10 +183,10 @@ $pstats = $pdo->query("
             </div>
             <div>
                 <div class="profile-name">
-                    <?= htmlspecialchars($user['full_name']) ?>
+                    <?= h($user['full_name']) ?>
                 </div>
                 <div class="profile-email">
-                    <?= htmlspecialchars($user['email']) ?>
+                    <?= h($user['email']) ?>
                 </div>
                 <span class="profile-role">Administrator</span>
             </div>
@@ -256,26 +236,27 @@ $pstats = $pdo->query("
             <div class="alert alert-error"
                  style="margin-bottom:14px">
                 <?php foreach ($profile_errors as $e): ?>
-                    <p><?= $e ?></p>
+                    <p><?= h($e) ?></p>
                 <?php endforeach; ?>
             </div>
             <?php endif; ?>
 
             <form method="POST" enctype="multipart/form-data">
+<input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
                 <input type="hidden" name="update_profile"
                        value="1">
                 <div class="form-row">
                     <div class="form-group">
                         <label>Full name</label>
                         <input type="text" name="full_name"
-                               value="<?= htmlspecialchars(
+                               value="<?= h(
                                    $user['full_name']) ?>"
                                required>
                     </div>
                     <div class="form-group">
                         <label>Phone number</label>
                         <input type="tel" name="phone"
-                               value="<?= htmlspecialchars(
+                               value="<?= h(
                                    $user['phone_number'] ?? '') ?>"
                                placeholder="+254 7XX XXX XXX">
                     </div>
@@ -305,12 +286,13 @@ $pstats = $pdo->query("
             <div class="alert alert-error"
                  style="margin-bottom:14px">
                 <?php foreach ($password_errors as $e): ?>
-                    <p><?= $e ?></p>
+                    <p><?= h($e) ?></p>
                 <?php endforeach; ?>
             </div>
             <?php endif; ?>
 
             <form method="POST">
+<input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
                 <input type="hidden" name="update_password"
                        value="1">
                 <div class="form-group">
@@ -339,10 +321,7 @@ $pstats = $pdo->query("
             </form>
         </div>
 
-    </main>
-</div>
-
-<?php include '../includes/footer.php'; ?>
+    <?php appShellEnd(); ?>
 
 </body>
 </html>

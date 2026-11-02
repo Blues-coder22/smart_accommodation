@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>How it works — StayExplore Kenya</title>
+    <link rel="stylesheet" href="StayExplore_Kenya_Authenticated_Frontend/css/style.css">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Ccircle cx=%2716%27 cy=%2716%27 r=%2716%27 fill=%27%230d3b2e%27/%3E%3Ctext x=%2716%27 y=%2721%27 font-size=%2713%27 fill=%27white%27 text-anchor=%27middle%27 font-family=%27Georgia%27%3ESE%3C/text%3E%3C/svg%3E">
+      <link rel="stylesheet" href="assets/css/static-pages.css">
+  </head>
+  <body>
+    <header class="public-nav"><a class="public-brand" href="index.php"><span class="brand-mark">SE</span><span>StayExplore<small>KENYA</small></span></a><nav class="public-links" aria-label="Main navigation"><a href="tourist/search.php?type=accommodation">Stays</a><a href="tourist/search.php?type=attraction">Attractions</a><a href="how-it-works.html">How it works</a><a href="about.html">About</a></nav><button class="nav-toggle" type="button" aria-label="Toggle navigation" aria-expanded="false">☰</button><div class="public-actions"><a href="login.php">Sign in</a><a class="btn" href="register.php">Sign up</a></div></header>
+    <main class="page">
+      <div class="eyebrow">How it works</div>
+      <h1>Travel with more context.</h1>
+      <p class="sub">StayExplore connects where you stay with what you can experience nearby, then guides you from discovery to booking and review.</p>
+      <div class="grid grid-3" style="margin-top:28px">
+        <div class="card pad">
+          <div class="eyebrow">01</div>
+          <h2>Search</h2>
+          <p class="small">Start with an accommodation or an attraction. Recommendations are tailored to help you choose.</p>
+        </div>
+        <div class="card pad">
+          <div class="eyebrow">02</div>
+          <h2>Choose</h2>
+          <p class="small">Compare verified listings, nearby attractions, amenities, house rules and guest reviews.</p>
+        </div>
+        <div class="card pad">
+          <div class="eyebrow">03</div>
+          <h2>Book</h2>
+          <p class="small">Confirm your dates, review the total and complete the payment step.</p>
+        </div>
+        <div class="card pad">
+          <div class="eyebrow">04</div>
+          <h2>Experience</h2>
+          <p class="small">Keep your booking details in one place and report platform incidents when necessary.</p>
+        </div>
+        <div class="card pad">
+          <div class="eyebrow">05</div>
+          <h2>Review</h2>
+          <p class="small">Only completed bookings can leave verified reviews, helping future travellers decide.</p>
+        </div>
+        <div class="card pad">
+          <div class="eyebrow">06</div>
+          <h2>Host</h2>
+          <p class="small">Hosts manage listings, availability, bookings, payments, reviews and incident reports.</p>
+        </div>
+      </div>
+      <div class="card pad" style="margin-top:20px">
+        <h2>Ready to explore?</h2>
+        <p class="small">Search stays or attractions and let the recommendation flow guide your next step.</p>
+        <div class="actions">
+          <a class="btn" href="tourist/search.php?type=accommodation">Explore stays</a>
+          <a class="btn btn-outline" href="register.php">Create account</a>
+        </div>
+      </div>
+
+      <section class="card pad" id="how-scores" style="margin-top:28px">
+        <div class="eyebrow">Behind the scenes</div>
+        <h2>How scores, distances and review checks work</h2>
+        <p class="small"><strong>Smart score (the &ldquo;match&rdquo; shown on stays).</strong> A number out of 100 that shows how well a stay fits what you searched for. It mixes guest ratings (the biggest part), how close the stay is, how good the price is compared with other results, and how often guests have stayed there. Higher means a better overall match. It is a guide, never a rule, and you always make the final choice.</p>
+        <p class="small"><strong>Distance on the map.</strong> The &ldquo;km away&rdquo; you see is the straight-line distance between two places, as a bird would fly. It is worked out from their map positions using the haversine method, which allows for the Earth being round. Roads bend, so a drive is usually longer than the number shown.</p>
+        <p class="small"><strong>Attraction fees.</strong> Entry fees shown for parks and sights are only a guide to what you may pay at the gate. They are set by the site owner, often the government, and are never added to your booking. The only extra we can add is a tour guide or attraction that a host offers inside their own property, and it is always shown before you book.</p>
+        <p class="small"><strong>Review checks.</strong> New reviews pass a simple checklist that looks for signs of advertising, copied text, bursts of reviews from one person, or ratings far from everyone else&rsquo;s. It only gives an administrator a hint about what to read first. People, not software, decide what is shown.</p>
+      </section>
+    </main>
+    <footer class="hp-footer"><div><div class="brand">StayExplore Kenya</div><p>Thoughtfully matching travellers with Kenyan stays and experiences.</p></div><div><h4>Explore</h4><a href="tourist/search.php?type=accommodation">Stays</a><a href="tourist/search.php?type=attraction">Attractions</a></div><div><h4>Company</h4><a href="about.html">About</a><a href="contact.html">Contact</a><a href="register.php?role=host">List your property</a></div><div><h4>Support</h4><a href="help.html">Help centre</a><a href="privacy.html">Privacy</a><a href="terms.html">Terms</a></div></footer>
+    <script>(function(){var toggle=document.querySelector('.nav-toggle');var header=document.querySelector('.public-nav');if(toggle&&header){toggle.addEventListener('click',function(){var open=header.classList.toggle('nav-open');toggle.setAttribute('aria-expanded',open?'true':'false');});}})();</script>
+  </body>
+</html>

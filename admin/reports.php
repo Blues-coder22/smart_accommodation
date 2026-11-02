@@ -11,6 +11,7 @@ requireRole('admin');
 
 // Handle actions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    requireCsrf();
     $report_id    = (int)($_POST['report_id'] ?? 0);
     $action       = sanitize($_POST['action'] ?? '');
     $admin_action = sanitize($_POST['admin_action'] ?? '');
@@ -218,12 +219,11 @@ $counts = $pdo->query("
     <title>Reports — Smart Accommodation Kenya</title>
     <link rel="stylesheet" href="../assets/css/style.css">
     <style>
-        body         { display:flex; flex-direction:column;
-                       min-height:100vh }
+        
         .dash-wrap   { display:grid;
                        grid-template-columns:200px 1fr; flex:1 }
         .sidebar     { background:var(--surface-2);
-                       border-right:0.5px solid var(--border);
+                       border-right:1px solid var(--border);
                        padding:24px 0; position:sticky;
                        top:52px; height:calc(100vh - 52px);
                        overflow-y:auto }
@@ -256,12 +256,12 @@ $counts = $pdo->query("
         .filter-tab  { padding:6px 14px; font-size:12px;
                        border-radius:4px; text-decoration:none;
                        color:var(--text-secondary);
-                       border:0.5px solid var(--border);
+                       border:1px solid var(--border);
                        display:flex; align-items:center; gap:6px }
         .filter-tab.active { background:#085041; color:#fff;
                              border-color:#085041 }
         .report-card { background:var(--surface-2);
-                       border:0.5px solid var(--border);
+                       border:1px solid var(--border);
                        border-radius:8px; padding:20px;
                        margin-bottom:12px }
         .report-card.incident { border-color:#FECACA;
@@ -276,17 +276,17 @@ $counts = $pdo->query("
                        font-weight:600; padding:3px 9px;
                        border-radius:3px }
         .s-pending   { background:#FFF8E1; color:#9A6A00;
-                       border:0.5px solid #F9D57C }
+                       border:1px solid #F9D57C }
         .s-resolved  { background:#E1F5EE; color:#0F6E56;
-                       border:0.5px solid #9FE1CB }
+                       border:1px solid #9FE1CB }
         .s-dismissed { background:var(--surface-1);
                        color:var(--text-secondary);
-                       border:0.5px solid var(--border) }
+                       border:1px solid var(--border) }
         .report-grid { display:grid;
                        grid-template-columns:1fr 1fr;
                        gap:12px; margin-bottom:14px }
         .info-block  { background:var(--surface-1);
-                       border:0.5px solid var(--border);
+                       border:1px solid var(--border);
                        border-radius:6px; padding:12px }
         .info-block h4 { font-size:10px; font-weight:700;
                          letter-spacing:.06em; text-transform:uppercase;
@@ -296,22 +296,22 @@ $counts = $pdo->query("
         .info-label  { color:var(--text-secondary) }
         .info-val    { font-weight:500 }
         .description { background:var(--surface-1);
-                       border:0.5px solid var(--border);
+                       border:1px solid var(--border);
                        border-radius:6px; padding:12px;
                        font-size:13px; line-height:1.6;
                        color:var(--text-primary);
                        margin-bottom:14px }
         .evidence-img { max-width:200px; border-radius:6px;
-                        border:0.5px solid var(--border);
+                        border:1px solid var(--border);
                         margin-bottom:14px; display:block }
         .suspended-notice { background:#FEF2F2;
-                            border:0.5px solid #FECACA;
+                            border:1px solid #FECACA;
                             border-radius:6px; padding:10px 14px;
                             font-size:12px; color:#991B1B;
                             margin-bottom:14px;
                             display:flex; align-items:center;
                             gap:8px }
-        .action-section { border-top:0.5px solid var(--border);
+        .action-section { border-top:1px solid var(--border);
                           padding-top:14px }
         .action-section h4 { font-size:12px; font-weight:600;
                              letter-spacing:.04em; text-transform:uppercase;
@@ -321,7 +321,7 @@ $counts = $pdo->query("
                        align-items:flex-start }
         .action-note { width:100%; margin-top:8px }
         .action-note textarea { width:100%; padding:8px 12px;
-                                border:0.5px solid var(--border-strong);
+                                border:1px solid var(--border-strong);
                                 border-radius:6px; font-size:13px;
                                 resize:none; height:60px;
                                 font-family:inherit;
@@ -334,28 +334,28 @@ $counts = $pdo->query("
                        font-size:12px; font-weight:500; cursor:pointer }
         .btn-dismiss { padding:7px 14px; background:none;
                        color:var(--text-secondary);
-                       border:0.5px solid var(--border-strong);
+                       border:1px solid var(--border-strong);
                        border-radius:4px; font-size:12px;
                        font-weight:500; cursor:pointer }
         .btn-suspend { padding:7px 14px; background:none;
-                       color:#D97706; border:0.5px solid #F9D57C;
+                       color:#D97706; border:1px solid #F9D57C;
                        border-radius:4px; font-size:12px;
                        font-weight:500; cursor:pointer }
         .btn-danger  { padding:7px 14px; background:none;
-                       color:#DC2626; border:0.5px solid #FECACA;
+                       color:#DC2626; border:1px solid #FECACA;
                        border-radius:4px; font-size:12px;
                        font-weight:500; cursor:pointer }
         .btn-restore { padding:7px 14px; background:none;
-                       color:#0F6E56; border:0.5px solid #9FE1CB;
+                       color:#0F6E56; border:1px solid #9FE1CB;
                        border-radius:4px; font-size:12px;
                        font-weight:500; cursor:pointer }
         .admin-action-note { background:#E1F5EE;
-                             border:0.5px solid #9FE1CB;
+                             border:1px solid #9FE1CB;
                              border-radius:6px; padding:10px 14px;
                              font-size:12px; color:#0F6E56;
                              margin-top:10px }
         .emergency-box { background:#FEF2F2;
-                         border:0.5px solid #FECACA;
+                         border:1px solid #FECACA;
                          border-radius:6px; padding:12px 14px;
                          margin-bottom:14px }
         .emergency-box h4 { font-size:12px; font-weight:700;
@@ -373,32 +373,8 @@ $counts = $pdo->query("
 </head>
 <body>
 
-<?php include '../includes/header.php'; ?>
 
-<div class="dash-wrap">
-
-    <!-- Sidebar -->
-    <aside class="sidebar">
-        <div class="sidebar-role">Admin</div>
-        <a href="dashboard.php" class="sidebar-link">Overview</a>
-        <a href="listings.php" class="sidebar-link">
-            Listing approvals
-        </a>
-        <a href="users.php" class="sidebar-link">Users</a>
-        <a href="reviews.php" class="sidebar-link">
-            Review moderation
-        </a>
-        <a href="reports.php" class="sidebar-link active">
-            Reports
-            <?php if ($counts['pending'] > 0): ?>
-                <span class="badge"><?= $counts['pending'] ?></span>
-            <?php endif; ?>
-        </a>
-        <a href="attractions.php" class="sidebar-link">Attractions</a>
-        <a href="profile.php" class="sidebar-link">Profile</a>
-    </aside>
-
-    <main class="main">
+<?php require_once __DIR__ . '/../includes/app_shell.php'; appShellStart(); ?>
 
         <?= showFlash() ?>
 
@@ -519,12 +495,12 @@ $counts = $pdo->query("
                 <!-- Suspended listing notice -->
                 <?php if ($rep['listing_suspended']): ?>
                 <div class="suspended-notice">
-                    &#9888; Listing automatically suspended
+                    Listing automatically suspended
                     pending this review
                     <?php if ($rep['listing_title']): ?>
                         &mdash;
                         <strong>
-                            <?= htmlspecialchars($rep['listing_title']) ?>
+                            <?= h($rep['listing_title']) ?>
                         </strong>
                     <?php endif; ?>
                 </div>
@@ -537,14 +513,14 @@ $counts = $pdo->query("
                         <div class="info-row">
                             <span class="info-label">Name</span>
                             <span class="info-val">
-                                <?= htmlspecialchars(
+                                <?= h(
                                     $rep['reporter_name']) ?>
                             </span>
                         </div>
                         <div class="info-row">
                             <span class="info-label">Email</span>
                             <span class="info-val">
-                                <?= htmlspecialchars(
+                                <?= h(
                                     $rep['reporter_email']) ?>
                             </span>
                         </div>
@@ -569,7 +545,7 @@ $counts = $pdo->query("
                             <div class="info-row">
                                 <span class="info-label">Listing</span>
                                 <span class="info-val">
-                                    <?= htmlspecialchars(
+                                    <?= h(
                                         $rep['listing_title']) ?>
                                 </span>
                             </div>
@@ -584,14 +560,14 @@ $counts = $pdo->query("
                             <div class="info-row">
                                 <span class="info-label">Name</span>
                                 <span class="info-val">
-                                    <?= htmlspecialchars(
+                                    <?= h(
                                         $rep['target_name']) ?>
                                 </span>
                             </div>
                             <div class="info-row">
                                 <span class="info-label">Email</span>
                                 <span class="info-val">
-                                    <?= htmlspecialchars(
+                                    <?= h(
                                         $rep['target_email']) ?>
                                 </span>
                             </div>
@@ -608,12 +584,12 @@ $counts = $pdo->query("
 
                 <!-- Description -->
                 <div class="description">
-                    <?= nl2br(htmlspecialchars($rep['description'])) ?>
+                    <?= nl2br(h($rep['description'])) ?>
                 </div>
 
                 <!-- Evidence -->
                 <?php if ($rep['evidence_path']): ?>
-                <img src="../uploads/evidence/<?= htmlspecialchars(
+                <img src="../uploads/evidence/<?= h(
                     $rep['evidence_path']) ?>"
                      alt="Evidence"
                      class="evidence-img">
@@ -623,7 +599,7 @@ $counts = $pdo->query("
                 <?php if ($rep['admin_action']): ?>
                 <div class="admin-action-note">
                     <strong>Action taken:</strong>
-                    <?= htmlspecialchars($rep['admin_action']) ?>
+                    <?= h($rep['admin_action']) ?>
                 </div>
                 <?php endif; ?>
 
@@ -645,12 +621,15 @@ $counts = $pdo->query("
                         <form method="POST" style="margin:0"
                               onsubmit="setNote(this,
                                   <?= $rep['report_id'] ?>)">
+<input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
                             <input type="hidden" name="report_id"
                                    value="<?= $rep['report_id'] ?>">
+
                             <input type="hidden" name="action"
                                    value="resolve">
                             <input type="hidden" name="admin_action"
                                    id="admin_action_resolve_<?= $rep['report_id'] ?>">
+
                             <button type="submit" class="btn-resolve">
                                 Mark resolved
                             </button>
@@ -660,12 +639,15 @@ $counts = $pdo->query("
                         <form method="POST" style="margin:0"
                               onsubmit="setNote(this,
                                   <?= $rep['report_id'] ?>)">
+<input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
                             <input type="hidden" name="report_id"
                                    value="<?= $rep['report_id'] ?>">
+
                             <input type="hidden" name="action"
                                    value="dismiss">
                             <input type="hidden" name="admin_action"
                                    id="admin_action_dismiss_<?= $rep['report_id'] ?>">
+
                             <button type="submit" class="btn-dismiss"
                                     onclick="return confirm(
                                         'Dismiss this report?')">
@@ -680,12 +662,15 @@ $counts = $pdo->query("
                         <form method="POST" style="margin:0"
                               onsubmit="setNote(this,
                                   <?= $rep['report_id'] ?>)">
+<input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
                             <input type="hidden" name="report_id"
                                    value="<?= $rep['report_id'] ?>">
+
                             <input type="hidden" name="action"
                                    value="suspend_user">
                             <input type="hidden" name="admin_action"
                                    id="admin_action_suspend_user_<?= $rep['report_id'] ?>">
+
                             <button type="submit" class="btn-suspend"
                                     onclick="return confirm(
                                         'Suspend this user account?')">
@@ -702,12 +687,15 @@ $counts = $pdo->query("
                         <form method="POST" style="margin:0"
                               onsubmit="setNote(this,
                                   <?= $rep['report_id'] ?>)">
+<input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
                             <input type="hidden" name="report_id"
                                    value="<?= $rep['report_id'] ?>">
+
                             <input type="hidden" name="action"
                                    value="suspend_listing">
                             <input type="hidden" name="admin_action"
                                    id="admin_action_suspend_listing_<?= $rep['report_id'] ?>">
+
                             <button type="submit" class="btn-danger"
                                     onclick="return confirm(
                                         'Suspend this listing?')">
@@ -722,12 +710,15 @@ $counts = $pdo->query("
                         <form method="POST" style="margin:0"
                               onsubmit="setNote(this,
                                   <?= $rep['report_id'] ?>)">
+<input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
                             <input type="hidden" name="report_id"
                                    value="<?= $rep['report_id'] ?>">
+
                             <input type="hidden" name="action"
                                    value="restore_listing">
                             <input type="hidden" name="admin_action"
                                    id="admin_action_restore_listing_<?= $rep['report_id'] ?>">
+
                             <button type="submit" class="btn-restore"
                                     onclick="return confirm(
                                         'Restore this listing?')">
@@ -744,10 +735,7 @@ $counts = $pdo->query("
             <?php endforeach; ?>
         <?php endif; ?>
 
-    </main>
-</div>
-
-<?php include '../includes/footer.php'; ?>
+    <?php appShellEnd(); ?>
 
 <script>
 // Copy textarea note into the hidden input of the

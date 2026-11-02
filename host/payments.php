@@ -2,13 +2,80 @@
 require_once '../includes/auth.php';
 require_once '../includes/functions.php';
 require_once '../includes/db.php';
+require_once '../includes/payment_audit.php';
+ensurePaymentAuditTable($pdo);
 
 if (session_status() === PHP_SESSION_NONE) session_start();
 
 requireLogin();
 requireRole('host');
 
-$host_id = $_SESSION['user_id'];
+$host_id = (int)$_SESSION['user_id'];
+
+// Payment verification is a separate action from accepting the booking.
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'confirm_payment') {
+    requireCsrf();
+    $paymentId = (int)($_POST['payment_id'] ?? 0);
+    $owns = $pdo->prepare("SELECT p.payment_id, b.status AS booking_status FROM payments p JOIN bookings b ON b.booking_id=p.booking_id JOIN accommodations a ON a.accommodation_id=b.accommodation_id WHERE p.payment_id=? AND a.host_id=? LIMIT 1");
+    $owns->execute([$paymentId, $host_id]);
+    $paymentToVerify = $owns->fetch();
+    if (!$paymentToVerify) {
+        setFlash('error', 'Payment record not found for your listings.');
+    } elseif (!in_array($paymentToVerify['booking_status'], ['pending','confirmed'], true)) {
+        setFlash('error', 'Payment verification is unavailable for a cancelled or completed booking. Handle any received funds through your normal refund process.');
+    } else {
+        $pdo->prepare("UPDATE payments SET payment_status='confirmed' WHERE payment_id=? AND payment_status='pending'")->execute([$paymentId]);
+        logPaymentChange($pdo, $paymentId, $host_id, 'host', 'host_confirmed', 'pending', 'confirmed');
+        setFlash('success', 'Payment marked as verified. This does not change the booking status.');
+    }
+    redirect('payments.php?filter=' . urlencode($_GET['filter'] ?? 'all'));
+}
+
+// Mark a payment as received (or undo it). Only the host who owns the booking can do this.
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    requireCsrf();
+    require_once '../includes/email.php';
+    $payment_id = (int)($_POST['payment_id'] ?? 0);
+    $action     = $_POST['action'] ?? '';
+
+    $q = $pdo->prepare("
+        SELECT p.payment_id, p.payment_status, p.amount, p.booking_id, b.check_in_date, b.check_out_date,
+               b.status AS booking_status, a.title,
+               t.email AS tourist_email, t.full_name AS tourist_name
+        FROM payments p
+        JOIN bookings b ON b.booking_id = p.booking_id
+        JOIN accommodations a ON a.accommodation_id = b.accommodation_id
+        JOIN users t ON t.user_id = p.tourist_id
+        WHERE p.payment_id = ? AND a.host_id = ?
+    ");
+    $q->execute([$payment_id, $host_id]);
+    $pay = $q->fetch();
+
+    if ($pay && $pay['booking_status'] === 'cancelled') {
+        setFlash('error', 'This booking was cancelled, so its payment cannot be changed.');
+    } elseif ($pay && $action === 'mark_paid' && $pay['payment_status'] === 'pending') {
+        $pdo->prepare("UPDATE payments SET payment_status = 'confirmed' WHERE payment_id = ?")
+            ->execute([$payment_id]);
+        logPaymentChange($pdo, $payment_id, $host_id, 'host', 'host_confirmed', 'pending', 'confirmed');
+        sendPaymentVerifiedEmail($pay['tourist_email'], $pay['tourist_name'], [
+            'booking_id'     => $pay['booking_id'],
+            'title'          => $pay['title'],
+            'check_in_date'  => $pay['check_in_date'],
+            'check_out_date' => $pay['check_out_date'],
+            'total_amount'   => $pay['amount'],
+        ]);
+        setFlash('success', 'Payment marked as received.');
+    } elseif ($pay && $action === 'mark_unpaid' && $pay['payment_status'] === 'confirmed' && paymentLockedByAdmin($pdo, $payment_id)) {
+        setFlash('warning', 'An administrator has confirmed this payment, so it cannot be set back to awaiting. If something is wrong, report it to the administrator.');
+    } elseif ($pay && $action === 'mark_unpaid' && $pay['payment_status'] === 'confirmed') {
+        $pdo->prepare("UPDATE payments SET payment_status = 'pending' WHERE payment_id = ?")
+            ->execute([$payment_id]);
+        // Recorded so an administrator can see that a payment marked as paid was later reversed
+        logPaymentChange($pdo, $payment_id, $host_id, 'host', 'host_unpaid', 'confirmed', 'pending', 'Host set a received payment back to awaiting');
+        setFlash('pending', 'Payment set back to awaiting. This change is recorded and visible to the administrator.');
+    }
+    redirect('payments.php?filter=' . urlencode(sanitize($_GET['filter'] ?? 'all')));
+}
 
 // Summary stats
 $summary = $pdo->prepare("
@@ -88,12 +155,11 @@ $monthly = $monthly->fetchAll();
     <title>Payments — Smart Accommodation Kenya</title>
     <link rel="stylesheet" href="../assets/css/style.css">
     <style>
-        body         { display:flex; flex-direction:column;
-                       min-height:100vh }
+        
         .dash-wrap   { display:grid;
                        grid-template-columns:200px 1fr; flex:1 }
         .sidebar     { background:var(--surface-2);
-                       border-right:0.5px solid var(--border);
+                       border-right:1px solid var(--border);
                        padding:24px 0; position:sticky;
                        top:52px; height:calc(100vh - 52px);
                        overflow-y:auto }
@@ -120,7 +186,7 @@ $monthly = $monthly->fetchAll();
                        grid-template-columns:repeat(4,1fr);
                        gap:12px; margin-bottom:24px }
         .stat-card   { background:var(--surface-2);
-                       border:0.5px solid var(--border);
+                       border:1px solid var(--border);
                        border-radius:8px; padding:16px }
         .stat-card.accent { border-left:3px solid #1D9E75 }
         .stat-label  { font-size:10px; font-weight:700;
@@ -132,10 +198,10 @@ $monthly = $monthly->fetchAll();
         .content-grid{ display:grid;
                        grid-template-columns:1fr 260px; gap:20px }
         .section-card{ background:var(--surface-2);
-                       border:0.5px solid var(--border);
+                       border:1px solid var(--border);
                        border-radius:8px; overflow:hidden }
         .card-head   { padding:14px 18px;
-                       border-bottom:0.5px solid var(--border);
+                       border-bottom:1px solid var(--border);
                        display:flex; justify-content:space-between;
                        align-items:center }
         .card-head h3{ font-size:13px; font-weight:500 }
@@ -144,7 +210,7 @@ $monthly = $monthly->fetchAll();
                        border-radius:4px; cursor:pointer;
                        text-decoration:none;
                        color:var(--text-secondary);
-                       border:0.5px solid var(--border) }
+                       border:1px solid var(--border) }
         .filter-tab.active { background:#085041; color:#fff;
                              border-color:#085041 }
         table        { width:100%; border-collapse:collapse;
@@ -153,9 +219,9 @@ $monthly = $monthly->fetchAll();
                        letter-spacing:.06em; text-transform:uppercase;
                        color:var(--text-secondary); padding:10px 18px;
                        text-align:left; background:var(--surface-1);
-                       border-bottom:0.5px solid var(--border) }
+                       border-bottom:1px solid var(--border) }
         td           { padding:12px 18px;
-                       border-bottom:0.5px solid var(--border);
+                       border-bottom:1px solid var(--border);
                        color:var(--text-primary) }
         tr:last-child td { border-bottom:none }
         tr:hover td  { background:var(--surface-1) }
@@ -165,12 +231,12 @@ $monthly = $monthly->fetchAll();
                          font-size:12px }
         .method-label  { font-size:11px; color:var(--text-secondary);
                          background:var(--surface-1);
-                         border:0.5px solid var(--border);
+                         border:1px solid var(--border);
                          border-radius:3px; padding:2px 7px }
         .monthly-table { padding:16px }
         .month-row   { display:flex; justify-content:space-between;
                        align-items:center; padding:10px 0;
-                       border-bottom:0.5px solid var(--border);
+                       border-bottom:1px solid var(--border);
                        font-size:13px }
         .month-row:last-child { border-bottom:none }
         .month-label { color:var(--text-secondary) }
@@ -188,28 +254,17 @@ $monthly = $monthly->fetchAll();
 </head>
 <body>
 
-<?php include '../includes/header.php'; ?>
+<?php if ($flash = getFlash()): ?><div class="alert alert-<?= h($flash['type'], ENT_QUOTES, 'UTF-8') ?>" style="margin:16px 28px 0"><?= h($flash['message'], ENT_QUOTES, 'UTF-8') ?></div><?php endif; ?>
 
-<div class="dash-wrap">
-
-    <!-- Sidebar -->
-    <aside class="sidebar">
-        <div class="sidebar-role">Host</div>
-        <a href="dashboard.php" class="sidebar-link">Overview</a>
-        <a href="listings.php" class="sidebar-link">Listings</a>
-        <a href="availability.php" class="sidebar-link">Availability</a>
-        <a href="bookings.php" class="sidebar-link">Bookings</a>
-        <a href="payments.php"
-           class="sidebar-link active">Payments</a>
-        <a href="reviews.php" class="sidebar-link">Reviews</a>
-        <a href="report.php" class="sidebar-link">Reports</a>
-        <a href="profile.php" class="sidebar-link">Profile</a>
-    </aside>
-
-    <main class="main">
+<?php require_once __DIR__ . '/../includes/app_shell.php'; appShellStart(); ?>
 
         <div class="page-tag">Host</div>
         <h1 class="page-title">Payments</h1>
+
+        <?= showFlash() ?>
+        <div style="background:var(--surface,#f5f7f6);border:1px solid var(--border,#dde);border-radius:10px;padding:12px 14px;margin-bottom:16px;font-size:13px">
+            Guests pay you directly (cash, bank transfer or M-Pesa). When you have received a payment, mark it as paid so the guest sees the status update.
+        </div>
 
         <!-- Summary Stats -->
         <div class="stats-row">
@@ -283,6 +338,7 @@ $monthly = $monthly->fetchAll();
                             <th>Amount</th>
                             <th>Status</th>
                             <th>Date</th>
+                            <th>Action</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -290,7 +346,7 @@ $monthly = $monthly->fetchAll();
                         <tr>
                             <td>
                                 <div style="font-weight:500">
-                                    <?= htmlspecialchars(
+                                    <?= h(
                                         $p['property_title']) ?>
                                 </div>
                                 <div style="font-size:11px;
@@ -306,7 +362,7 @@ $monthly = $monthly->fetchAll();
                                 </div>
                             </td>
                             <td>
-                                <?= htmlspecialchars(
+                                <?= h(
                                     $p['tourist_name']) ?>
                             </td>
                             <td>
@@ -321,6 +377,7 @@ $monthly = $monthly->fetchAll();
                                          ?? ucfirst($p['payment_method']);
                                     ?>
                                 </span>
+                                <?php if (!empty($p['payment_reference'])): ?><div style="font-size:11px;color:var(--text-secondary);margin-top:4px">Ref: <?= h($p['payment_reference'], ENT_QUOTES, 'UTF-8') ?></div><?php endif; ?>
                             </td>
                             <td style="font-weight:500">
                                 KES <?= number_format($p['amount']) ?>
@@ -332,8 +389,33 @@ $monthly = $monthly->fetchAll();
                                 </span>
                             </td>
                             <td style="color:var(--text-secondary)">
-                                <?= date('d M Y',
-                                    strtotime($p['payment_date'])) ?>
+                                <?= date('d M Y', strtotime($p['payment_date'])) ?>
+                            </td>
+                            <td>
+                                <?php if ($p['payment_status'] === 'pending' && in_array($p['booking_status'], ['pending','confirmed'], true)): ?>
+                                <form method="post" style="margin:0" onsubmit="return confirm('Have you independently verified that this payment was received?');">
+                                    <input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
+                                    <input type="hidden" name="action" value="confirm_payment">
+                                    <input type="hidden" name="payment_id" value="<?= (int)$p['payment_id'] ?>">
+                                    <button class="btn btn-outline" type="submit">Mark verified</button>
+                                </form>
+                                <?php else: ?><span class="small">—</span><?php endif; ?>
+                            </td>
+                            <td>
+                                <?php if (!empty($p['payment_reference'])): ?>
+                                    <div style="font-size:11px">Ref: <?= h($p['payment_reference']) ?></div>
+                                <?php endif; ?>
+                                <?php if ($p['booking_status'] !== 'cancelled'): ?>
+                                <form method="POST" style="margin:0">
+                                    <input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken()) ?>">
+                                    <input type="hidden" name="payment_id" value="<?= (int)$p['payment_id'] ?>">
+                                    <?php if ($p['payment_status'] === 'pending'): ?>
+                                        <button name="action" value="mark_paid" type="submit">Mark as paid</button>
+                                    <?php elseif ($p['payment_status'] === 'confirmed'): ?>
+                                        <button name="action" value="mark_unpaid" type="submit">Mark unpaid</button>
+                                    <?php endif; ?>
+                                </form>
+                                <?php endif; ?>
                             </td>
                         </tr>
                         <?php endforeach; ?>
@@ -377,10 +459,7 @@ $monthly = $monthly->fetchAll();
             </div>
 
         </div>
-    </main>
-</div>
-
-<?php include '../includes/footer.php'; ?>
+    <?php appShellEnd(); ?>
 
 </body>
 </html>

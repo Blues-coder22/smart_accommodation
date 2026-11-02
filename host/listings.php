@@ -13,6 +13,7 @@ $host_id = $_SESSION['user_id'];
 // Handle delete
 if ($_SERVER['REQUEST_METHOD'] === 'POST'
     && isset($_POST['delete_listing'])) {
+    requireCsrf();
     $lid = (int)$_POST['listing_id'];
 
     // Verify ownership
@@ -76,12 +77,11 @@ $listings = $listings->fetchAll();
     <title>My Listings — Smart Accommodation Kenya</title>
     <link rel="stylesheet" href="../assets/css/style.css">
     <style>
-        body        { display:flex; flex-direction:column;
-                      min-height:100vh }
+        
         .dash-wrap  { display:grid;
                       grid-template-columns:200px 1fr; flex:1 }
         .sidebar    { background:var(--surface-2);
-                      border-right:0.5px solid var(--border);
+                      border-right:1px solid var(--border);
                       padding:24px 0; position:sticky;
                       top:52px; height:calc(100vh - 52px);
                       overflow-y:auto }
@@ -110,7 +110,7 @@ $listings = $listings->fetchAll();
                       font-size:13px; font-weight:500;
                       text-decoration:none; white-space:nowrap }
         .listing-row { background:var(--surface-2);
-                       border:0.5px solid var(--border);
+                       border:1px solid var(--border);
                        border-radius:8px; display:grid;
                        grid-template-columns:96px 1fr auto;
                        gap:16px; align-items:center;
@@ -136,13 +136,13 @@ $listings = $listings->fetchAll();
                        font-weight:600; padding:3px 9px;
                        border-radius:3px }
         .s-approved  { background:#E1F5EE; color:#0F6E56;
-                       border:0.5px solid #9FE1CB }
+                       border:1px solid #9FE1CB }
         .s-pending   { background:#FFF8E1; color:#9A6A00;
-                       border:0.5px solid #F9D57C }
+                       border:1px solid #F9D57C }
         .s-rejected  { background:#FEF2F2; color:#991B1B;
-                       border:0.5px solid #FECACA }
+                       border:1px solid #FECACA }
         .s-suspended { background:#F5F3FF; color:#5B21B6;
-                       border:0.5px solid #C4B5FD }
+                       border:1px solid #C4B5FD }
         .listing-actions { display:flex; flex-direction:column;
                            gap:6px; align-items:flex-end;
                            flex-shrink:0 }
@@ -150,7 +150,7 @@ $listings = $listings->fetchAll();
                       border-radius:4px; cursor:pointer;
                       font-weight:500; text-decoration:none;
                       display:inline-block; text-align:center;
-                      border:0.5px solid var(--border-strong);
+                      border:1px solid var(--border-strong);
                       background:none;
                       color:var(--text-secondary) }
         .btn-sm:hover { border-color:#1D9E75; color:#1D9E75 }
@@ -166,24 +166,8 @@ $listings = $listings->fetchAll();
 </head>
 <body>
 
-<?php include '../includes/header.php'; ?>
 
-<div class="dash-wrap">
-
-    <!-- Sidebar -->
-    <aside class="sidebar">
-        <div class="sidebar-role">Host</div>
-        <a href="dashboard.php" class="sidebar-link">Overview</a>
-        <a href="listings.php" class="sidebar-link active">Listings</a>
-        <a href="availability.php" class="sidebar-link">Availability</a>
-        <a href="bookings.php" class="sidebar-link">Bookings</a>
-        <a href="payments.php" class="sidebar-link">Payments</a>
-        <a href="reviews.php" class="sidebar-link">Reviews</a>
-        <a href="report.php" class="sidebar-link">Reports</a>
-        <a href="profile.php" class="sidebar-link">Profile</a>
-    </aside>
-
-    <main class="main">
+<?php require_once __DIR__ . '/../includes/app_shell.php'; appShellStart(); ?>
 
         <?= showFlash() ?>
 
@@ -216,22 +200,22 @@ $listings = $listings->fetchAll();
                 <!-- Thumbnail -->
                 <div class="listing-thumb">
                     <?php if ($l['primary_photo']): ?>
-                        <img src="../uploads/accommodations/<?= htmlspecialchars($l['primary_photo']) ?>"
-                             alt="<?= htmlspecialchars($l['title']) ?>">
+                        <img src="../uploads/accommodations/<?= h($l['primary_photo']) ?>"
+                             alt="<?= h($l['title']) ?>">
                     <?php else: ?>
-                        &#127968;
+                        <span style="font-size:12px;color:#8a948e">No photo</span>
                     <?php endif; ?>
                 </div>
 
                 <!-- Details -->
                 <div>
                     <div class="listing-title">
-                        <?= htmlspecialchars($l['title']) ?>
+                        <?= h($l['title']) ?>
                     </div>
                     <div class="listing-meta">
-                        <?= htmlspecialchars($l['location_name']) ?>
+                        <?= h($l['location_name']) ?>
                         &middot;
-                        <?= htmlspecialchars($l['property_type']) ?>
+                        <?= h($l['property_type']) ?>
                         &middot;
                         KES <?= number_format($l['price_per_night']) ?>/night
                     </div>
@@ -251,7 +235,7 @@ $listings = $listings->fetchAll();
                                        ? 's' : '' ?>
                         </span>
                         <span>
-                            <?= htmlspecialchars($l['max_guests']) ?>
+                            <?= h($l['max_guests']) ?>
                             guests max
                         </span>
                     </div>
@@ -293,6 +277,7 @@ $listings = $listings->fetchAll();
 
                     <?php if ($l['active_bookings'] == 0): ?>
                     <form method="POST" style="margin:0">
+<input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
                         <input type="hidden" name="listing_id"
                                value="<?= $l['accommodation_id'] ?>">
                         <input type="hidden" name="delete_listing"
@@ -311,10 +296,7 @@ $listings = $listings->fetchAll();
             <?php endforeach; ?>
         <?php endif; ?>
 
-    </main>
-</div>
-
-<?php include '../includes/footer.php'; ?>
+    <?php appShellEnd(); ?>
 
 </body>
 </html>

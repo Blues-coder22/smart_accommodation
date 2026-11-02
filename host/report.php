@@ -2,6 +2,7 @@
 require_once '../includes/auth.php';
 require_once '../includes/functions.php';
 require_once '../includes/db.php';
+require_once '../includes/upload_helpers.php';
 require_once '../includes/email.php';
 
 if (session_status() === PHP_SESSION_NONE) session_start();
@@ -16,6 +17,7 @@ $errors  = [];
 $success = false;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    requireCsrf();
     $report_type  = sanitize($_POST['report_type'] ?? '');
     $incident_type= sanitize($_POST['incident_type'] ?? '');
     $booking_id   = (int)($_POST['booking_id'] ?? 0);
@@ -24,6 +26,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (empty($description) || strlen($description) < 20) {
         $errors[] = 'Please provide more details (at least 20 characters).';
+    }
+    if (!in_array($report_type, ['listing', 'review', 'tourist', 'incident'], true)) {
+        $errors[] = 'Please choose a valid report type.';
     }
 
     // Verify booking belongs to host if provided
@@ -57,14 +62,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif ($_FILES['evidence']['size'] > 5 * 1024 * 1024) {
             $errors[] = 'Evidence file must be under 5MB.';
         } else {
-            $ext      = pathinfo(
-                $_FILES['evidence']['name'], PATHINFO_EXTENSION
+            $filename = saveUploadedImage(
+                $_FILES['evidence']['tmp_name'], $ftype,
+                'evidence', 'evidence', 5 * 1024 * 1024
             );
-            $filename = 'evidence_' . uniqid() . '.' . $ext;
-            $dest     = '../uploads/evidence/' . $filename;
-            if (move_uploaded_file(
-                $_FILES['evidence']['tmp_name'], $dest)) {
+            if ($filename !== false) {
                 $evidence = $filename;
+            } else {
+                $errors[] = 'The evidence image could not be saved. Please try again.';
             }
         }
     }
@@ -170,12 +175,11 @@ $my_reports = $my_reports->fetchAll();
     <title>Reports — Smart Accommodation Kenya</title>
     <link rel="stylesheet" href="../assets/css/style.css">
     <style>
-        body         { display:flex; flex-direction:column;
-                       min-height:100vh }
+        
         .dash-wrap   { display:grid;
                        grid-template-columns:200px 1fr; flex:1 }
         .sidebar     { background:var(--surface-2);
-                       border-right:0.5px solid var(--border);
+                       border-right:1px solid var(--border);
                        padding:24px 0; position:sticky;
                        top:52px; height:calc(100vh - 52px);
                        overflow-y:auto }
@@ -204,13 +208,13 @@ $my_reports = $my_reports->fetchAll();
         .page-sub    { font-size:13px; color:var(--text-secondary);
                        margin-bottom:24px }
         .form-card   { background:var(--surface-2);
-                       border:0.5px solid var(--border);
+                       border:1px solid var(--border);
                        border-radius:8px; padding:24px;
                        margin-bottom:20px }
         .form-card h3{ font-size:14px; font-weight:500;
                        margin-bottom:18px;
                        padding-bottom:12px;
-                       border-bottom:0.5px solid var(--border) }
+                       border-bottom:1px solid var(--border) }
         .form-group  { margin-bottom:16px }
         .form-group label { font-size:12px; font-weight:600;
                             letter-spacing:.04em; text-transform:uppercase;
@@ -219,7 +223,7 @@ $my_reports = $my_reports->fetchAll();
         .form-group input,
         .form-group select,
         .form-group textarea { width:100%; padding:10px 12px;
-                               border:0.5px solid var(--border-strong);
+                               border:1px solid var(--border-strong);
                                border-radius:6px; font-size:13px;
                                color:var(--text-primary);
                                background:var(--surface-2);
@@ -241,7 +245,7 @@ $my_reports = $my_reports->fetchAll();
                        font-size:13px; font-weight:500; cursor:pointer }
         .submit-btn:hover { background:#b91c1c }
         .side-card   { background:var(--surface-2);
-                       border:0.5px solid var(--border);
+                       border:1px solid var(--border);
                        border-radius:8px; padding:16px;
                        margin-bottom:12px }
         .side-card.urgent { border-color:#DC2626;
@@ -254,13 +258,13 @@ $my_reports = $my_reports->fetchAll();
         .emergency   { font-size:20px; font-weight:700;
                        color:#DC2626; margin:6px 0 }
         .history-card{ background:var(--surface-2);
-                       border:0.5px solid var(--border);
+                       border:1px solid var(--border);
                        border-radius:8px; overflow:hidden }
         .history-head{ padding:14px 18px;
-                       border-bottom:0.5px solid var(--border) }
+                       border-bottom:1px solid var(--border) }
         .history-head h3 { font-size:13px; font-weight:500 }
         .history-row { padding:12px 18px;
-                       border-bottom:0.5px solid var(--border);
+                       border-bottom:1px solid var(--border);
                        font-size:13px }
         .history-row:last-child { border-bottom:none }
         .history-type{ font-weight:500; margin-bottom:2px;
@@ -270,20 +274,20 @@ $my_reports = $my_reports->fetchAll();
                        font-weight:600; padding:2px 7px;
                        border-radius:3px; float:right }
         .s-pending   { background:#FFF8E1; color:#9A6A00;
-                       border:0.5px solid #F9D57C }
+                       border:1px solid #F9D57C }
         .s-reviewed  { background:#E1F5EE; color:#0F6E56;
-                       border:0.5px solid #9FE1CB }
+                       border:1px solid #9FE1CB }
         .s-resolved  { background:#F0F4FF; color:#1A4DB3;
-                       border:0.5px solid #B3C5F5 }
+                       border:1px solid #B3C5F5 }
         .success-card{ background:var(--surface-2);
-                       border:0.5px solid var(--border);
+                       border:1px solid var(--border);
                        border-radius:8px; padding:40px;
                        text-align:center }
         .success-icon{ width:52px; height:52px; background:#E1F5EE;
                        border-radius:50%; display:flex;
                        align-items:center; justify-content:center;
                        margin:0 auto 16px;
-                       border:0.5px solid #9FE1CB }
+                       border:1px solid #9FE1CB }
         .success-icon svg { width:22px; height:22px; stroke:#1D9E75 }
         @media(max-width:1000px){
             .dash-wrap { grid-template-columns:1fr }
@@ -294,25 +298,8 @@ $my_reports = $my_reports->fetchAll();
 </head>
 <body>
 
-<?php include '../includes/header.php'; ?>
 
-<div class="dash-wrap">
-
-    <!-- Sidebar -->
-    <aside class="sidebar">
-        <div class="sidebar-role">Host</div>
-        <a href="dashboard.php" class="sidebar-link">Overview</a>
-        <a href="listings.php" class="sidebar-link">Listings</a>
-        <a href="availability.php" class="sidebar-link">Availability</a>
-        <a href="bookings.php" class="sidebar-link">Bookings</a>
-        <a href="payments.php" class="sidebar-link">Payments</a>
-        <a href="reviews.php" class="sidebar-link">Reviews</a>
-        <a href="report.php"
-           class="sidebar-link active">Reports</a>
-        <a href="profile.php" class="sidebar-link">Profile</a>
-    </aside>
-
-    <main class="main">
+<?php require_once __DIR__ . '/../includes/app_shell.php'; appShellStart(); ?>
 
         <div class="page-tag">Safety and support</div>
         <h1 class="page-title">Reports</h1>
@@ -352,7 +339,7 @@ $my_reports = $my_reports->fetchAll();
                    style="padding:9px 20px;background:none;
                           color:var(--text-primary);border-radius:6px;
                           font-size:13px;font-weight:500;
-                          border:0.5px solid var(--border-strong);
+                          border:1px solid var(--border-strong);
                           text-decoration:none">
                     Back to dashboard
                 </a>
@@ -364,7 +351,7 @@ $my_reports = $my_reports->fetchAll();
         <?php if (!empty($errors)): ?>
         <div class="alert alert-error" style="margin-bottom:20px">
             <?php foreach ($errors as $e): ?>
-                <p><?= $e ?></p>
+                <p><?= h($e) ?></p>
             <?php endforeach; ?>
         </div>
         <?php endif; ?>
@@ -377,6 +364,7 @@ $my_reports = $my_reports->fetchAll();
                     <h3>Submit a report</h3>
 
                     <form method="POST" enctype="multipart/form-data">
+<input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
 
                         <!-- Report Type -->
                         <div class="form-group">
@@ -436,9 +424,9 @@ $my_reports = $my_reports->fetchAll();
                                     #BK<?= str_pad($b['booking_id'],
                                         5, '0', STR_PAD_LEFT) ?>
                                     &mdash;
-                                    <?= htmlspecialchars($b['title']) ?>
+                                    <?= h($b['title']) ?>
                                     &mdash;
-                                    <?= htmlspecialchars(
+                                    <?= h(
                                         explode(' ',
                                         $b['tourist_name'])[0]) ?>
                                     (<?= date('d M',
@@ -513,7 +501,7 @@ $my_reports = $my_reports->fetchAll();
                                 strtotime($rep['created_at'])) ?>
                             <?php if ($rep['target_name']): ?>
                                 &middot;
-                                <?= htmlspecialchars(
+                                <?= h(
                                     explode(' ',
                                     $rep['target_name'])[0]) ?>
                             <?php endif; ?>
@@ -568,10 +556,7 @@ $my_reports = $my_reports->fetchAll();
 
         <?php endif; ?>
 
-    </main>
-</div>
-
-<?php include '../includes/footer.php'; ?>
+    <?php appShellEnd(); ?>
 
 <script>
 function toggleIncident(sel) {

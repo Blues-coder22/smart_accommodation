@@ -2,17 +2,22 @@
 require_once '../includes/auth.php';
 require_once '../includes/functions.php';
 require_once '../includes/db.php';
+require_once '../includes/review_extras.php';
+ensureReviewExtraColumns($pdo);
 
 if (session_status() === PHP_SESSION_NONE) session_start();
 
 requireLogin();
 requireRole('host');
 
+publishDueReviews($pdo);
+
 $host_id = $_SESSION['user_id'];
 
 // Handle host reply submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST'
     && isset($_POST['submit_reply'])) {
+    requireCsrf();
     $review_id = (int)$_POST['review_id'];
     $reply     = sanitize($_POST['host_reply'] ?? '');
 
@@ -53,9 +58,7 @@ if ($filter === 'unanswered') {
 $reviews = $pdo->prepare("
     SELECT r.*,
            a.title AS property_title,
-           SUBSTRING(u.full_name, 1,
-               LOCATE(' ', CONCAT(u.full_name, ' ')) - 1
-           ) AS first_name,
+           u.full_name AS reviewer_name, u.profile_photo AS reviewer_photo,
            b.check_in_date, b.check_out_date
     FROM reviews r
     JOIN accommodations a
@@ -93,12 +96,11 @@ $stats = $stats->fetch();
     <title>Reviews — Smart Accommodation Kenya</title>
     <link rel="stylesheet" href="../assets/css/style.css">
     <style>
-        body         { display:flex; flex-direction:column;
-                       min-height:100vh }
+        
         .dash-wrap   { display:grid;
                        grid-template-columns:200px 1fr; flex:1 }
         .sidebar     { background:var(--surface-2);
-                       border-right:0.5px solid var(--border);
+                       border-right:1px solid var(--border);
                        padding:24px 0; position:sticky;
                        top:52px; height:calc(100vh - 52px);
                        overflow-y:auto }
@@ -128,7 +130,7 @@ $stats = $stats->fetch();
                        grid-template-columns:repeat(4,1fr);
                        gap:12px; margin-bottom:20px }
         .stat-card   { background:var(--surface-2);
-                       border:0.5px solid var(--border);
+                       border:1px solid var(--border);
                        border-radius:8px; padding:14px }
         .stat-card.accent { border-left:3px solid #1D9E75 }
         .stat-label  { font-size:10px; font-weight:700;
@@ -144,11 +146,11 @@ $stats = $stats->fetch();
                        border-radius:4px; cursor:pointer;
                        text-decoration:none;
                        color:var(--text-secondary);
-                       border:0.5px solid var(--border) }
+                       border:1px solid var(--border) }
         .filter-tab.active { background:#085041; color:#fff;
                              border-color:#085041 }
         .review-card { background:var(--surface-2);
-                       border:0.5px solid var(--border);
+                       border:1px solid var(--border);
                        border-radius:8px; padding:18px;
                        margin-bottom:10px }
         .review-top  { display:flex; justify-content:space-between;
@@ -172,9 +174,9 @@ $stats = $stats->fetch();
                              font-size:12px }
         .reply-form  { margin-top:12px;
                        padding-top:12px;
-                       border-top:0.5px solid var(--border) }
+                       border-top:1px solid var(--border) }
         .reply-form textarea { width:100%; padding:10px 12px;
-                               border:0.5px solid var(--border-strong);
+                               border:1px solid var(--border-strong);
                                border-radius:6px; font-size:13px;
                                color:var(--text-primary);
                                resize:vertical; min-height:80px;
@@ -189,13 +191,13 @@ $stats = $stats->fetch();
                        cursor:pointer }
         .btn-cancel  { padding:7px 14px; background:none;
                        color:var(--text-secondary);
-                       border:0.5px solid var(--border-strong);
+                       border:1px solid var(--border-strong);
                        border-radius:4px; font-size:12px;
                        cursor:pointer }
         .toggle-reply{ padding:6px 14px; font-size:12px;
                        border-radius:4px; cursor:pointer;
                        color:var(--text-secondary);
-                       border:0.5px solid var(--border-strong);
+                       border:1px solid var(--border-strong);
                        background:none }
         .toggle-reply:hover { border-color:#1D9E75; color:#1D9E75 }
         .empty-state { text-align:center; padding:48px 20px;
@@ -209,31 +211,8 @@ $stats = $stats->fetch();
 </head>
 <body>
 
-<?php include '../includes/header.php'; ?>
 
-<div class="dash-wrap">
-
-    <!-- Sidebar -->
-    <aside class="sidebar">
-        <div class="sidebar-role">Host</div>
-        <a href="dashboard.php" class="sidebar-link">Overview</a>
-        <a href="listings.php" class="sidebar-link">Listings</a>
-        <a href="availability.php" class="sidebar-link">Availability</a>
-        <a href="bookings.php" class="sidebar-link">Bookings</a>
-        <a href="payments.php" class="sidebar-link">Payments</a>
-        <a href="reviews.php" class="sidebar-link active">
-            Reviews
-            <?php if ($stats['unanswered'] > 0): ?>
-                <span class="badge">
-                    <?= $stats['unanswered'] ?>
-                </span>
-            <?php endif; ?>
-        </a>
-        <a href="report.php" class="sidebar-link">Reports</a>
-        <a href="profile.php" class="sidebar-link">Profile</a>
-    </aside>
-
-    <main class="main">
+<?php require_once __DIR__ . '/../includes/app_shell.php'; appShellStart(); ?>
 
         <?= showFlash() ?>
 
@@ -319,10 +298,10 @@ $stats = $stats->fetch();
                 <div class="review-top">
                     <div>
                         <div class="reviewer">
-                            <?= htmlspecialchars($r['first_name']) ?>
+                            <?= personChipHtml($r['tourist_id'], $r['reviewer_name'], $r['reviewer_photo'], 44, 'Guest · open profile') ?>
                         </div>
                         <div class="review-prop">
-                            <?= htmlspecialchars($r['property_title']) ?>
+                            <?= h($r['property_title']) ?>
                             &middot;
                             <?= date('d M',
                                 strtotime($r['check_in_date'])) ?>
@@ -350,16 +329,18 @@ $stats = $stats->fetch();
                     </span>
                 </div>
 
+                <?= categoryBarsHtml($r) ?>
                 <!-- Review text -->
                 <div class="review-text">
-                    <?= nl2br(htmlspecialchars($r['review_text'])) ?>
+                    <?= nl2br(h($r['review_text'])) ?>
                 </div>
 
                 <!-- Host reply if exists -->
                 <?php if ($r['host_reply']): ?>
                 <div class="host-reply">
                     <strong>Your response</strong>
-                    <?= nl2br(htmlspecialchars($r['host_reply'])) ?>
+                    <?php if (!empty($r['host_reply_hidden'])): ?><em style="display:block;color:#a12b2b;font-size:12px">Hidden from the public by an administrator.</em><?php endif; ?>
+                    <?= nl2br(h($r['host_reply'])) ?>
                 </div>
                 <?php endif; ?>
 
@@ -369,6 +350,7 @@ $stats = $stats->fetch();
                      id="reply-form-<?= $r['review_id'] ?>"
                      style="display:none">
                     <form method="POST">
+<input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
                         <input type="hidden" name="review_id"
                                value="<?= $r['review_id'] ?>">
                         <input type="hidden" name="submit_reply"
@@ -410,12 +392,13 @@ $stats = $stats->fetch();
                      id="reply-form-<?= $r['review_id'] ?>"
                      style="display:none">
                     <form method="POST">
+<input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
                         <input type="hidden" name="review_id"
                                value="<?= $r['review_id'] ?>">
                         <input type="hidden" name="submit_reply"
                                value="1">
                         <textarea name="host_reply"
-                                  required><?= htmlspecialchars(
+                                  required><?= h(
                             $r['host_reply']) ?></textarea>
                         <div class="reply-actions">
                             <button type="submit" class="btn-reply">
@@ -435,10 +418,7 @@ $stats = $stats->fetch();
             <?php endforeach; ?>
         <?php endif; ?>
 
-    </main>
-</div>
-
-<?php include '../includes/footer.php'; ?>
+    <?php appShellEnd(); ?>
 
 <script>
 function toggleReply(id) {

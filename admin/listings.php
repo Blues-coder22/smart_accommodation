@@ -11,6 +11,7 @@ requireRole('admin');
 
 // Handle approve / reject
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    requireCsrf();
     $listing_id = (int)($_POST['listing_id'] ?? 0);
     $action     = sanitize($_POST['action'] ?? '');
     $reason     = sanitize($_POST['reason'] ?? '');
@@ -205,12 +206,11 @@ if ($reviewing) {
     <title>Listing Approvals — Smart Accommodation Kenya</title>
     <link rel="stylesheet" href="../assets/css/style.css">
     <style>
-        body         { display:flex; flex-direction:column;
-                       min-height:100vh }
+        
         .dash-wrap   { display:grid;
                        grid-template-columns:200px 1fr; flex:1 }
         .sidebar     { background:var(--surface-2);
-                       border-right:0.5px solid var(--border);
+                       border-right:1px solid var(--border);
                        padding:24px 0; position:sticky;
                        top:52px; height:calc(100vh - 52px);
                        overflow-y:auto }
@@ -241,13 +241,13 @@ if ($reviewing) {
         .filter-tab  { padding:6px 14px; font-size:12px;
                        border-radius:4px; text-decoration:none;
                        color:var(--text-secondary);
-                       border:0.5px solid var(--border);
+                       border:1px solid var(--border);
                        display:flex; align-items:center; gap:6px }
         .filter-tab.active { background:#085041; color:#fff;
                              border-color:#085041 }
         .tab-count   { font-size:10px; opacity:.8 }
         .listing-row { background:var(--surface-2);
-                       border:0.5px solid var(--border);
+                       border:1px solid var(--border);
                        border-radius:8px; display:grid;
                        grid-template-columns:100px 1fr auto;
                        gap:16px; align-items:start;
@@ -271,19 +271,19 @@ if ($reviewing) {
                           flex-wrap:wrap; margin-top:6px }
         .info-badge    { font-size:11px; padding:2px 8px;
                          border-radius:3px; background:var(--surface-1);
-                         border:0.5px solid var(--border);
+                         border:1px solid var(--border);
                          color:var(--text-secondary) }
         .status-pill   { display:inline-block; font-size:11px;
                          font-weight:600; padding:3px 9px;
                          border-radius:3px }
         .s-pending     { background:#FFF8E1; color:#9A6A00;
-                         border:0.5px solid #F9D57C }
+                         border:1px solid #F9D57C }
         .s-approved    { background:#E1F5EE; color:#0F6E56;
-                         border:0.5px solid #9FE1CB }
+                         border:1px solid #9FE1CB }
         .s-rejected    { background:#FEF2F2; color:#991B1B;
-                         border:0.5px solid #FECACA }
+                         border:1px solid #FECACA }
         .s-suspended   { background:#F5F3FF; color:#5B21B6;
-                         border:0.5px solid #C4B5FD }
+                         border:1px solid #C4B5FD }
         .listing-actions { display:flex; flex-direction:column;
                            gap:6px; align-items:flex-end;
                            flex-shrink:0 }
@@ -293,12 +293,12 @@ if ($reviewing) {
                          cursor:pointer; width:100%;
                          text-align:center }
         .btn-reject    { padding:7px 14px; background:none;
-                         color:#DC2626; border:0.5px solid #FECACA;
+                         color:#DC2626; border:1px solid #FECACA;
                          border-radius:4px; font-size:12px;
                          font-weight:500; cursor:pointer;
                          width:100%; text-align:center }
         .btn-suspend   { padding:7px 14px; background:none;
-                         color:#D97706; border:0.5px solid #F9D57C;
+                         color:#D97706; border:1px solid #F9D57C;
                          border-radius:4px; font-size:12px;
                          font-weight:500; cursor:pointer;
                          width:100%; text-align:center }
@@ -309,14 +309,14 @@ if ($reviewing) {
                          text-align:center }
         .btn-view      { padding:7px 14px; background:none;
                          color:var(--text-secondary);
-                         border:0.5px solid var(--border-strong);
+                         border:1px solid var(--border-strong);
                          border-radius:4px; font-size:12px;
                          cursor:pointer; width:100%;
                          text-align:center; text-decoration:none;
                          display:block }
         .reason-form   { margin-top:8px; width:100% }
         .reason-form textarea { width:100%; padding:7px 10px;
-                                border:0.5px solid var(--border-strong);
+                                border:1px solid var(--border-strong);
                                 border-radius:4px; font-size:12px;
                                 resize:none; height:60px;
                                 font-family:inherit;
@@ -352,10 +352,10 @@ if ($reviewing) {
                          gap:8px; margin-bottom:18px }
         .photo-grid img { width:100%; height:100px;
                           object-fit:cover; border-radius:6px;
-                          border:0.5px solid var(--border) }
+                          border:1px solid var(--border) }
         .detail-row    { display:flex; justify-content:space-between;
                          padding:8px 0;
-                         border-bottom:0.5px solid var(--border);
+                         border-bottom:1px solid var(--border);
                          font-size:13px }
         .detail-row:last-child { border-bottom:none }
         .detail-label  { color:var(--text-secondary) }
@@ -363,12 +363,12 @@ if ($reviewing) {
                          margin:10px 0 }
         .amenity-tag   { font-size:11px; padding:3px 9px;
                          background:var(--surface-1);
-                         border:0.5px solid var(--border);
+                         border:1px solid var(--border);
                          border-radius:3px;
                          color:var(--text-secondary) }
         .modal-actions { display:flex; gap:10px; margin-top:20px;
                          padding-top:16px;
-                         border-top:0.5px solid var(--border) }
+                         border-top:1px solid var(--border) }
         .empty-state   { text-align:center; padding:48px;
                          color:var(--text-secondary); font-size:14px }
         @media(max-width:900px){
@@ -379,7 +379,6 @@ if ($reviewing) {
 </head>
 <body>
 
-<?php include '../includes/header.php'; ?>
 
 <!-- Review Modal -->
 <?php if ($reviewing): ?>
@@ -391,13 +390,13 @@ if ($reviewing) {
             &times;
         </button>
 
-        <h2><?= htmlspecialchars($reviewing['title']) ?></h2>
+        <h2><?= h($reviewing['title']) ?></h2>
         <div class="modal-meta">
-            <?= htmlspecialchars($reviewing['location_name']) ?>
+            <?= h($reviewing['location_name']) ?>
             &middot;
-            <?= htmlspecialchars($reviewing['property_type']) ?>
+            <?= h($reviewing['property_type']) ?>
             &middot; Submitted by
-            <?= htmlspecialchars($reviewing['host_name']) ?>
+            <?= h($reviewing['host_name']) ?>
         </div>
 
         <!-- Photos -->
@@ -405,7 +404,7 @@ if ($reviewing) {
         <div class="photo-grid">
             <?php foreach (array_slice($review_photos,0,6)
                 as $ph): ?>
-            <img src="../uploads/accommodations/<?= htmlspecialchars(
+            <img src="../uploads/accommodations/<?= h(
                 $ph['photo_path']) ?>"
                  alt="Property photo">
             <?php endforeach; ?>
@@ -434,12 +433,12 @@ if ($reviewing) {
         <div class="detail-row">
             <span class="detail-label">Host</span>
             <span>
-                <?= htmlspecialchars($reviewing['host_name']) ?>
+                <?= h($reviewing['host_name']) ?>
                 &middot;
-                <?= htmlspecialchars($reviewing['host_email']) ?>
+                <?= h($reviewing['host_email']) ?>
                 <?php if ($reviewing['host_phone']): ?>
                     &middot;
-                    <?= htmlspecialchars($reviewing['host_phone']) ?>
+                    <?= h($reviewing['host_phone']) ?>
                 <?php endif; ?>
             </span>
         </div>
@@ -450,7 +449,7 @@ if ($reviewing) {
         <div class="detail-row">
             <span class="detail-label">Description</span>
             <span style="max-width:400px;text-align:right">
-                <?= htmlspecialchars(
+                <?= h(
                     substr($reviewing['description'], 0, 200)) ?>
                 <?= strlen($reviewing['description']) > 200
                     ? '...' : '' ?>
@@ -465,7 +464,7 @@ if ($reviewing) {
         <div class="amenity-list">
             <?php foreach ($review_amenities as $am): ?>
             <span class="amenity-tag">
-                <?= htmlspecialchars($am) ?>
+                <?= h($am) ?>
             </span>
             <?php endforeach; ?>
         </div>
@@ -475,6 +474,7 @@ if ($reviewing) {
         <?php if ($reviewing['status'] === 'pending'): ?>
         <div class="modal-actions">
             <form method="POST" style="flex:1">
+<input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
                 <input type="hidden" name="listing_id"
                        value="<?= $reviewing['accommodation_id'] ?>">
                 <input type="hidden" name="action" value="approve">
@@ -484,13 +484,14 @@ if ($reviewing) {
                 </button>
             </form>
             <form method="POST" style="flex:1">
+<input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
                 <input type="hidden" name="listing_id"
                        value="<?= $reviewing['accommodation_id'] ?>">
                 <input type="hidden" name="action" value="reject">
                 <textarea name="reason"
                           placeholder="Reason for rejection (sent to host)..."
                           style="width:100%;padding:7px 10px;
-                                 border:0.5px solid var(--border-strong);
+                                 border:1px solid var(--border-strong);
                                  border-radius:4px;font-size:12px;
                                  resize:none;height:52px;
                                  margin-bottom:6px;
@@ -510,30 +511,7 @@ if ($reviewing) {
 </div>
 <?php endif; ?>
 
-<div class="dash-wrap">
-
-    <!-- Sidebar -->
-    <aside class="sidebar">
-        <div class="sidebar-role">Admin</div>
-        <a href="dashboard.php" class="sidebar-link">Overview</a>
-        <a href="listings.php" class="sidebar-link active">
-            Listing approvals
-            <?php if (!empty($counts['pending'])): ?>
-                <span class="badge">
-                    <?= $counts['pending'] ?>
-                </span>
-            <?php endif; ?>
-        </a>
-        <a href="users.php" class="sidebar-link">Users</a>
-        <a href="reviews.php" class="sidebar-link">
-            Review moderation
-        </a>
-        <a href="reports.php" class="sidebar-link">Reports</a>
-        <a href="attractions.php" class="sidebar-link">Attractions</a>
-        <a href="profile.php" class="sidebar-link">Profile</a>
-    </aside>
-
-    <main class="main">
+<?php require_once __DIR__ . '/../includes/app_shell.php'; appShellStart(); ?>
 
         <?= showFlash() ?>
 
@@ -582,31 +560,31 @@ if ($reviewing) {
                     $thumb = $thumb->fetchColumn();
                     ?>
                     <?php if ($thumb): ?>
-                        <img src="../uploads/accommodations/<?= htmlspecialchars($thumb) ?>"
-                             alt="<?= htmlspecialchars($l['title']) ?>">
+                        <img src="../uploads/accommodations/<?= h($thumb) ?>"
+                             alt="<?= h($l['title']) ?>">
                     <?php else: ?>
-                        &#127968;
+                        <span style="font-size:12px;color:#8a948e">No photo</span>
                     <?php endif; ?>
                 </div>
 
                 <!-- Info -->
                 <div>
                     <div class="listing-title">
-                        <?= htmlspecialchars($l['title']) ?>
+                        <?= h($l['title']) ?>
                     </div>
                     <div class="listing-meta">
-                        <?= htmlspecialchars($l['location_name']) ?>
+                        <?= h($l['location_name']) ?>
                         &middot;
-                        <?= htmlspecialchars($l['property_type']) ?>
+                        <?= h($l['property_type']) ?>
                         &middot;
                         KES <?= number_format($l['price_per_night']) ?>/night
                         &middot;
                         <?= $l['max_guests'] ?> guests max
                     </div>
                     <div class="listing-host">
-                        Host: <?= htmlspecialchars($l['host_name']) ?>
+                        Host: <?= h($l['host_name']) ?>
                         &middot;
-                        <?= htmlspecialchars($l['host_email']) ?>
+                        <?= h($l['host_email']) ?>
                     </div>
                     <div class="listing-badges">
                         <span class="info-badge">
@@ -656,6 +634,7 @@ if ($reviewing) {
 
                     <?php if ($l['status'] === 'pending'): ?>
                     <form method="POST" style="width:100%">
+<input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
                         <input type="hidden" name="listing_id"
                                value="<?= $l['accommodation_id'] ?>">
                         <input type="hidden" name="action"
@@ -665,6 +644,7 @@ if ($reviewing) {
                         </button>
                     </form>
                     <form method="POST" style="width:100%">
+<input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
                         <input type="hidden" name="listing_id"
                                value="<?= $l['accommodation_id'] ?>">
                         <input type="hidden" name="action"
@@ -684,6 +664,7 @@ if ($reviewing) {
 
                     <?php elseif ($l['status'] === 'approved'): ?>
                     <form method="POST" style="width:100%">
+<input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
                         <input type="hidden" name="listing_id"
                                value="<?= $l['accommodation_id'] ?>">
                         <input type="hidden" name="action"
@@ -703,6 +684,7 @@ if ($reviewing) {
 
                     <?php elseif ($l['status'] === 'suspended'): ?>
                     <form method="POST" style="width:100%">
+<input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
                         <input type="hidden" name="listing_id"
                                value="<?= $l['accommodation_id'] ?>">
                         <input type="hidden" name="action"
@@ -718,10 +700,7 @@ if ($reviewing) {
             <?php endforeach; ?>
         <?php endif; ?>
 
-    </main>
-</div>
-
-<?php include '../includes/footer.php'; ?>
+    <?php appShellEnd(); ?>
 
 </body>
 </html>

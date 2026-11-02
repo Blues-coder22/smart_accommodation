@@ -1,0 +1,20 @@
+/* Shared look for the information pages (matches the rest of the site) */
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Work+Sans:wght@400;500;600;700&display=swap');
+body{font-family:'Work Sans',system-ui,-apple-system,'Segoe UI',Arial,sans-serif;animation:plFade .5s ease both}
+h1,h2,h3{font-family:'Instrument Serif','Cormorant Garamond',Georgia,serif;font-weight:400}
+@keyframes plFade{from{opacity:0}to{opacity:1}}
+@keyframes plRise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+.public-nav{background:#faf6ef!important;color:#1f241f!important;border-bottom:1px solid #e4ddcf}
+.public-nav .public-brand,.public-nav .brand{color:#0d3b2e}
+.public-nav .brand-mark{border:1.5px solid #0d3b2e!important;color:#0d3b2e;font-family:Georgia,serif;font-weight:700;transition:background .25s,color .25s}
+.public-nav .public-brand:hover .brand-mark{background:#0d3b2e;color:#fff}
+.public-nav a:not(.btn){color:#6b6f68;position:relative;transition:color .2s}
+.public-nav a:not(.btn)::after{content:"";position:absolute;left:0;right:0;bottom:-6px;height:2px;background:#c0623a;transform:scaleX(0);transform-origin:left;transition:transform .25s}
+.public-nav a:not(.btn):hover{color:#1f241f}.public-nav a:not(.btn):hover::after{transform:scaleX(1)}
+.public-nav .btn{background:#0d3b2e;color:#fff;border:1px solid #0d3b2e}
+.hp-footer{background:#0a1c11;color:#c9d3cb}.hp-footer .brand,.hp-footer h4{color:#fff}
+.hp-footer a{color:#aebbb1;display:block;transition:color .2s,transform .2s}.hp-footer a:hover{color:#fff;transform:translateX(3px)}
+.btn{transition:transform .2s,box-shadow .2s,background .2s}.btn:hover{transform:translateY(-2px);box-shadow:0 10px 22px rgba(13,59,46,.2)}
+main h1,main h2,main p,main .card,main .pad{animation:plRise .6s cubic-bezier(.2,.7,.2,1) both}
+main h2{animation-delay:.08s}main p{animation-delay:.12s}
+@media(prefers-reduced-motion:reduce){body,main *{animation:none!important}}

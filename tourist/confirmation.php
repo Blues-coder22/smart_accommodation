@@ -2,6 +2,7 @@
 require_once '../includes/auth.php';
 require_once '../includes/functions.php';
 require_once '../includes/db.php';
+require_once '../includes/onsite_experience.php';
 
 if (session_status() === PHP_SESSION_NONE) session_start();
 
@@ -14,10 +15,12 @@ if (!$booking_id) {
     redirect('bookings.php');
 }
 
+ensureOnsiteExperienceColumns($pdo);
 // Get full booking details
 $stmt = $pdo->prepare("
     SELECT b.*,
            a.title, a.location_name, a.price_per_night,
+           a.onsite_experience_name,
            a.latitude, a.longitude,
            u.full_name AS host_name,
            u.phone_number AS host_phone,
@@ -43,6 +46,7 @@ if (!$booking) {
 $check_in  = new DateTime($booking['check_in_date']);
 $check_out = new DateTime($booking['check_out_date']);
 $nights    = $check_in->diff($check_out)->days;
+$br        = bookingPriceBreakdown($booking);
 
 // Format payment method
 $method_labels = [
@@ -64,25 +68,27 @@ $nearby = getNearbyAttractions(
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Booking Confirmed — Smart Accommodation Kenya</title>
+    <title>Booking Request — Smart Accommodation Kenya</title>
     <link rel="stylesheet" href="../assets/css/style.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
         .page-wrap   { max-width:760px; margin:0 auto; padding:32px 24px }
         .confirm-hero { text-align:center; padding:32px 0 24px }
         .confirm-icon { width:56px; height:56px; background:#E1F5EE;
                         border-radius:50%; display:flex; align-items:center;
                         justify-content:center; margin:0 auto 16px;
-                        border:0.5px solid #9FE1CB }
+                        border:1px solid #9FE1CB }
         .confirm-icon svg { width:24px; height:24px; stroke:#1D9E75 }
         .confirm-hero h1 { font-size:24px; font-weight:500;
                            color:#085041; margin-bottom:6px }
         .confirm-hero p  { font-size:14px; color:var(--text-secondary) }
         .ref-tag { display:inline-block; font-size:13px; font-weight:600;
                    color:#085041; background:#E1F5EE;
-                   border:0.5px solid #9FE1CB;
+                   border:1px solid #9FE1CB;
                    padding:6px 14px; border-radius:4px; margin-top:12px }
         .detail-card { background:var(--surface-2);
-                       border:0.5px solid var(--border);
+                       border:1px solid var(--border);
                        border-radius:8px; overflow:hidden;
                        margin-bottom:16px }
         .detail-card-img { height:180px; background:#E1F5EE;
@@ -95,7 +101,7 @@ $nearby = getNearbyAttractions(
         .detail-card-body .loc { font-size:13px; color:var(--text-secondary);
                                  margin-bottom:16px }
         .detail-row { display:flex; justify-content:space-between;
-                      padding:10px 0; border-bottom:0.5px solid var(--border);
+                      padding:10px 0; border-bottom:1px solid var(--border);
                       font-size:14px }
         .detail-row:last-child { border-bottom:none }
         .detail-label { color:var(--text-secondary) }
@@ -104,15 +110,16 @@ $nearby = getNearbyAttractions(
                           font-size:12px; font-weight:600;
                           padding:3px 10px; border-radius:3px }
         .status-confirmed { background:#E1F5EE; color:#0F6E56;
-                            border:0.5px solid #9FE1CB }
+                            border:1px solid #9FE1CB }
+        .status-pending { background:#FFF8E1; color:#9A6A00; border:1px solid #F9D57C }
         .what-next { background:var(--surface-2);
-                     border:0.5px solid var(--border);
+                     border:1px solid var(--border);
                      border-radius:8px; padding:20px;
                      margin-bottom:16px }
         .what-next h3 { font-size:14px; font-weight:500;
                         margin-bottom:14px }
         .next-item { display:flex; gap:12px; padding:10px 0;
-                     border-bottom:0.5px solid var(--border);
+                     border-bottom:1px solid var(--border);
                      font-size:13px }
         .next-item:last-child { border-bottom:none }
         .next-num  { width:22px; height:22px; border-radius:50%;
@@ -121,12 +128,17 @@ $nearby = getNearbyAttractions(
                      justify-content:center; flex-shrink:0; margin-top:1px }
         .next-text strong { display:block; margin-bottom:2px }
         .next-text span   { color:var(--text-secondary) }
+        #osmConfirmationMap { height:300px; border-radius:10px; margin-bottom:10px }
+        .osm-nearby-controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:10px 0 14px}
+        .osm-nearby-controls button{border:1px solid #d5a16f;background:#fff7ed;color:#9a4d08;border-radius:8px;padding:9px 13px;font:inherit;font-size:13px;cursor:pointer}
+        .osm-nearby-controls button:disabled{opacity:.65;cursor:wait}
+        .osm-nearby-status{font-size:12px;color:#666}
         .nearby-section { margin-bottom:16px }
         .nearby-section h3 { font-size:14px; font-weight:500;
                              margin-bottom:12px }
         .nearby-item { display:flex; justify-content:space-between;
                        align-items:center; padding:10px 0;
-                       border-bottom:0.5px solid var(--border);
+                       border-bottom:1px solid var(--border);
                        font-size:13px }
         .nearby-item:last-child { border-bottom:none }
         .nearby-name  { font-weight:500 }
@@ -140,7 +152,7 @@ $nearby = getNearbyAttractions(
                             text-decoration:none }
         .btn-primary-dark { background:#085041; color:#fff; border:none }
         .btn-secondary { background:none; color:var(--text-primary);
-                         border:0.5px solid var(--border-strong) }
+                         border:1px solid var(--border-strong) }
     </style>
 </head>
 <body class="tourist-confirmation">
@@ -157,10 +169,8 @@ $nearby = getNearbyAttractions(
                       d="M4.5 12.75l6 6 9-13.5"/>
             </svg>
         </div>
-        <h1>Your booking is confirmed.</h1>
-        <p>
-            A confirmation has been sent to your email address.
-        </p>
+        <h1><?= $booking['status'] === 'confirmed' ? 'Your booking is confirmed.' : ($booking['status'] === 'cancelled' ? 'Booking request not accepted.' : 'Your booking request has been sent.') ?></h1>
+        <p><?= $booking['status'] === 'confirmed' ? 'Your host has confirmed the booking.' : ($booking['status'] === 'cancelled' ? 'This booking is cancelled or was not accepted by the host.' : 'Your host must review your request and payment details before the booking is confirmed.') ?></p>
         <div class="ref-tag">
             Booking #BK<?= str_pad($booking_id, 5, '0', STR_PAD_LEFT) ?>
         </div>
@@ -170,16 +180,16 @@ $nearby = getNearbyAttractions(
     <div class="detail-card">
         <div class="detail-card-img">
             <?php if ($booking['primary_photo']): ?>
-                <img src="../uploads/accommodations/<?= htmlspecialchars($booking['primary_photo']) ?>"
-                     alt="<?= htmlspecialchars($booking['title']) ?>">
+                <img src="../uploads/accommodations/<?= h($booking['primary_photo']) ?>"
+                     alt="<?= h($booking['title']) ?>">
             <?php else: ?>
-                &#127968;
+                <span style="font-size:12px;color:#8a948e">No photo</span>
             <?php endif; ?>
         </div>
         <div class="detail-card-body">
-            <h2><?= htmlspecialchars($booking['title']) ?></h2>
+            <h2><?= h($booking['title']) ?></h2>
             <div class="loc">
-                <?= htmlspecialchars($booking['location_name']) ?>
+                <?= h($booking['location_name']) ?>
             </div>
 
             <div class="detail-row">
@@ -210,34 +220,48 @@ $nearby = getNearbyAttractions(
             <div class="detail-row">
                 <span class="detail-label">Host</span>
                 <span class="detail-value">
-                    <?= htmlspecialchars($booking['host_name']) ?>
+                    <?= h($booking['host_name']) ?>
                     <?php if ($booking['host_phone']): ?>
                         <span style="font-size:12px;
                                      color:var(--text-secondary);
                                      font-weight:400">
                             &nbsp;&middot;&nbsp;
-                            <?= htmlspecialchars($booking['host_phone']) ?>
+                            <?= h($booking['host_phone']) ?>
                         </span>
                     <?php endif; ?>
                 </span>
             </div>
             <div class="detail-row">
-                <span class="detail-label">Total paid</span>
+                <span class="detail-label">Stay (<?= (int)$br['nights'] ?> night<?= $br['nights'] > 1 ? 's' : '' ?>)</span>
+                <span class="detail-value">KES <?= number_format($br['stay']) ?></span>
+            </div>
+            <?php if ($br['extra'] > 0): ?>
+            <div class="detail-row">
+                <span class="detail-label"><?= h($br['extra_name']) ?></span>
+                <span class="detail-value">KES <?= number_format($br['extra']) ?></span>
+            </div>
+            <?php endif; ?>
+            <div class="detail-row">
+                <span class="detail-label">Booking total</span>
                 <span class="detail-value">
                     KES <?= number_format($booking['total_amount']) ?>
                 </span>
             </div>
+            <?php if ($br['extra'] > 0): ?>
+            <div style="padding:0 0 10px"><?= bookingExtraNoteHtml($br) ?></div>
+            <?php endif; ?>
             <div class="detail-row">
                 <span class="detail-label">Payment method</span>
                 <span class="detail-value">
-                    <?= htmlspecialchars($method_label) ?>
+                    <?= h($method_label) ?>
                 </span>
             </div>
             <div class="detail-row">
                 <span class="detail-label">Payment status</span>
                 <span class="detail-value">
-                    <span class="payment-status status-confirmed">
-                        Confirmed
+                    <?php $payStatus = $booking['payment_status'] ?? ''; ?>
+                    <span class="payment-status <?= $payStatus === 'confirmed' ? 'status-confirmed' : 'status-pending' ?>">
+                        <?= $payStatus === 'confirmed' ? 'Payment received' : ($payStatus === 'pending' ? 'Awaiting host verification' : 'Not submitted') ?>
                     </span>
                 </span>
             </div>
@@ -250,20 +274,19 @@ $nearby = getNearbyAttractions(
         <div class="next-item">
             <div class="next-num">1</div>
             <div class="next-text">
-                <strong>Your host has been notified</strong>
+                <strong>Waiting for host decision</strong>
                 <span>
-                    <?= htmlspecialchars($booking['host_name']) ?>
-                    has received your booking details by email.
+                    <?= h($booking['host_name']) ?> has received your booking request. You will see the status update here after the host responds.
                 </span>
             </div>
         </div>
         <div class="next-item">
             <div class="next-num">2</div>
             <div class="next-text">
-                <strong>Complete your payment</strong>
+                <strong>Payment details submitted for review</strong>
                 <span>
-                    Pay <?= htmlspecialchars($booking['host_name']) ?>
-                    via <?= htmlspecialchars($method_label) ?>
+                    Pay <?= h($booking['host_name']) ?>
+                    via <?= h($method_label) ?>
                     before your check-in date.
                 </span>
             </div>
@@ -271,14 +294,8 @@ $nearby = getNearbyAttractions(
         <div class="next-item">
             <div class="next-num">3</div>
             <div class="next-text">
-                <strong>Check in on
-                    <?= date('d M Y',
-                        strtotime($booking['check_in_date'])) ?>
-                </strong>
-                <span>
-                    Your host will be expecting you.
-                    Contact them if you need directions.
-                </span>
+                <strong><?= $booking['status'] === 'confirmed' ? 'Check in on ' . date('d M Y', strtotime($booking['check_in_date'])) : 'Wait for the host decision' ?></strong>
+                <span><?= $booking['status'] === 'confirmed' ? 'Your host has accepted this booking. Contact them if you need directions.' : 'Do not assume the stay is confirmed until the booking status changes to Confirmed.' ?></span>
             </div>
         </div>
         <div class="next-item">
@@ -293,6 +310,20 @@ $nearby = getNearbyAttractions(
         </div>
     </div>
 
+    <!-- Map near the booked accommodation -->
+    <?php if (!empty($booking['latitude']) && !empty($booking['longitude'])): ?>
+    <div class="detail-card">
+        <div class="detail-card-body">
+            <h3 style="font-size:14px;font-weight:500;margin-bottom:14px">Explore nearby places</h3>
+            <div id="osmConfirmationMap" aria-label="Map around your booked accommodation"></div>
+            <div class="osm-nearby-controls">
+                <button type="button" id="osmConfirmationSearch">Show nearby places</button>
+                <span class="osm-nearby-status" id="osmConfirmationStatus" role="status" aria-live="polite">Green pin: your stay. Terracotta pins: attractions nearby.</span>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
+
     <!-- Nearby Attractions -->
     <?php if (!empty($nearby)): ?>
     <div class="detail-card">
@@ -300,18 +331,15 @@ $nearby = getNearbyAttractions(
             <h3 style="font-size:14px;font-weight:500;margin-bottom:14px">
                 Attractions near your stay
             </h3>
+            <p style="font-size:12px;color:#68776f;line-height:1.5;margin:0 0 12px">Entry fees are set by the park or site (often the government) and paid at the gate. They are not part of your booking.</p>
             <?php foreach (array_slice($nearby, 0, 5) as $att): ?>
             <div class="nearby-item">
                 <div>
                     <div class="nearby-name">
-                        <?= htmlspecialchars($att['name']) ?>
+                        <?= h($att['name']) ?>
                     </div>
                     <div class="nearby-meta">
-                        <?= htmlspecialchars($att['category']) ?>
-                        &nbsp;&middot;&nbsp;
-                        <?= $att['entry_fee'] > 0
-                            ? 'KES ' . number_format($att['entry_fee'])
-                            : 'Free entry' ?>
+                        <?= h($att['category']) ?>
                     </div>
                 </div>
                 <div class="nearby-dist">
@@ -332,10 +360,41 @@ $nearby = getNearbyAttractions(
             Back to home
         </a>
     </div>
+    <?php if (in_array($booking['status'], ['pending','confirmed'], true) && $booking['check_in_date'] > date('Y-m-d')): ?>
+        <form method="post" action="bookings.php" style="margin-top:14px;text-align:center" onsubmit="return confirm('Cancel this booking? This cannot be undone.');">
+            <input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
+            <input type="hidden" name="action" value="cancel_booking">
+            <input type="hidden" name="booking_id" value="<?= (int)$booking['booking_id'] ?>">
+            <button type="submit" style="background:none;border:0;color:#b42318;font:inherit;font-size:13px;cursor:pointer;text-decoration:underline">Cancel this booking</button>
+        </form>
+        <?php endif; ?>
 
 </div>
 
 <?php include '../includes/footer.php'; ?>
+
+<?php if (!empty($booking['latitude']) && !empty($booking['longitude'])): ?>
+<script src="../assets/js/osm-nearby.js"></script>
+<script src="../assets/js/map-pins.js"></script>
+<script src="../assets/js/directions.js"></script>
+<script>
+(function () {
+    const lat = <?= (float)$booking['latitude'] ?>;
+    const lng = <?= (float)$booking['longitude'] ?>;
+    const confirmationMap = L.map('osmConfirmationMap').setView([lat, lng], 14);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap contributors' }).addTo(confirmationMap);
+    window.enableDirections(confirmationMap, { destination: { lat: lat, lng: lng, name: 'Your booked accommodation' } });
+    SEPins.legend(confirmationMap, ['stay', 'attraction', 'place']);
+    L.marker([lat, lng], { icon: SEPins.stay() }).addTo(confirmationMap).bindPopup('<b>Your booked accommodation</b>').openPopup();
+    <?php foreach ($nearby as $att): ?>
+    <?php if (!empty($att['latitude']) && !empty($att['longitude'])): ?>
+    L.marker([<?= (float)$att['latitude'] ?>, <?= (float)$att['longitude'] ?>], { icon: SEPins.attraction() }).addTo(confirmationMap).bindPopup(<?= json_encode((string)$att['name'], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>);
+    <?php endif; ?>
+    <?php endforeach; ?>
+    window.enableOsmNearbyPlaces(confirmationMap, { buttonId: 'osmConfirmationSearch', statusId: 'osmConfirmationStatus', radius: 2000, latitude: lat, longitude: lng });
+})();
+</script>
+<?php endif; ?>
 
 </body>
 </html>

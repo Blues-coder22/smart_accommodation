@@ -1,1 +1,9 @@
 /vendor/
+/includes/config.php
+/logs/*
+!/logs/.htaccess
+!/logs/.gitkeep
+/uploads/*/*
+!/uploads/*/.gitkeep
+!/uploads/*/.htaccess
+!/uploads/*/index.html

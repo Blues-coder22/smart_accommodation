@@ -2,6 +2,7 @@
 require_once '../includes/auth.php';
 require_once '../includes/functions.php';
 require_once '../includes/db.php';
+require_once '../includes/onsite_experience.php';
 
 if (session_status() === PHP_SESSION_NONE) session_start();
 
@@ -10,10 +11,47 @@ requireRole('tourist');
 
 $tab = sanitize($_GET['tab'] ?? 'upcoming');
 
+// Tourists may cancel their own pending or confirmed future booking. State changes require POST + CSRF.
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'cancel_booking') {
+    requireCsrf();
+    $cancelId = (int)($_POST['booking_id'] ?? 0);
+    $check = $pdo->prepare("SELECT booking_id, status, check_in_date FROM bookings WHERE booking_id = ? AND tourist_id = ? LIMIT 1");
+    $check->execute([$cancelId, (int)$_SESSION['user_id']]);
+    $owned = $check->fetch();
+    if (!$owned) {
+        setFlash('error', 'Booking not found.');
+    } elseif (!in_array($owned['status'], ['pending','confirmed'], true) || $owned['check_in_date'] <= date('Y-m-d')) {
+        setFlash('error', 'This booking can no longer be cancelled online. Please contact support if you need help.');
+    } else {
+        $upd = $pdo->prepare("UPDATE bookings SET status = 'cancelled' WHERE booking_id = ? AND tourist_id = ? AND status IN ('pending','confirmed')");
+        $upd->execute([$cancelId, (int)$_SESSION['user_id']]);
+        if ($upd->rowCount()) {
+            setFlash('success', 'Your booking has been cancelled and your host has been told. If you already paid, please agree any refund directly with your host.');
+            // Let the host know so the dates are not held for a guest who is no longer coming.
+            try {
+                $info = $pdo->prepare("SELECT a.title, h.email AS host_email, b.check_in_date, b.check_out_date, t.full_name AS guest_name
+                    FROM bookings b JOIN accommodations a ON a.accommodation_id = b.accommodation_id
+                    JOIN users h ON h.user_id = a.host_id JOIN users t ON t.user_id = b.tourist_id WHERE b.booking_id = ?");
+                $info->execute([$cancelId]);
+                if ($i = $info->fetch()) {
+                    require_once '../includes/email.php';
+                    sendEmail($i['host_email'], 'Booking cancelled by guest — StayExplore Kenya',
+                        '<p>' . h($i['guest_name'], ENT_QUOTES, 'UTF-8') . ' has cancelled their booking for <strong>' . h($i['title'], ENT_QUOTES, 'UTF-8') . '</strong> (' .
+                        h($i['check_in_date']) . ' to ' . h($i['check_out_date']) . ').</p><p>Those dates are open for other guests again.</p>');
+                }
+            } catch (Throwable $e) { /* the booking is cancelled even if the email fails */ }
+        } else {
+            setFlash('error', 'The booking could not be cancelled. Refresh and try again.');
+        }
+    }
+    redirect('bookings.php?tab=' . urlencode($_GET['tab'] ?? 'upcoming'));
+}
+
+ensureOnsiteExperienceColumns($pdo);
 // Get all bookings for this tourist
 $stmt = $pdo->prepare("
     SELECT b.*,
-           a.title, a.location_name, a.price_per_night,
+           a.title, a.location_name, a.price_per_night, a.onsite_experience_name,
            p.payment_method, p.payment_status,
            (SELECT photo_path FROM accommodation_photos
             WHERE accommodation_id = a.accommodation_id
@@ -40,14 +78,10 @@ $today      = date('Y-m-d');
 foreach ($all_bookings as $b) {
     if ($b['status'] === 'cancelled') {
         $cancelled[] = $b;
-    } elseif ($b['check_out_date'] < $today 
-              || $b['status'] === 'completed') {
-        // Auto mark as completed if checkout passed
+    } elseif ($b['status'] === 'completed' || ($b['status'] === 'confirmed' && $b['check_out_date'] < $today)) {
+        // Only a host-confirmed stay can be automatically marked completed.
         if ($b['status'] !== 'completed') {
-            $pdo->prepare("
-                UPDATE bookings SET status = 'completed'
-                WHERE booking_id = ?
-            ")->execute([$b['booking_id']]);
+            $pdo->prepare("UPDATE bookings SET status = 'completed' WHERE booking_id = ? AND status = 'confirmed'")->execute([$b['booking_id']]);
             $b['status'] = 'completed';
         }
         $completed[] = $b;
@@ -74,7 +108,7 @@ $current = $tab === 'completed' ? $completed
         .page-title { font-size:28px; font-weight:400; margin-bottom:4px }
         .page-sub   { font-size:14px; color:var(--text-secondary);
                       margin-bottom:24px }
-        .tabs       { display:flex; gap:0; border-bottom:0.5px solid var(--border);
+        .tabs       { display:flex; gap:0; border-bottom:1px solid var(--border);
                       margin-bottom:24px }
         .tab-btn    { padding:10px 20px; font-size:13px; font-weight:500;
                       color:var(--text-secondary); border:none; background:none;
@@ -84,11 +118,11 @@ $current = $tab === 'completed' ? $completed
         .tab-btn.active { color:#085041;
                           border-bottom-color:#085041 }
         .tab-count  { font-size:11px; background:var(--surface-1);
-                      border:0.5px solid var(--border); border-radius:10px;
+                      border:1px solid var(--border); border-radius:10px;
                       padding:1px 7px; margin-left:6px;
                       color:var(--text-secondary) }
         .booking-row { background:var(--surface-2);
-                       border:0.5px solid var(--border);
+                       border:1px solid var(--border);
                        border-radius:8px; display:grid;
                        grid-template-columns:80px 1fr auto;
                        gap:16px; align-items:center;
@@ -115,21 +149,21 @@ $current = $tab === 'completed' ? $completed
                          font-weight:600; padding:3px 8px;
                          border-radius:3px }
         .s-confirmed   { background:#E1F5EE; color:#0F6E56;
-                         border:0.5px solid #9FE1CB }
+                         border:1px solid #9FE1CB }
         .s-pending     { background:#FFF8E1; color:#9A6A00;
-                         border:0.5px solid #F9D57C }
+                         border:1px solid #F9D57C }
         .s-completed   { background:#F0F4FF; color:#1A4DB3;
-                         border:0.5px solid #B3C5F5 }
+                         border:1px solid #B3C5F5 }
         .s-cancelled   { background:#FEF2F2; color:#991B1B;
-                         border:0.5px solid #FECACA }
+                         border:1px solid #FECACA }
         .s-no-show     { background:#FDF2F8; color:#86198F;
-                         border:0.5px solid #F0ABFC }
+                         border:1px solid #F0ABFC }
         .row-actions   { display:flex; gap:8px; margin-top:10px;
                          justify-content:flex-end }
         .btn-sm        { padding:6px 12px; font-size:12px;
                          border-radius:4px; cursor:pointer;
                          font-weight:500; text-decoration:none;
-                         display:inline-block; border:0.5px solid var(--border) }
+                         display:inline-block; border:1px solid var(--border) }
         .btn-sm-primary{ background:#085041; color:#fff; border-color:#085041 }
         .btn-sm-outline{ background:none; color:var(--text-secondary) }
         .empty-state   { text-align:center; padding:60px 20px }
@@ -144,6 +178,7 @@ $current = $tab === 'completed' ? $completed
 <?php include '../includes/header.php'; ?>
 
 <div class="page-wrap">
+    <?= showFlash() ?>
 
     <div class="page-tag">Your journeys</div>
     <h1 class="page-title">My bookings</h1>
@@ -196,20 +231,20 @@ $current = $tab === 'completed' ? $completed
             <!-- Thumbnail -->
             <div class="booking-thumb">
                 <?php if ($b['primary_photo']): ?>
-                    <img src="../uploads/accommodations/<?= htmlspecialchars($b['primary_photo']) ?>"
-                         alt="<?= htmlspecialchars($b['title']) ?>">
+                    <img src="../uploads/accommodations/<?= h($b['primary_photo']) ?>"
+                         alt="<?= h($b['title']) ?>">
                 <?php else: ?>
-                    &#127968;
+                    <span style="font-size:12px;color:#8a948e">No photo</span>
                 <?php endif; ?>
             </div>
 
             <!-- Details -->
             <div>
                 <div class="booking-title">
-                    <?= htmlspecialchars($b['title']) ?>
+                    <?= h($b['title']) ?>
                 </div>
                 <div class="booking-meta">
-                    <?= htmlspecialchars($b['location_name']) ?>
+                    <?= h($b['location_name']) ?>
                 </div>
                 <div class="booking-dates">
                     <?= date('d M', strtotime($b['check_in_date'])) ?>
@@ -225,6 +260,9 @@ $current = $tab === 'completed' ? $completed
                 <div class="booking-amount">
                     KES <?= number_format($b['total_amount']) ?>
                 </div>
+                <?php $bbr = bookingPriceBreakdown($b); if ($bbr['extra'] > 0): ?>
+                <div style="font-size:11px;color:#68776f;margin-top:2px">incl. KES <?= number_format($bbr['extra']) ?> host tour/guide</div>
+                <?php endif; ?>
                 <div class="booking-ref">
                     #BK<?= str_pad($b['booking_id'], 5, '0', STR_PAD_LEFT) ?>
                 </div>
@@ -251,6 +289,9 @@ $current = $tab === 'completed' ? $completed
                     <span class="status-badge <?= $badge_class ?>">
                         <?= $badge_label ?>
                     </span>
+                    <?php if (!empty($b['payment_status'])): ?>
+                        <div style="font-size:11px;color:var(--text-secondary);margin-top:5px">Payment: <?= h($b['payment_status'] === 'confirmed' ? 'Reviewed' : ucfirst($b['payment_status']), ENT_QUOTES, 'UTF-8') ?></div>
+                    <?php endif; ?>
                 </div>
 
                 <!-- Actions -->
@@ -263,16 +304,21 @@ $current = $tab === 'completed' ? $completed
                         </a>
                     <?php endif; ?>
 
-                    <?php if ($b['status'] === 'confirmed'
-                              || $b['status'] === 'pending'): ?>
-                        <a href="confirmation.php?booking_id=<?= $b['booking_id'] ?>"
-                           class="btn-sm btn-sm-outline">
-                            View details
-                        </a>
+                    <?php if ($b['status'] === 'confirmed' || $b['status'] === 'pending'): ?>
+                        <a href="confirmation.php?booking_id=<?= (int)$b['booking_id'] ?>" class="btn-sm btn-sm-outline">View details</a>
+                        <?php if ($b['check_in_date'] > date('Y-m-d')): ?>
+                        <form method="post" style="display:inline" onsubmit="return confirm('Cancel this booking? This cannot be undone.');">
+                            <input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
+                            <input type="hidden" name="action" value="cancel_booking">
+                            <input type="hidden" name="booking_id" value="<?= (int)$b['booking_id'] ?>">
+                            <button type="submit" class="btn-sm btn-sm-danger">Cancel booking</button>
+                        </form>
+                        <?php endif; ?>
+                        <a href="../messages.php?accommodation_id=<?= (int)$b['accommodation_id'] ?>" class="btn-sm btn-sm-outline">Message host</a>
                     <?php endif; ?>
 
                     <?php if ($b['status'] === 'completed'): ?>
-                        <a href="../contact.php"
+                        <a href="../contact.html"
                            class="btn-sm btn-sm-outline">
                             Report
                         </a>

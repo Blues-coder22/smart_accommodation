@@ -5,18 +5,20 @@ require_once 'includes/functions.php';
 
 // Redirect if already logged in
 if (isLoggedIn()) {
-    redirect('index.php');
+    redirect(roleHome());
 }
 
 $errors = [];
 $success = '';
+$selectedRole = in_array(($_POST['role'] ?? $_GET['role'] ?? ''), ['tourist', 'host'], true) ? ($_POST['role'] ?? $_GET['role']) : 'tourist';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    requireCsrf();
     $full_name = sanitize($_POST['full_name'] ?? '');
     $email     = sanitize($_POST['email'] ?? '');
     $password  = $_POST['password'] ?? '';
     $confirm   = $_POST['confirm_password'] ?? '';
-    $role      = sanitize($_POST['role'] ?? '');
+    $role      = sanitize($_POST['role'] ?? $selectedRole);
     $phone     = sanitize($_POST['phone'] ?? '');
 
     // Validation
@@ -35,9 +37,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($result['success']) {
             // Send verification email
-            sendVerificationEmail($email, $full_name, $result['token']);
-            $success = 'Registration successful! Please check your 
-                        email to verify your account.';
+            $emailSent = sendVerificationEmail($email, $full_name, $result['token']);
+            // Keep this browser waiting: when the link is opened on ANY device, this browser signs itself in.
+            require_once __DIR__ . '/includes/verify_wait.php';
+            startVerifyWait($pdo, (int)$result['user_id'], $email);
+            setFlash($emailSent ? 'success' : 'warning', $emailSent
+                ? 'Account created. We sent a verification link to ' . $email . '.'
+                : 'Your account was created, but the verification email could not be sent. Configure SMTP, then press "Send the email again".');
+            redirect(appBasePath() . '/verify_wait.php');
         } else {
             $errors[] = $result['message'];
         }
@@ -73,36 +80,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php if (!empty($errors)): ?>
             <div class="alert alert-error">
                 <?php foreach ($errors as $error): ?>
-                    <p><?= $error ?></p>
+                    <p><?= h($error) ?></p>
                 <?php endforeach; ?>
             </div>
         <?php endif; ?>
 
         <?php if ($success): ?>
             <div class="alert alert-success">
-                <p><?= $success ?></p>
+                <p><?= h($success) ?></p>
             </div>
         <?php else: ?>
 
         <form method="POST" action="register.php" class="grid grid-2" autocomplete="on" style="margin-top:25px">
+<input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
             <div class="field">
                 <label for="full_name">Full name</label>
                 <input type="text" id="full_name" name="full_name"
-                       value="<?= htmlspecialchars($_POST['full_name'] ?? '') ?>"
+                       value="<?= h($_POST['full_name'] ?? '') ?>"
                        autocomplete="name" placeholder="Amina Wanjiku" required>
             </div>
 
             <div class="field">
                 <label for="email">Email</label>
                 <input type="email" id="email" name="email"
-                       value="<?= htmlspecialchars($_POST['email'] ?? '') ?>"
+                       value="<?= h($_POST['email'] ?? '') ?>"
                        autocomplete="email" placeholder="amina@example.com" required>
             </div>
 
             <div class="field">
                 <label for="phone">Phone number</label>
                 <input type="tel" id="phone" name="phone"
-                       value="<?= htmlspecialchars($_POST['phone'] ?? '') ?>"
+                       value="<?= h($_POST['phone'] ?? '') ?>"
                        autocomplete="tel" placeholder="+254 7XX XXX XXX">
             </div>
 
@@ -138,7 +146,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             <label class="check full">
                 <input type="checkbox" required>
-                <span>By continuing, you agree to our <a class="home-link" href="terms.php">terms</a> and <a class="home-link" href="privacy.php">privacy policy</a>.</span>
+                <span>By continuing, you agree to our <a class="home-link" href="terms.html">terms</a> and <a class="home-link" href="privacy.html">privacy policy</a>.</span>
             </label>
 
             <button type="submit" class="btn full">

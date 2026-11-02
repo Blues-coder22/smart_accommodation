@@ -124,13 +124,12 @@ foreach ($chart_values as $i => $value) {
     <title>Host Dashboard — Smart Accommodation Kenya</title>
     <link rel="stylesheet" href="../assets/css/style.css">
     <style>
-        body        { display:flex; flex-direction:column;
-                      min-height:100vh }
+        
         .dash-wrap  { display:grid;
                       grid-template-columns:200px 1fr;
                       flex:1 }
         .sidebar    { background:var(--surface-2);
-                      border-right:0.5px solid var(--border);
+                      border-right:1px solid var(--border);
                       padding:24px 0; position:sticky;
                       top:52px; height:calc(100vh - 52px);
                       overflow-y:auto }
@@ -164,7 +163,7 @@ foreach ($chart_values as $i => $value) {
                       grid-template-columns:repeat(4,1fr);
                       gap:12px; margin-bottom:24px }
         .stat-card  { background:var(--surface-2);
-                      border:0.5px solid var(--border);
+                      border:1px solid var(--border);
                       border-radius:8px; padding:16px;
                       border-left:3px solid transparent }
         .stat-card.accent { border-left-color:#1D9E75 }
@@ -179,10 +178,10 @@ foreach ($chart_values as $i => $value) {
                         grid-template-columns:1fr 300px;
                         gap:20px }
         .section-card { background:var(--surface-2);
-                        border:0.5px solid var(--border);
+                        border:1px solid var(--border);
                         border-radius:8px; overflow:hidden }
         .card-header { padding:14px 18px;
-                       border-bottom:0.5px solid var(--border);
+                       border-bottom:1px solid var(--border);
                        display:flex; justify-content:space-between;
                        align-items:center }
         .card-header h3 { font-size:13px; font-weight:500 }
@@ -195,9 +194,9 @@ foreach ($chart_values as $i => $value) {
                       color:var(--text-secondary); padding:10px 18px;
                       text-align:left;
                       background:var(--surface-1);
-                      border-bottom:0.5px solid var(--border) }
+                      border-bottom:1px solid var(--border) }
         td          { padding:12px 18px;
-                      border-bottom:0.5px solid var(--border);
+                      border-bottom:1px solid var(--border);
                       color:var(--text-primary) }
         tr:last-child td { border-bottom:none }
         tr:hover td { background:var(--surface-1) }
@@ -230,60 +229,26 @@ foreach ($chart_values as $i => $value) {
 </head>
 <body>
 
-<?php include '../includes/header.php'; ?>
 
-<div class="dash-wrap">
-
-    <!-- Sidebar -->
-    <aside class="sidebar">
-        <div class="sidebar-role">Host</div>
-        <a href="dashboard.php"
-           class="sidebar-link active">Overview</a>
-        <a href="listings.php"
-           class="sidebar-link">
-            Listings
-            <?php if ($stats['pending_listings'] > 0): ?>
-                <span class="badge">
-                    <?= $stats['pending_listings'] ?>
-                </span>
-            <?php endif; ?>
-        </a>
-        <a href="availability.php"
-           class="sidebar-link">Availability</a>
-        <a href="bookings.php"
-           class="sidebar-link">
-            Bookings
-            <?php if ($stats['pending_bookings'] > 0): ?>
-                <span class="badge">
-                    <?= $stats['pending_bookings'] ?>
-                </span>
-            <?php endif; ?>
-        </a>
-        <a href="payments.php"
-           class="sidebar-link">Payments</a>
-        <a href="reviews.php"
-           class="sidebar-link">
-            Reviews
-            <?php if ($pending_reviews > 0): ?>
-                <span class="badge">
-                    <?= $pending_reviews ?>
-                </span>
-            <?php endif; ?>
-        </a>
-        <a href="report.php"
-           class="sidebar-link">Reports</a>
-        <a href="profile.php"
-           class="sidebar-link">Profile</a>
-    </aside>
-
-    <!-- Main Content -->
-    <main class="main">
+<?php require_once __DIR__ . '/../includes/app_shell.php'; appShellStart(); ?>
         <div class="page-date">
             <?= strtoupper(date('l, j F')) ?>
         </div>
-        <h1 class="page-title">
-            Host overview
-        </h1>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
+            <h1 class="page-title" style="margin-bottom:0">Host overview</h1>
+        </div>
+        <?php $hvState = getHostVerification($pdo, $host_id); $hvStatus = $hvState['status'] ?? 'unverified'; ?>
+        <?php if ($hvStatus !== 'verified'): ?>
+        <div style="border:1px solid #F0D8A8;background:#FFF9EC;border-radius:8px;padding:12px 16px;margin-bottom:18px;font-size:13px">
+            <?php if ($hvStatus === 'pending'): ?>
+                <strong>Identity verification pending.</strong> Your email is confirmed; an administrator is reviewing your ID.
+            <?php elseif ($hvStatus === 'rejected'): ?>
+                <strong>Your identity verification was not approved.</strong> <?= h($hvState['reason'] ?? '') ?> <a href="profile.php#verification">Resubmit</a>
+            <?php else: ?>
+                <strong>Your email is confirmed, but your host identity (ID) is not verified yet.</strong> Verified hosts get a &ldquo;Verified host&rdquo; badge and guests trust them more. <a href="profile.php#verification">Verify my ID</a>
+            <?php endif; ?>
+        </div>
+        <?php endif; ?>
         <p class="page-sub">
             A clear view of what needs attention today.
         </p>
@@ -310,7 +275,7 @@ foreach ($chart_values as $i => $value) {
                         ? 'Needs review' : 'All clear' ?>
                 </div>
             </div>
-            <div class="stat-card">
+            <div class="stat-card hero">
                 <div class="stat-label">Earnings</div>
                 <div class="stat-value">
                     KES <?= number_format($stats['total_earnings']) ?>
@@ -355,12 +320,12 @@ foreach ($chart_values as $i => $value) {
                     <tbody>
                         <?php foreach ($recent as $b): ?>
                         <tr>
-                            <td><?= htmlspecialchars($b['title']) ?></td>
+                            <td><?= h($b['title']) ?></td>
                             <td>
-                                <?= htmlspecialchars(
+                                <?= h(
                                     explode(' ', $b['tourist_name'])[0]
                                 ) ?>
-                                <?= htmlspecialchars(
+                                <?= h(
                                     explode(' ', $b['tourist_name'])[1]
                                     ?? '') ?>
                             </td>
@@ -400,13 +365,13 @@ foreach ($chart_values as $i => $value) {
                     ?>
                     <div class="line-chart">
                         <svg viewBox="0 0 500 200" role="img"
-                             aria-label="<?= htmlspecialchars(
+                             aria-label="<?= h(
                                  $chart_description,
                                  ENT_QUOTES,
                                  'UTF-8'
                              ) ?>"
                              preserveAspectRatio="none">
-                            <title><?= htmlspecialchars(
+                            <title><?= h(
                                 $chart_description,
                                 ENT_QUOTES,
                                 'UTF-8'
@@ -427,7 +392,7 @@ foreach ($chart_values as $i => $value) {
                             <circle cx="<?= $chart_x_at($i) ?>"
                                     cy="<?= $chart_y_at($value) ?>"
                                     r="4" fill="#0d3b2e">
-                                <title><?= htmlspecialchars(
+                                <title><?= h(
                                     $chart_months[$i]->format('F Y') . ': KES '
                                         . number_format($value),
                                     ENT_QUOTES,
@@ -451,11 +416,7 @@ foreach ($chart_values as $i => $value) {
             </div>
 
         </div>
-    </main>
-
-</div>
-
-<?php include '../includes/footer.php'; ?>
+    <?php appShellEnd(); ?>
 
 </body>
 </html>

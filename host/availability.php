@@ -2,6 +2,7 @@
 require_once '../includes/auth.php';
 require_once '../includes/functions.php';
 require_once '../includes/db.php';
+require_once '../includes/booking_calendar.php';
 
 if (session_status() === PHP_SESSION_NONE) session_start();
 
@@ -38,8 +39,9 @@ if ($selected_id) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST'
     && isset($_POST['update_availability'])
     && $selected) {
+    requireCsrf();
 
-    $dates       = $_POST['dates'] ?? [];
+    $dates       = (array)($_POST['dates'] ?? []);
     $is_available = (int)($_POST['is_available'] ?? 1);
 
     foreach ($dates as $date) {
@@ -98,25 +100,11 @@ if ($selected) {
     }
 }
 
-// Get booked dates this month
+// Booked nights this month: 'confirmed' or 'pending' (awaiting your confirmation)
 $booked_dates = [];
 if ($selected) {
-    $booked = $pdo->prepare("
-        SELECT check_in_date, check_out_date
-        FROM bookings
-        WHERE accommodation_id = ?
-        AND status IN ('pending','confirmed')
-        AND check_out_date >= ? AND check_in_date <= ?
-    ");
-    $booked->execute([$selected_id, $month_start, $month_end]);
-    foreach ($booked->fetchAll() as $b) {
-        $start = new DateTime($b['check_in_date']);
-        $end   = new DateTime($b['check_out_date']);
-        $interval = new DateInterval('P1D');
-        $period   = new DatePeriod($start, $interval, $end);
-        foreach ($period as $d) {
-            $booked_dates[$d->format('Y-m-d')] = true;
-        }
+    foreach (calendarNightStates($pdo, $selected_id, $month_start, $month_end) as $k => $st) {
+        if ($st === 'confirmed' || $st === 'pending') $booked_dates[$k] = $st;
     }
 }
 
@@ -133,12 +121,11 @@ $today         = date('Y-m-d');
     <title>Availability — Smart Accommodation Kenya</title>
     <link rel="stylesheet" href="../assets/css/style.css">
     <style>
-        body         { display:flex; flex-direction:column;
-                       min-height:100vh }
+        
         .dash-wrap   { display:grid;
                        grid-template-columns:200px 1fr; flex:1 }
         .sidebar     { background:var(--surface-2);
-                       border-right:0.5px solid var(--border);
+                       border-right:1px solid var(--border);
                        padding:24px 0; position:sticky;
                        top:52px; height:calc(100vh - 52px);
                        overflow-y:auto }
@@ -167,7 +154,7 @@ $today         = date('Y-m-d');
                           margin-bottom:24px; flex-wrap:wrap }
         .listing-select label { font-size:13px; font-weight:500 }
         .listing-select select { padding:8px 12px;
-                                 border:0.5px solid var(--border-strong);
+                                 border:1px solid var(--border-strong);
                                  border-radius:6px; font-size:13px;
                                  background:var(--surface-2);
                                  color:var(--text-primary);
@@ -175,17 +162,17 @@ $today         = date('Y-m-d');
         .cal-layout  { display:grid;
                        grid-template-columns:1fr 260px; gap:20px }
         .cal-card    { background:var(--surface-2);
-                       border:0.5px solid var(--border);
+                       border:1px solid var(--border);
                        border-radius:8px; overflow:hidden }
         .cal-head    { display:flex; justify-content:space-between;
                        align-items:center; padding:14px 18px;
-                       border-bottom:0.5px solid var(--border) }
+                       border-bottom:1px solid var(--border) }
         .cal-head h3 { font-size:14px; font-weight:500 }
         .cal-nav     { display:flex; gap:6px }
         .cal-nav a   { padding:5px 12px; font-size:12px;
                        border-radius:4px; text-decoration:none;
                        color:var(--text-secondary);
-                       border:0.5px solid var(--border) }
+                       border:1px solid var(--border) }
         .cal-nav a:hover { border-color:#1D9E75; color:#1D9E75 }
         .cal-grid    { padding:14px }
         .dow-row     { display:grid; grid-template-columns:repeat(7,1fr);
@@ -198,7 +185,7 @@ $today         = date('Y-m-d');
         .day-cell    { aspect-ratio:1; display:flex;
                        align-items:center; justify-content:center;
                        border-radius:4px; font-size:13px;
-                       cursor:pointer; border:0.5px solid transparent;
+                       cursor:pointer; border:1px solid transparent;
                        user-select:none; position:relative }
         .day-cell.empty { cursor:default }
         .day-cell.today { border-color:#1D9E75;
@@ -208,20 +195,21 @@ $today         = date('Y-m-d');
                                 text-decoration:line-through }
         .day-cell.booked { background:#E0E7FF; color:#3730A3;
                            cursor:not-allowed }
+        .day-cell.booked-pending { background:#FDE9B0; color:#7A5A00; cursor:default }
         .day-cell.past   { opacity:.4; cursor:default }
         .day-cell.selected { box-shadow:0 0 0 2px #1D9E75;
                              z-index:1 }
         .day-cell:not(.empty):not(.booked):not(.past):hover {
             border-color:var(--border-strong) }
         .legend      { display:flex; gap:12px; padding:12px 14px;
-                       border-top:0.5px solid var(--border);
+                       border-top:1px solid var(--border);
                        flex-wrap:wrap }
         .legend-item { display:flex; align-items:center;
                        gap:5px; font-size:11px;
                        color:var(--text-secondary) }
         .legend-dot  { width:12px; height:12px; border-radius:2px }
         .actions-card{ background:var(--surface-2);
-                       border:0.5px solid var(--border);
+                       border:1px solid var(--border);
                        border-radius:8px; padding:18px;
                        position:sticky; top:80px }
         .actions-card h3 { font-size:14px; font-weight:500;
@@ -232,7 +220,7 @@ $today         = date('Y-m-d');
                          gap:8px; margin-bottom:16px }
         .avail-opt   { display:flex; align-items:center; gap:10px;
                        padding:10px 12px;
-                       border:0.5px solid var(--border);
+                       border:1px solid var(--border);
                        border-radius:6px; cursor:pointer;
                        transition:.15s }
         .avail-opt:has(input:checked) { border-color:#1D9E75;
@@ -258,25 +246,8 @@ $today         = date('Y-m-d');
 </head>
 <body>
 
-<?php include '../includes/header.php'; ?>
 
-<div class="dash-wrap">
-
-    <!-- Sidebar -->
-    <aside class="sidebar">
-        <div class="sidebar-role">Host</div>
-        <a href="dashboard.php" class="sidebar-link">Overview</a>
-        <a href="listings.php" class="sidebar-link">Listings</a>
-        <a href="availability.php"
-           class="sidebar-link active">Availability</a>
-        <a href="bookings.php" class="sidebar-link">Bookings</a>
-        <a href="payments.php" class="sidebar-link">Payments</a>
-        <a href="reviews.php" class="sidebar-link">Reviews</a>
-        <a href="report.php" class="sidebar-link">Reports</a>
-        <a href="profile.php" class="sidebar-link">Profile</a>
-    </aside>
-
-    <main class="main">
+<?php require_once __DIR__ . '/../includes/app_shell.php'; appShellStart(); ?>
 
         <?= showFlash() ?>
 
@@ -305,13 +276,14 @@ $today         = date('Y-m-d');
                 <option value="<?= $l['accommodation_id'] ?>"
                     <?= $l['accommodation_id'] == $selected_id
                         ? 'selected' : '' ?>>
-                    <?= htmlspecialchars($l['title']) ?>
+                    <?= h($l['title']) ?>
                 </option>
                 <?php endforeach; ?>
             </select>
         </div>
 
         <form method="POST" id="availForm">
+<input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
             <input type="hidden" name="update_availability" value="1">
             <input type="hidden" id="isAvailable" name="is_available"
                    value="1">
@@ -381,7 +353,7 @@ $today         = date('Y-m-d');
                         $classes = ['day-cell'];
                         if ($is_today)   $classes[] = 'today';
                         if ($is_past)    $classes[] = 'past';
-                        if ($is_booked)  $classes[] = 'booked';
+                        if ($is_booked)  $classes[] = ($booked_dates[$date_str] === 'pending') ? 'booked-pending' : 'booked';
                         elseif ($is_avail)   $classes[] = 'available';
                         elseif ($is_unavail) $classes[] = 'unavailable';
 
@@ -405,23 +377,30 @@ $today         = date('Y-m-d');
                     <div class="legend-item">
                         <div class="legend-dot"
                              style="background:#E1F5EE;
-                                    border:0.5px solid #9FE1CB">
+                                    border:1px solid #9FE1CB">
                         </div>
                         Available
                     </div>
                     <div class="legend-item">
                         <div class="legend-dot"
                              style="background:#FEF2F2;
-                                    border:0.5px solid #FECACA">
+                                    border:1px solid #FECACA">
                         </div>
                         Unavailable
                     </div>
                     <div class="legend-item">
                         <div class="legend-dot"
                              style="background:#E0E7FF;
-                                    border:0.5px solid #A5B4FC">
+                                    border:1px solid #A5B4FC">
                         </div>
-                        Booked
+                        Booked (confirmed)
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot"
+                             style="background:#FDE9B0;
+                                    border:1px solid #F2C35B">
+                        </div>
+                        Booked (awaiting your confirmation)
                     </div>
                     <div class="legend-item">
                         <div class="legend-dot"
@@ -483,10 +462,7 @@ $today         = date('Y-m-d');
 
         <?php endif; ?>
 
-    </main>
-</div>
-
-<?php include '../includes/footer.php'; ?>
+    <?php appShellEnd(); ?>
 
 <script>
 let selectedDates = new Set();

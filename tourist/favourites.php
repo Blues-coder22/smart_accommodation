@@ -11,6 +11,7 @@ requireRole('tourist');
 // Handle remove favourite
 if ($_SERVER['REQUEST_METHOD'] === 'POST'
     && isset($_POST['remove_favourite'])) {
+    requireCsrf();
     $fav_id = (int)$_POST['favourite_id'];
     $pdo->prepare("
         DELETE FROM favourites
@@ -80,7 +81,7 @@ $att_favs = $att_favs->fetchAll();
                           auto-fill, minmax(240px,1fr));
                       gap:14px; margin-bottom:32px }
         .fav-card   { background:var(--surface-2);
-                      border:0.5px solid var(--border);
+                      border:1px solid var(--border);
                       border-radius:8px; overflow:hidden;
                       position:relative }
         .fav-img    { height:150px; background:#E1F5EE;
@@ -91,7 +92,7 @@ $att_favs = $att_favs->fetchAll();
         .fav-img.att{ background:#EEEDFE }
         .remove-btn { position:absolute; top:8px; right:8px;
                       background:var(--surface-2);
-                      border:0.5px solid var(--border);
+                      border:1px solid var(--border);
                       border-radius:4px; width:28px; height:28px;
                       display:flex; align-items:center;
                       justify-content:center; cursor:pointer;
@@ -108,12 +109,12 @@ $att_favs = $att_favs->fetchAll();
         .fav-rating { font-size:12px; color:var(--text-secondary) }
         .fav-cat    { font-size:11px; color:#534AB7; background:#EEEDFE;
                       padding:2px 7px; border-radius:3px;
-                      border:0.5px solid #AFA9EC }
+                      border:1px solid #AFA9EC }
         .fav-fee    { font-size:13px; font-weight:500; color:#0F6E56 }
         .fav-saved  { font-size:11px; color:var(--text-secondary);
                       margin-bottom:10px }
         .btn-view   { display:block; text-align:center; padding:8px;
-                      background:none; border:0.5px solid var(--border-strong);
+                      background:none; border:1px solid var(--border-strong);
                       border-radius:4px; font-size:12px; font-weight:500;
                       color:var(--text-secondary); cursor:pointer;
                       text-decoration:none; transition:.15s }
@@ -174,15 +175,16 @@ $att_favs = $att_favs->fetchAll();
             <div class="fav-card">
                 <div class="fav-img">
                     <?php if ($f['primary_photo']): ?>
-                        <img src="../uploads/accommodations/<?= htmlspecialchars($f['primary_photo']) ?>"
-                             alt="<?= htmlspecialchars($f['title']) ?>">
+                        <img src="../uploads/accommodations/<?= h($f['primary_photo']) ?>"
+                             alt="<?= h($f['title']) ?>">
                     <?php else: ?>
-                        &#127968;
+                        <span style="font-size:12px;color:#8a948e">No photo</span>
                     <?php endif; ?>
 
                     <!-- Remove button -->
                     <form method="POST" style="position:absolute;
                                                top:8px;right:8px">
+<input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
                         <input type="hidden" name="favourite_id"
                                value="<?= $f['favourite_id'] ?>">
                         <input type="hidden" name="remove_favourite"
@@ -207,10 +209,10 @@ $att_favs = $att_favs->fetchAll();
 
                 <div class="fav-body">
                     <div class="fav-title">
-                        <?= htmlspecialchars($f['title']) ?>
+                        <?= h($f['title']) ?>
                     </div>
                     <div class="fav-loc">
-                        <?= htmlspecialchars($f['location_name']) ?>
+                        <?= h($f['location_name']) ?>
                     </div>
                     <div class="fav-meta">
                         <span class="fav-price">
@@ -285,15 +287,16 @@ $att_favs = $att_favs->fetchAll();
             <div class="fav-card">
                 <div class="fav-img att">
                     <?php if ($f['photo_path']): ?>
-                        <img src="../uploads/attractions/<?= htmlspecialchars($f['photo_path']) ?>"
-                             alt="<?= htmlspecialchars($f['name']) ?>">
+                        <img src="../uploads/attractions/<?= h($f['photo_path']) ?>"
+                             alt="<?= h($f['name']) ?>">
                     <?php else: ?>
-                        &#128205;
+                        <span style="font-size:12px;color:#8a948e">No photo</span>
                     <?php endif; ?>
 
                     <!-- Remove button -->
                     <form method="POST" style="position:absolute;
                                                top:8px;right:8px">
+<input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
                         <input type="hidden" name="favourite_id"
                                value="<?= $f['favourite_id'] ?>">
                         <input type="hidden" name="remove_favourite"
@@ -309,19 +312,14 @@ $att_favs = $att_favs->fetchAll();
 
                 <div class="fav-body">
                     <div class="fav-title">
-                        <?= htmlspecialchars($f['name']) ?>
+                        <?= h($f['name']) ?>
                     </div>
                     <div class="fav-loc">
-                        <?= htmlspecialchars($f['location_name']) ?>
+                        <?= h($f['location_name']) ?>
                     </div>
                     <div class="fav-meta">
-                        <span class="fav-fee">
-                            <?= $f['entry_fee'] > 0
-                                ? 'KES ' . number_format($f['entry_fee'])
-                                : 'Free entry' ?>
-                        </span>
                         <span class="fav-cat">
-                            <?= htmlspecialchars($f['category']) ?>
+                            <?= h($f['category']) ?>
                         </span>
                     </div>
                     <div class="fav-saved">

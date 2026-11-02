@@ -2,6 +2,9 @@
 require_once '../includes/auth.php';
 require_once '../includes/functions.php';
 require_once '../includes/db.php';
+require_once '../includes/onsite_experience.php';
+ensureOnsiteExperienceColumns($pdo);
+require_once '../includes/upload_helpers.php';
 
 if (session_status() === PHP_SESSION_NONE) session_start();
 
@@ -51,6 +54,7 @@ $errors  = [];
 $success = false;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    requireCsrf();
     $title         = sanitize($_POST['title'] ?? '');
     $description   = sanitize($_POST['description'] ?? '');
     $property_type = sanitize($_POST['property_type'] ?? '');
@@ -59,7 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $location_name = sanitize($_POST['location_name'] ?? '');
     $latitude      = (float)($_POST['latitude'] ?? 0);
     $longitude     = (float)($_POST['longitude'] ?? 0);
-    $new_amenities = $_POST['amenities'] ?? [];
+    $new_amenities = (array)($_POST['amenities'] ?? []);
     $new_rules     = array_filter(array_map(
         'trim', explode("\n", $_POST['house_rules'] ?? '')
     ));
@@ -101,6 +105,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $latitude, $longitude,
             $new_status, $lid
         ]);
+        saveOnsiteExperience($pdo, $lid, $_POST);
 
         // Update amenities
         $pdo->prepare("
@@ -146,14 +151,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (!in_array($ftype, $allowed)) continue;
                 if ($photos_arr['size'][$i] > 5*1024*1024) continue;
 
-                $ext      = pathinfo(
-                    $photos_arr['name'][$i], PATHINFO_EXTENSION
+                $filename = saveUploadedImage(
+                    $tmp, $ftype, 'accommodations', 'acc_' . $lid,
+                    5 * 1024 * 1024
                 );
-                $filename = 'acc_' . $lid . '_'
-                            . uniqid() . '.' . $ext;
-                $dest     = '../uploads/accommodations/' . $filename;
 
-                if (move_uploaded_file($tmp, $dest)) {
+                if ($filename !== false) {
                     $pdo->prepare("
                         INSERT INTO accommodation_photos
                         (accommodation_id, photo_path, is_primary)
@@ -164,7 +167,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         // Handle photo deletions
-        $delete_photos = $_POST['delete_photos'] ?? [];
+        $delete_photos = (array)($_POST['delete_photos'] ?? []);
         foreach ($delete_photos as $photo_id) {
             $photo_id = (int)$photo_id;
             $p = $pdo->prepare("
@@ -175,8 +178,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $p->execute([$photo_id, $lid]);
             $p = $p->fetch();
             if ($p) {
-                @unlink('../uploads/accommodations/'
-                        . $p['photo_path']);
+                $photoPath = dirname(__DIR__) . '/uploads/accommodations/'
+                    . basename($p['photo_path']);
+                if (is_file($photoPath)) @unlink($photoPath);
                 $pdo->prepare("
                     DELETE FROM accommodation_photos
                     WHERE photo_id = ?
@@ -213,13 +217,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link rel="stylesheet"
           href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="../assets/js/map-pins.js"></script>
     <style>
-        body        { display:flex; flex-direction:column;
-                      min-height:100vh }
+        
         .dash-wrap  { display:grid;
                       grid-template-columns:200px 1fr; flex:1 }
         .sidebar    { background:var(--surface-2);
-                      border-right:0.5px solid var(--border);
+                      border-right:1px solid var(--border);
                       padding:24px 0; position:sticky;
                       top:52px; height:calc(100vh - 52px);
                       overflow-y:auto }
@@ -245,12 +249,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .page-sub   { font-size:13px; color:var(--text-secondary);
                       margin-bottom:24px }
         .form-section { background:var(--surface-2);
-                        border:0.5px solid var(--border);
+                        border:1px solid var(--border);
                         border-radius:8px; padding:24px;
                         margin-bottom:16px }
         .form-section h3 { font-size:14px; font-weight:500;
                            margin-bottom:18px; padding-bottom:12px;
-                           border-bottom:0.5px solid var(--border) }
+                           border-bottom:1px solid var(--border) }
         .form-group { margin-bottom:16px }
         .form-group label { font-size:12px; font-weight:600;
                             letter-spacing:.04em; text-transform:uppercase;
@@ -259,7 +263,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .form-group input,
         .form-group select,
         .form-group textarea { width:100%; padding:10px 12px;
-                               border:0.5px solid var(--border-strong);
+                               border:1px solid var(--border-strong);
                                border-radius:6px; font-size:14px;
                                color:var(--text-primary);
                                background:var(--surface-2);
@@ -279,7 +283,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .amenity-check input { width:15px; height:15px;
                                accent-color:#1D9E75 }
         #map        { height:260px; border-radius:6px;
-                      border:0.5px solid var(--border-strong);
+                      border:1px solid var(--border-strong);
                       margin-top:8px }
         .map-hint   { font-size:12px; color:var(--text-secondary);
                       margin-top:6px }
@@ -288,7 +292,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .photo-item { position:relative; width:100px; height:80px }
         .photo-item img { width:100%; height:100%; object-fit:cover;
                           border-radius:6px;
-                          border:0.5px solid var(--border) }
+                          border:1px solid var(--border) }
         .photo-del  { position:absolute; top:-6px; right:-6px;
                       width:18px; height:18px; background:#DC2626;
                       color:#fff; border:none; border-radius:50%;
@@ -309,9 +313,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                          margin-top:10px }
         .photo-preview img { width:80px; height:64px;
                              border-radius:4px; object-fit:cover;
-                             border:0.5px solid var(--border) }
+                             border:1px solid var(--border) }
         .resubmit-notice { background:#FFF8E1;
-                           border:0.5px solid #F9D57C;
+                           border:1px solid #F9D57C;
                            border-radius:6px; padding:12px 14px;
                            font-size:13px; color:#9A6A00;
                            margin-bottom:20px }
@@ -323,30 +327,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </head>
 <body>
 
-<?php include '../includes/header.php'; ?>
 
-<div class="dash-wrap">
-
-    <aside class="sidebar">
-        <div class="sidebar-role">Host</div>
-        <a href="dashboard.php" class="sidebar-link">Overview</a>
-        <a href="listings.php" class="sidebar-link active">Listings</a>
-        <a href="availability.php" class="sidebar-link">Availability</a>
-        <a href="bookings.php" class="sidebar-link">Bookings</a>
-        <a href="payments.php" class="sidebar-link">Payments</a>
-        <a href="reviews.php" class="sidebar-link">Reviews</a>
-        <a href="report.php" class="sidebar-link">Reports</a>
-        <a href="profile.php" class="sidebar-link">Profile</a>
-    </aside>
-
-    <main class="main">
+<?php require_once __DIR__ . '/../includes/app_shell.php'; appShellStart(); ?>
 
         <?= showFlash() ?>
 
         <div class="page-tag">Host</div>
         <h1 class="page-title">Edit listing</h1>
         <p class="page-sub">
-            <?= htmlspecialchars($listing['title']) ?>
+            <?= h($listing['title']) ?>
         </p>
 
         <div class="resubmit-notice">
@@ -358,12 +347,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php if (!empty($errors)): ?>
         <div class="alert alert-error" style="margin-bottom:20px">
             <?php foreach ($errors as $e): ?>
-                <p><?= $e ?></p>
+                <p><?= h($e) ?></p>
             <?php endforeach; ?>
         </div>
         <?php endif; ?>
 
         <form method="POST" enctype="multipart/form-data">
+<input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
 
             <!-- Basic Details -->
             <div class="form-section">
@@ -371,7 +361,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="form-group">
                     <label>Property title</label>
                     <input type="text" name="title"
-                           value="<?= htmlspecialchars(
+                           value="<?= h(
                                $_POST['title']
                                ?? $listing['title']) ?>"
                            maxlength="150" required>
@@ -408,6 +398,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </select>
                     </div>
                 </div>
+                <?= onsiteExperienceFormHtml($_POST['onsite_name'] ?? ($listing['onsite_experience_name'] ?? ''), $_POST['onsite_fee'] ?? ($listing['onsite_experience_fee'] ?? '')) ?>
                 <div class="form-group">
                     <label>Price per night (KES)</label>
                     <input type="number" name="price_per_night"
@@ -418,7 +409,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="form-group">
                     <label>Description</label>
                     <textarea name="description" rows="5"
-                              required><?= htmlspecialchars(
+                              required><?= h(
                         $_POST['description']
                         ?? $listing['description']) ?></textarea>
                 </div>
@@ -431,7 +422,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <label>Location name</label>
                     <input type="text" name="location_name"
                            id="locationInput"
-                           value="<?= htmlspecialchars(
+                           value="<?= h(
                                $_POST['location_name']
                                ?? $listing['location_name']) ?>"
                            required>
@@ -472,12 +463,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ] as $amenity): ?>
                     <label class="amenity-check">
                         <input type="checkbox" name="amenities[]"
-                               value="<?= $amenity ?>"
+                               value="<?= h($amenity) ?>"
                                <?= in_array($amenity,
-                                   $_POST['amenities']
-                                   ?? $amenities)
+                                   (array)($_POST['amenities']
+                                   ?? $amenities))
                                    ? 'checked' : '' ?>>
-                        <?= $amenity ?>
+                        <?= h($amenity) ?>
                     </label>
                     <?php endforeach; ?>
                 </div>
@@ -489,7 +480,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="form-group">
                     <label>Rules (one per line)</label>
                     <textarea name="house_rules" rows="5"
-                              placeholder="No smoking inside&#10;No parties&#10;Quiet hours after 10pm"><?= htmlspecialchars(
+                              placeholder="No smoking inside&#10;No parties&#10;Quiet hours after 10pm"><?= h(
                         $_POST['house_rules']
                         ?? implode("\n", $rules)) ?></textarea>
                 </div>
@@ -508,7 +499,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="photo-grid">
                     <?php foreach ($photos as $p): ?>
                     <div class="photo-item">
-                        <img src="../uploads/accommodations/<?= htmlspecialchars($p['photo_path']) ?>"
+                        <img src="../uploads/accommodations/<?= h($p['photo_path']) ?>"
                              alt="Property photo">
                         <?php if ($p['is_primary']): ?>
                         <span class="photo-primary">Main</span>
@@ -550,7 +541,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <a href="listings.php"
                    style="padding:12px 20px;font-size:14px;
                           color:var(--text-secondary);
-                          border:0.5px solid var(--border-strong);
+                          border:1px solid var(--border-strong);
                           border-radius:6px;text-decoration:none;
                           display:flex;align-items:center">
                     Cancel
@@ -559,10 +550,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         </form>
 
-    </main>
-</div>
-
-<?php include '../includes/footer.php'; ?>
+    <?php appShellEnd(); ?>
 
 <script>
 const map = L.map('map').setView(
@@ -575,7 +563,7 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
 
 let marker = L.marker(
     [<?= $listing['latitude'] ?>, <?= $listing['longitude'] ?>],
-    { draggable: true }
+    { icon: SEPins.stay(), draggable: true }
 ).addTo(map);
 
 // Update on marker drag

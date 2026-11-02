@@ -81,12 +81,11 @@ $monthly = $pdo->query("
     <title>Admin Dashboard — Smart Accommodation Kenya</title>
     <link rel="stylesheet" href="../assets/css/style.css">
     <style>
-        body         { display:flex; flex-direction:column;
-                       min-height:100vh }
+        
         .dash-wrap   { display:grid;
                        grid-template-columns:200px 1fr; flex:1 }
         .sidebar     { background:var(--surface-2);
-                       border-right:0.5px solid var(--border);
+                       border-right:1px solid var(--border);
                        padding:24px 0; position:sticky;
                        top:52px; height:calc(100vh - 52px);
                        overflow-y:auto }
@@ -118,7 +117,7 @@ $monthly = $pdo->query("
                        grid-template-columns:repeat(4,1fr);
                        gap:12px; margin-bottom:24px }
         .stat-card   { background:var(--surface-2);
-                       border:0.5px solid var(--border);
+                       border:1px solid var(--border);
                        border-radius:8px; padding:16px }
         .stat-card.accent { border-left:3px solid #1D9E75 }
         .stat-card.warn { border-left:3px solid #D97706 }
@@ -137,10 +136,10 @@ $monthly = $pdo->query("
                         grid-template-columns:1fr 300px;
                         gap:20px; margin-bottom:20px }
         .section-card { background:var(--surface-2);
-                        border:0.5px solid var(--border);
+                        border:1px solid var(--border);
                         border-radius:8px; overflow:hidden }
         .card-head   { padding:14px 18px;
-                       border-bottom:0.5px solid var(--border);
+                       border-bottom:1px solid var(--border);
                        display:flex; justify-content:space-between;
                        align-items:center }
         .card-head h3 { font-size:13px; font-weight:500 }
@@ -152,9 +151,9 @@ $monthly = $pdo->query("
                        letter-spacing:.06em; text-transform:uppercase;
                        color:var(--text-secondary); padding:10px 18px;
                        text-align:left; background:var(--surface-1);
-                       border-bottom:0.5px solid var(--border) }
+                       border-bottom:1px solid var(--border) }
         td           { padding:11px 18px;
-                       border-bottom:0.5px solid var(--border) }
+                       border-bottom:1px solid var(--border) }
         tr:last-child td { border-bottom:none }
         tr:hover td  { background:var(--surface-1) }
         .s-confirmed { color:#0F6E56; font-weight:500 }
@@ -162,7 +161,7 @@ $monthly = $pdo->query("
         .s-completed { color:#1A4DB3; font-weight:500 }
         .s-cancelled { color:#DC2626 }
         .pending-row { padding:14px 18px;
-                       border-bottom:0.5px solid var(--border);
+                       border-bottom:1px solid var(--border);
                        display:flex; justify-content:space-between;
                        align-items:center }
         .pending-row:last-child { border-bottom:none }
@@ -177,7 +176,7 @@ $monthly = $pdo->query("
         .chart-wrap  { padding:18px }
         .chart-bars  { display:flex; align-items:flex-end;
                        gap:8px; height:100px;
-                       border-bottom:0.5px solid var(--border);
+                       border-bottom:1px solid var(--border);
                        padding-bottom:8px; margin-bottom:8px }
         .bar-col     { flex:1; display:flex; flex-direction:column;
                        align-items:center; gap:4px; height:100% }
@@ -185,12 +184,12 @@ $monthly = $pdo->query("
                        border-radius:3px 3px 0 0; min-height:2px }
         .bar-label   { font-size:10px; color:var(--text-secondary) }
         .needs-attention { background:var(--surface-2);
-                           border:0.5px solid var(--border);
+                           border:1px solid var(--border);
                            border-radius:8px; overflow:hidden;
                            margin-bottom:20px }
         .attention-row { display:flex; justify-content:space-between;
                          align-items:center; padding:12px 18px;
-                         border-bottom:0.5px solid var(--border) }
+                         border-bottom:1px solid var(--border) }
         .attention-row:last-child { border-bottom:none }
         .attention-label { font-size:13px; font-weight:500 }
         .attention-meta  { font-size:12px;
@@ -200,9 +199,9 @@ $monthly = $pdo->query("
         .count-badge { font-size:12px; font-weight:600;
                        padding:3px 10px; border-radius:3px }
         .count-red   { background:#FEF2F2; color:#DC2626;
-                       border:0.5px solid #FECACA }
+                       border:1px solid #FECACA }
         .count-amber { background:#FFF8E1; color:#9A6A00;
-                       border:0.5px solid #F9D57C }
+                       border:1px solid #F9D57C }
         .action-link { font-size:12px; color:#1D9E75;
                        text-decoration:none }
         @media(max-width:1000px){
@@ -215,55 +214,39 @@ $monthly = $pdo->query("
 </head>
 <body>
 
-<?php include '../includes/header.php'; ?>
 
-<div class="dash-wrap">
-
-    <!-- Sidebar -->
-    <aside class="sidebar">
-        <div class="sidebar-role">Admin</div>
-        <a href="dashboard.php"
-           class="sidebar-link active">Overview</a>
-        <a href="listings.php" class="sidebar-link">
-            Listing approvals
-            <?php if ($stats['pending_listings'] > 0): ?>
-                <span class="badge">
-                    <?= $stats['pending_listings'] ?>
-                </span>
-            <?php endif; ?>
-        </a>
-        <a href="users.php" class="sidebar-link">Users</a>
-        <a href="reviews.php" class="sidebar-link">
-            Review moderation
-            <?php if ($stats['flagged_reviews'] > 0): ?>
-                <span class="badge">
-                    <?= $stats['flagged_reviews'] ?>
-                </span>
-            <?php endif; ?>
-        </a>
-        <a href="reports.php" class="sidebar-link">
-            Reports
-            <?php if ($stats['open_reports'] > 0): ?>
-                <span class="badge">
-                    <?= $stats['open_reports'] ?>
-                </span>
-            <?php endif; ?>
-        </a>
-        <a href="attractions.php" class="sidebar-link">
-            Attractions
-        </a>
-        <a href="profile.php" class="sidebar-link">Profile</a>
-    </aside>
-
-    <main class="main">
+<?php require_once __DIR__ . '/../includes/app_shell.php'; appShellStart(); ?>
 
         <div class="page-date">
             <?= strtoupper(date('l, j F')) ?>
         </div>
-        <h1 class="page-title">Admin overview</h1>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
+            <h1 class="page-title" style="margin-bottom:0">Admin overview</h1>
+        </div>
         <p class="page-sub">
             A clear view of what needs attention today.
         </p>
+
+        <?php
+        $pendingIds = 0;
+        try { $pendingIds = (int)$pdo->query("SELECT COUNT(*) FROM host_verifications WHERE status = 'pending'")->fetchColumn(); } catch (Throwable $e) {}
+        $attention = [
+            ['Identity checks', $pendingIds, 'users.php#verification', 'IDs waiting for your decision'],
+            ['Listing approvals', (int)$stats['pending_listings'], 'listings.php', 'New listings waiting to go live'],
+            ['Incident reports', (int)$stats['open_reports'], 'reports.php', 'Open reports from guests and hosts'],
+            ['Flagged reviews', (int)$stats['flagged_reviews'], 'reviews.php', 'Reviews held back for moderation'],
+        ];
+        ?>
+        <section class="attention-grid" aria-label="Needs your attention">
+            <?php foreach ($attention as [$label, $n, $href, $note]): ?>
+            <a class="attention-tile <?= $n > 0 ? 'urgent' : 'clear' ?>" href="<?= h($href) ?>">
+                <span class="attention-label"><?= h($label) ?></span>
+                <span class="attention-count"><?= (int)$n ?></span>
+                <span class="attention-note"><?= $n > 0 ? h($note) : 'All clear' ?></span>
+                <span class="attention-go"><?= $n > 0 ? 'Review now &rarr;' : 'Open &rarr;' ?></span>
+            </a>
+            <?php endforeach; ?>
+        </section>
 
         <!-- Stats Grid -->
         <div class="stats-grid">
@@ -446,7 +429,7 @@ $monthly = $pdo->query("
                         <tr>
                             <td>
                                 <div style="font-weight:500">
-                                    <?= htmlspecialchars(
+                                    <?= h(
                                         $b['property_title']) ?>
                                 </div>
                                 <div style="font-size:11px;
@@ -459,10 +442,10 @@ $monthly = $pdo->query("
                                 </div>
                             </td>
                             <td>
-                                <?= htmlspecialchars(
+                                <?= h(
                                     explode(' ',
                                     $b['tourist_name'])[0]) ?>
-                                <?= htmlspecialchars(
+                                <?= h(
                                     explode(' ',
                                     $b['tourist_name'])[1] ?? '') ?>
                             </td>
@@ -505,13 +488,13 @@ $monthly = $pdo->query("
                     <div class="pending-row">
                         <div class="pending-info">
                             <h4>
-                                <?= htmlspecialchars($p['title']) ?>
+                                <?= h($p['title']) ?>
                             </h4>
                             <p>
-                                <?= htmlspecialchars(
+                                <?= h(
                                     $p['location_name']) ?>
                                 &middot;
-                                <?= htmlspecialchars(
+                                <?= h(
                                     $p['property_type']) ?>
                                 &middot;
                                 KES <?= number_format(
@@ -570,10 +553,7 @@ $monthly = $pdo->query("
             </div>
         </div>
 
-    </main>
-</div>
-
-<?php include '../includes/footer.php'; ?>
+    <?php appShellEnd(); ?>
 
 </body>
 </html>

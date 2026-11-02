@@ -11,6 +11,42 @@ requireRole('admin');
 
 // Handle user actions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    requireCsrf();
+
+    // Host identity verification decisions (verify / reject). The ID number and photo are erased once decided.
+    if (isset($_POST['verification_action'])) {
+        $vid = (int)($_POST['verification_id'] ?? 0);
+        $vstmt = $pdo->prepare("SELECT v.*, u.email AS host_email, u.full_name AS host_name, u.role AS user_role
+                                FROM host_verifications v JOIN users u ON u.user_id = v.host_id
+                                WHERE v.verification_id = ? AND v.status = 'pending'");
+        $vstmt->execute([$vid]);
+        $ver = $vstmt->fetch(PDO::FETCH_ASSOC);
+        $reasonText = trim((string)($_POST['reject_reason'] ?? ''));
+        if (!$ver) {
+            setFlash('warning', 'That verification request is no longer pending.');
+        } elseif ($_POST['verification_action'] === 'verify') {
+            $pdo->prepare("UPDATE host_verifications SET status='verified', reason=NULL, decided_at=NOW(), decided_by=? WHERE verification_id=?")
+                ->execute([(int)$_SESSION['user_id'], $vid]);
+            purgeVerificationSecrets($pdo, $ver['host_id']);
+            $isGuest = ($ver['user_role'] ?? 'host') === 'tourist';
+            sendEmail($ver['host_email'], $isGuest ? 'You are a verified guest — StayExplore Kenya' : 'You are a verified host — StayExplore Kenya',
+                '<h2>You are verified</h2><p>Dear ' . h($ver['host_name']) . ', your identity has been checked. ' . ($isGuest ? 'A “Verified guest” badge now appears next to your name.' : 'A “Verified host” badge now appears on your listings.') . '</p>');
+            setFlash('success', h($ver['host_name']) . ' is now a verified ' . (($ver['user_role'] ?? 'host') === 'tourist' ? 'guest' : 'host') . '. Their ID details were erased.');
+        } elseif ($_POST['verification_action'] === 'reject') {
+            if ($reasonText === '' || mb_strlen($reasonText, 'UTF-8') > 500) {
+                setFlash('error', 'Give a reason (up to 500 characters) when rejecting, so the host knows what to fix.');
+            } else {
+                $pdo->prepare("UPDATE host_verifications SET status='rejected', reason=?, decided_at=NOW(), decided_by=? WHERE verification_id=?")
+                    ->execute([sanitize($reasonText), (int)$_SESSION['user_id'], $vid]);
+                purgeVerificationSecrets($pdo, $ver['host_id']);
+                sendEmail($ver['host_email'], 'Verification not approved — StayExplore Kenya',
+                    '<h2>Verification not approved</h2><p>Dear ' . h($ver['host_name']) . ', we could not verify your identity yet.</p><p><strong>Reason:</strong> '
+                    . h($reasonText) . '</p><p>Sign in, open your profile and submit your details again.</p>');
+                setFlash('rejected', 'Request rejected. The person has been told why, and their ID details were erased.');
+            }
+        }
+        redirect('users.php');
+    }
     $user_id = (int)($_POST['user_id'] ?? 0);
     $action  = sanitize($_POST['action'] ?? '');
     $reason  = sanitize($_POST['reason'] ?? '');
@@ -26,6 +62,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     ");
     $stmt->execute([$user_id]);
     $user = $stmt->fetch();
+
+    if ($user && !empty($user['account_deleted_at'])) {
+        setFlash('error', 'This account was permanently deleted by its owner and cannot be changed or restored.');
+        redirect('users.php');
+    }
 
     if ($user) {
         switch ($action) {
@@ -79,8 +120,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             case 'restore':
                 $pdo->prepare("
-                    UPDATE users SET status = 'active'
-                    WHERE user_id = ?
+                    UPDATE users SET status = 'active', account_closed_at = NULL
+                    WHERE user_id = ? AND account_deleted_at IS NULL
                 ")->execute([$user_id]);
 
                 sendEmail(
@@ -152,6 +193,19 @@ $users = $pdo->prepare("
 $users->execute($params);
 $users = $users->fetchAll();
 
+// Host identity (ID) verification is separate from email verification: show both so the admin list agrees
+// with what each host sees on their own dashboard.
+$hostIdStatus = [];
+try {
+    $hostIds = array_values(array_map(fn($u) => (int)$u['user_id'], array_filter($users, fn($u) => in_array($u['role'], ['host','tourist'], true))));
+    if ($hostIds) {
+        $in = implode(',', array_fill(0, count($hostIds), '?'));
+        $st = $pdo->prepare("SELECT host_id, status FROM host_verifications WHERE host_id IN ($in)");
+        $st->execute($hostIds);
+        foreach ($st->fetchAll() as $r) $hostIdStatus[(int)$r['host_id']] = $r['status'];
+    }
+} catch (Throwable $e) { $hostIdStatus = []; }
+
 // Counts
 $counts = $pdo->query("
     SELECT
@@ -172,12 +226,11 @@ $counts = $pdo->query("
     <title>Users — Smart Accommodation Kenya</title>
     <link rel="stylesheet" href="../assets/css/style.css">
     <style>
-        body         { display:flex; flex-direction:column;
-                       min-height:100vh }
+        
         .dash-wrap   { display:grid;
                        grid-template-columns:200px 1fr; flex:1 }
         .sidebar     { background:var(--surface-2);
-                       border-right:0.5px solid var(--border);
+                       border-right:1px solid var(--border);
                        padding:24px 0; position:sticky;
                        top:52px; height:calc(100vh - 52px);
                        overflow-y:auto }
@@ -206,12 +259,12 @@ $counts = $pdo->query("
         .top-bar     { display:flex; gap:10px; margin-bottom:16px;
                        flex-wrap:wrap; align-items:center }
         .search-input { padding:8px 12px; font-size:13px;
-                        border:0.5px solid var(--border-strong);
+                        border:1px solid var(--border-strong);
                         border-radius:6px; background:var(--surface-2);
                         color:var(--text-primary); min-width:220px }
         .search-input:focus { outline:none; border-color:#1D9E75 }
         .filter-select { padding:8px 12px; font-size:13px;
-                         border:0.5px solid var(--border-strong);
+                         border:1px solid var(--border-strong);
                          border-radius:6px;
                          background:var(--surface-2);
                          color:var(--text-primary) }
@@ -219,14 +272,14 @@ $counts = $pdo->query("
                        flex-wrap:wrap }
         .stat-chip   { padding:6px 14px; border-radius:4px;
                        font-size:12px; font-weight:500;
-                       border:0.5px solid var(--border);
+                       border:1px solid var(--border);
                        background:var(--surface-2);
                        color:var(--text-secondary) }
         .stat-chip span { font-weight:700;
                           color:var(--text-primary);
                           margin-left:4px }
         .section-card { background:var(--surface-2);
-                        border:0.5px solid var(--border);
+                        border:1px solid var(--border);
                         border-radius:8px; overflow:hidden }
         table        { width:100%; border-collapse:collapse;
                        font-size:13px }
@@ -234,9 +287,9 @@ $counts = $pdo->query("
                        letter-spacing:.06em; text-transform:uppercase;
                        color:var(--text-secondary); padding:10px 18px;
                        text-align:left; background:var(--surface-1);
-                       border-bottom:0.5px solid var(--border) }
+                       border-bottom:1px solid var(--border) }
         td           { padding:12px 18px;
-                       border-bottom:0.5px solid var(--border);
+                       border-bottom:1px solid var(--border);
                        vertical-align:middle }
         tr:last-child td { border-bottom:none }
         tr:hover td  { background:var(--surface-1) }
@@ -245,24 +298,24 @@ $counts = $pdo->query("
         .role-badge  { font-size:11px; font-weight:600;
                        padding:2px 8px; border-radius:3px }
         .role-tourist { background:#E0E7FF; color:#3730A3;
-                        border:0.5px solid #A5B4FC }
+                        border:1px solid #A5B4FC }
         .role-host    { background:#FEF3C7; color:#92400E;
-                        border:0.5px solid #FCD34D }
+                        border:1px solid #FCD34D }
         .status-pill  { display:inline-block; font-size:11px;
                         font-weight:600; padding:2px 8px;
                         border-radius:3px }
         .s-active     { background:#E1F5EE; color:#0F6E56;
-                        border:0.5px solid #9FE1CB }
+                        border:1px solid #9FE1CB }
         .s-suspended  { background:#FFF8E1; color:#9A6A00;
-                        border:0.5px solid #F9D57C }
+                        border:1px solid #F9D57C }
         .s-banned     { background:#FEF2F2; color:#991B1B;
-                        border:0.5px solid #FECACA }
+                        border:1px solid #FECACA }
         .verified-yes { color:#1D9E75; font-size:12px }
         .verified-no  { color:#DC2626; font-size:12px }
         .action-cell  { display:flex; gap:6px; flex-wrap:wrap }
         .btn-sm      { padding:5px 10px; font-size:11px;
                        border-radius:3px; cursor:pointer;
-                       font-weight:500; border:0.5px solid;
+                       font-weight:500; border:1px solid;
                        background:none }
         .btn-suspend { color:#D97706; border-color:#F9D57C }
         .btn-suspend:hover { background:#FFF8E1 }
@@ -274,7 +327,7 @@ $counts = $pdo->query("
         .btn-verify:hover { background:#F0F4FF }
         .inline-form { display:inline }
         .reason-input { width:140px; padding:4px 8px;
-                        border:0.5px solid var(--border-strong);
+                        border:1px solid var(--border-strong);
                         border-radius:3px; font-size:11px;
                         background:var(--surface-2) }
         .empty-state { text-align:center; padding:48px;
@@ -288,33 +341,48 @@ $counts = $pdo->query("
 </head>
 <body>
 
-<?php include '../includes/header.php'; ?>
 
-<div class="dash-wrap">
-
-    <!-- Sidebar -->
-    <aside class="sidebar">
-        <div class="sidebar-role">Admin</div>
-        <a href="dashboard.php" class="sidebar-link">Overview</a>
-        <a href="listings.php" class="sidebar-link">
-            Listing approvals
-        </a>
-        <a href="users.php"
-           class="sidebar-link active">Users</a>
-        <a href="reviews.php" class="sidebar-link">
-            Review moderation
-        </a>
-        <a href="reports.php" class="sidebar-link">Reports</a>
-        <a href="attractions.php" class="sidebar-link">Attractions</a>
-        <a href="profile.php" class="sidebar-link">Profile</a>
-    </aside>
-
-    <main class="main">
+<?php require_once __DIR__ . '/../includes/app_shell.php'; appShellStart(); ?>
 
         <?= showFlash() ?>
 
         <div class="page-tag">Admin</div>
         <h1 class="page-title">Users</h1>
+
+        <?php
+        $pendingVerifications = [];
+        try {
+            $pv = $pdo->query("SELECT v.*, u.full_name, u.email, u.role AS user_role, u.created_at AS joined
+                               FROM host_verifications v JOIN users u ON u.user_id = v.host_id
+                               WHERE v.status = 'pending' ORDER BY v.submitted_at ASC");
+            $pendingVerifications = $pv->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Throwable $e) { $pendingVerifications = []; }
+        ?>
+        <?php if ($pendingVerifications): ?>
+        <div id="verification" style="border:1px solid #F0D8A8;background:#FFF9EC;border-radius:8px;padding:18px;margin-bottom:22px">
+            <h2 style="font-size:16px;font-weight:600;margin-bottom:4px">Identity verification requests (<?= count($pendingVerifications) ?>)</h2>
+            <p style="font-size:12px;color:var(--text-secondary);margin-bottom:14px">Compare the details with the ID photo. Only administrators can see the photo, and it is erased as soon as you decide.</p>
+            <?php foreach ($pendingVerifications as $pv): ?>
+            <div style="border-top:1px solid #F0D8A8;padding:14px 0">
+                <div style="display:flex;gap:18px;flex-wrap:wrap;font-size:13px;margin-bottom:10px">
+                    <div><strong><?= h($pv['full_name']) ?></strong> <span style="font-size:11px;background:#fff;border:1px solid #F0D8A8;border-radius:99px;padding:1px 8px"><?= ($pv['user_role'] ?? 'host') === 'tourist' ? 'Tourist' : 'Host' ?></span><br><span style="color:var(--text-secondary)"><?= h($pv['email']) ?></span></div>
+                    <div>Legal name<br><strong><?= h($pv['legal_name']) ?></strong></div>
+                    <div><?= h($pv['id_type']) ?><br><strong><?= h($pv['id_number']) ?></strong></div>
+                    <div>Property proof<br><strong><?= h($pv['business_ref'] ?: '—') ?></strong></div>
+                    <div>Submitted<br><?= date('d M Y H:i', strtotime($pv['submitted_at'])) ?></div>
+                    <div><?php if ($pv['id_photo']): ?><a href="verification_file.php?id=<?= (int)$pv['verification_id'] ?>" target="_blank" rel="noopener">View ID photo &nearr;</a><?php endif; ?></div>
+                </div>
+                <form method="POST" style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-start">
+                    <input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken()) ?>">
+                    <input type="hidden" name="verification_id" value="<?= (int)$pv['verification_id'] ?>">
+                    <button type="submit" name="verification_action" value="verify" class="btn-sm btn-restore" onclick="return confirm('Approve this identity? Their ID details will be erased.');">Approve identity</button>
+                    <input type="text" name="reject_reason" maxlength="500" placeholder="Reason (required to reject), e.g. the ID photo is blurry" style="flex:1;min-width:240px;padding:6px 8px">
+                    <button type="submit" name="verification_action" value="reject" class="btn-sm">Reject</button>
+                </form>
+            </div>
+            <?php endforeach; ?>
+        </div>
+        <?php endif; ?>
 
         <!-- Stats Row -->
         <div class="stats-row">
@@ -334,7 +402,7 @@ $counts = $pdo->query("
                 Banned <span><?= $counts['banned'] ?></span>
             </div>
             <div class="stat-chip">
-                Unverified <span><?= $counts['unverified'] ?></span>
+                Email unverified <span><?= $counts['unverified'] ?></span>
             </div>
         </div>
 
@@ -342,7 +410,7 @@ $counts = $pdo->query("
         <form method="GET" class="top-bar">
             <input type="text" name="search"
                    class="search-input"
-                   value="<?= htmlspecialchars($search) ?>"
+                   value="<?= h($search) ?>"
                    placeholder="Search name or email...">
             <select name="role" class="filter-select"
                     onchange="this.form.submit()">
@@ -390,7 +458,8 @@ $counts = $pdo->query("
                     <tr>
                         <th>User</th>
                         <th>Role</th>
-                        <th>Verified</th>
+                        <th>Email</th>
+                        <th>Host ID check</th>
                         <th>Activity</th>
                         <th>Status</th>
                         <th>Joined</th>
@@ -402,14 +471,14 @@ $counts = $pdo->query("
                     <tr>
                         <td>
                             <div class="user-name">
-                                <?= htmlspecialchars($u['full_name']) ?>
+                                <?= h($u['full_name']) ?>
                             </div>
                             <div class="user-email">
-                                <?= htmlspecialchars($u['email']) ?>
+                                <?= h($u['email']) ?>
                             </div>
                             <?php if ($u['phone_number']): ?>
                             <div class="user-email">
-                                <?= htmlspecialchars(
+                                <?= h(
                                     $u['phone_number']) ?>
                             </div>
                             <?php endif; ?>
@@ -421,13 +490,25 @@ $counts = $pdo->query("
                         </td>
                         <td>
                             <?php if ($u['email_verified']): ?>
-                                <span class="verified-yes">
-                                    Verified
-                                </span>
+                                <span class="verified-yes">Email verified</span>
                             <?php else: ?>
-                                <span class="verified-no">
-                                    Unverified
-                                </span>
+                                <span class="verified-no">Email not verified</span>
+                            <?php endif; ?>
+                        </td>
+                        <td>
+                            <?php if (!in_array($u['role'], ['host','tourist'], true)): ?>
+                                <span style="font-size:12px;color:var(--text-secondary)">&mdash;</span>
+                            <?php else:
+                                $idState = $hostIdStatus[(int)$u['user_id']] ?? 'unverified'; ?>
+                                <?php if ($idState === 'verified'): ?>
+                                    <span class="verified-yes">ID verified</span>
+                                <?php elseif ($idState === 'pending'): ?>
+                                    <a href="#verification" style="font-size:12px;color:#D97706">ID review pending</a>
+                                <?php elseif ($idState === 'rejected'): ?>
+                                    <span class="verified-no">ID rejected</span>
+                                <?php else: ?>
+                                    <span style="font-size:12px;color:var(--text-secondary)">ID not submitted</span>
+                                <?php endif; ?>
                             <?php endif; ?>
                         </td>
                         <td>
@@ -456,14 +537,15 @@ $counts = $pdo->query("
                         </td>
                         <td>
                             <?php
-                            $spill = [
+                            $isClosed = !empty($u['account_closed_at']);
+                            $spill = $isClosed ? 's-suspended' : ([
                                 'active'    => 's-active',
                                 'suspended' => 's-suspended',
                                 'banned'    => 's-banned'
-                            ][$u['status']] ?? 's-active';
+                            ][$u['status']] ?? 's-active');
                             ?>
                             <span class="status-pill <?= $spill ?>">
-                                <?= ucfirst($u['status']) ?>
+                                <?= $isClosed ? 'Closed' : ucfirst($u['status']) ?>
                             </span>
                         </td>
                         <td style="font-size:12px;
@@ -474,8 +556,9 @@ $counts = $pdo->query("
                         <td>
                             <div class="action-cell">
 
-                                <?php if ($u['status'] === 'active'): ?>
+                                <?php if ($u['status'] === 'active' && empty($u['account_closed_at'])): ?>
                                 <form method="POST" class="inline-form">
+<input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
                                     <input type="hidden" name="user_id"
                                            value="<?= $u['user_id'] ?>">
                                     <input type="hidden" name="action"
@@ -491,6 +574,7 @@ $counts = $pdo->query("
                                     </button>
                                 </form>
                                 <form method="POST" class="inline-form">
+<input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
                                     <input type="hidden" name="user_id"
                                            value="<?= $u['user_id'] ?>">
                                     <input type="hidden" name="action"
@@ -504,8 +588,9 @@ $counts = $pdo->query("
                                 </form>
 
                                 <?php elseif (
-                                    $u['status'] === 'suspended'): ?>
+                                    ($u['status'] === 'suspended' || !empty($u['account_closed_at']))): ?>
                                 <form method="POST" class="inline-form">
+<input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
                                     <input type="hidden" name="user_id"
                                            value="<?= $u['user_id'] ?>">
                                     <input type="hidden" name="action"
@@ -518,6 +603,7 @@ $counts = $pdo->query("
                                     </button>
                                 </form>
                                 <form method="POST" class="inline-form">
+<input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
                                     <input type="hidden" name="user_id"
                                            value="<?= $u['user_id'] ?>">
                                     <input type="hidden" name="action"
@@ -533,6 +619,7 @@ $counts = $pdo->query("
                                 <?php elseif (
                                     $u['status'] === 'banned'): ?>
                                 <form method="POST" class="inline-form">
+<input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
                                     <input type="hidden" name="user_id"
                                            value="<?= $u['user_id'] ?>">
                                     <input type="hidden" name="action"
@@ -548,6 +635,7 @@ $counts = $pdo->query("
 
                                 <?php if (!$u['email_verified']): ?>
                                 <form method="POST" class="inline-form">
+<input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
                                     <input type="hidden" name="user_id"
                                            value="<?= $u['user_id'] ?>">
                                     <input type="hidden" name="action"
@@ -568,10 +656,7 @@ $counts = $pdo->query("
             <?php endif; ?>
         </div>
 
-    </main>
-</div>
-
-<?php include '../includes/footer.php'; ?>
+    <?php appShellEnd(); ?>
 
 </body>
 </html>

@@ -2,6 +2,9 @@
 require_once '../includes/auth.php';
 require_once '../includes/functions.php';
 require_once '../includes/db.php';
+require_once '../includes/email.php';
+require_once '../includes/review_extras.php';
+ensureReviewExtraColumns($pdo);
 
 if (session_status() === PHP_SESSION_NONE) session_start();
 
@@ -54,11 +57,18 @@ $errors  = [];
 $success = false;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    requireCsrf();
     $rating      = (int)($_POST['rating'] ?? 0);
     $review_text = sanitize($_POST['review_text'] ?? '');
 
     if ($rating < 1 || $rating > 5) {
         $errors[] = 'Please select a rating between 1 and 5.';
+    }
+    $cats = [];
+    foreach (reviewCategoryLabels() as $col => $label) {
+        $v = (int)($_POST[$col] ?? 0);
+        if ($v < 1 || $v > 5) { $errors[] = 'Please rate the ' . strtolower($label) . ' from 1 to 5.'; }
+        $cats[$col] = $v;
     }
     if (strlen(trim($review_text)) < 10) {
         $errors[] = 'Please write at least 10 characters in your review.';
@@ -124,6 +134,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ]);
         }
 
+        // Save the four category scores
+        $pdo->prepare("UPDATE reviews SET cleanliness_rating = ?, location_rating = ?, comfort_rating = ?, value_rating = ? WHERE booking_id = ? AND tourist_id = ?")
+            ->execute([$cats['cleanliness_rating'], $cats['location_rating'], $cats['comfort_rating'], $cats['value_rating'], $booking_id, $_SESSION['user_id']]);
+
         // If flagged notify admin
         if ($is_flagged) {
             $admin = $pdo->query("
@@ -163,11 +177,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .page-sub   { font-size:14px; color:var(--text-secondary);
                       margin-bottom:28px }
         .review-card{ background:var(--surface-2);
-                      border:0.5px solid var(--border);
+                      border:1px solid var(--border);
                       border-radius:8px; padding:28px }
         .prop-row   { display:flex; gap:14px; align-items:center;
                       padding-bottom:20px;
-                      border-bottom:0.5px solid var(--border);
+                      border-bottom:1px solid var(--border);
                       margin-bottom:24px }
         .prop-thumb { width:64px; height:52px; border-radius:6px;
                       background:#E1F5EE; overflow:hidden;
@@ -184,6 +198,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                       font-size:28px; color:#E5E7EB;
                       transition:color .1s; padding:0;
                       line-height:1 }
+        .cat-star{background:none;border:0;cursor:pointer;font-size:24px;color:#d6d3c8;padding:0 2px;line-height:1}
+        .cat-star.on{color:#BA7517}
         .star-btn.active,
         .star-btn:hover,
         .star-btn.hovered { color:#BA7517 }
@@ -194,7 +210,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             display:block; margin-bottom:6px;
                             color:var(--text-primary) }
         .form-group textarea { width:100%; padding:12px 14px;
-                               border:0.5px solid var(--border-strong);
+                               border:1px solid var(--border-strong);
                                border-radius:6px; font-size:14px;
                                color:var(--text-primary);
                                resize:vertical; min-height:120px;
@@ -205,12 +221,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .char-count { font-size:11px; color:var(--text-secondary);
                       text-align:right; margin-top:4px }
         .honesty-note { background:#F0FAF6;
-                        border:0.5px solid #9FE1CB;
+                        border:1px solid #9FE1CB;
                         border-radius:6px; padding:12px 14px;
                         font-size:13px; color:#0F6E56;
                         margin-bottom:20px; line-height:1.5 }
         .reveal-note { background:var(--surface-1);
-                       border:0.5px solid var(--border);
+                       border:1px solid var(--border);
                        border-radius:6px; padding:12px 14px;
                        font-size:12px; color:var(--text-secondary);
                        margin-bottom:20px; line-height:1.5 }
@@ -223,7 +239,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                          border-radius:50%; display:flex;
                          align-items:center; justify-content:center;
                          margin:0 auto 16px;
-                         border:0.5px solid #9FE1CB }
+                         border:1px solid #9FE1CB }
         .success-icon svg { width:22px; height:22px; stroke:#1D9E75 }
         .success-state h2 { font-size:20px; font-weight:500;
                             margin-bottom:8px }
@@ -277,7 +293,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php if (!empty($errors)): ?>
         <div class="alert alert-error" style="margin-bottom:20px">
             <?php foreach ($errors as $e): ?>
-                <p><?= $e ?></p>
+                <p><?= h($e) ?></p>
             <?php endforeach; ?>
         </div>
         <?php endif; ?>
@@ -288,18 +304,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="prop-row">
                 <div class="prop-thumb">
                     <?php if ($booking['primary_photo']): ?>
-                        <img src="../uploads/accommodations/<?= htmlspecialchars($booking['primary_photo']) ?>"
-                             alt="<?= htmlspecialchars($booking['title']) ?>">
+                        <img src="../uploads/accommodations/<?= h($booking['primary_photo']) ?>"
+                             alt="<?= h($booking['title']) ?>">
                     <?php else: ?>
-                        &#127968;
+                        <span style="font-size:12px;color:#8a948e">No photo</span>
                     <?php endif; ?>
                 </div>
                 <div>
                     <div class="prop-title">
-                        <?= htmlspecialchars($booking['title']) ?>
+                        <?= h($booking['title']) ?>
                     </div>
                     <div class="prop-dates">
-                        <?= htmlspecialchars($booking['location_name']) ?>
+                        <?= h($booking['location_name']) ?>
                         &middot;
                         Your stay ended
                         <?= date('d M Y',
@@ -313,10 +329,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 Honest reviews — whether positive or negative —
                 help future guests make informed choices and
                 encourage hosts to maintain high standards.
-                Your name appears as first name only.
+                Your name and profile photo are shown next to your review.
             </div>
 
             <form method="POST">
+<input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
 
                 <!-- Star Rating -->
                 <div class="form-group">
@@ -341,6 +358,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                            id="ratingInput" value="0">
                 </div>
 
+
+                <!-- Category ratings -->
+                <div class="form-group">
+                    <span class="rating-label">Rate the details</span>
+                    <?php foreach (reviewCategoryLabels() as $col => $label): ?>
+                    <div class="cat-row" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid #eee">
+                        <span style="font-size:14px"><?= h($label) ?></span>
+                        <span class="cat-stars" data-name="<?= h($col) ?>">
+                            <?php for ($i = 1; $i <= 5; $i++): ?><button type="button" class="cat-star" data-value="<?= $i ?>" aria-label="<?= $i ?> out of 5 for <?= h(strtolower($label)) ?>">&#9733;</button><?php endfor; ?>
+                        </span>
+                        <input type="hidden" name="<?= h($col) ?>" id="in_<?= h($col) ?>" value="<?= (int)($_POST[$col] ?? 0) ?>">
+                    </div>
+                    <?php endforeach; ?>
+                </div>
+
                 <!-- Review Text -->
                 <div class="form-group">
                     <label for="review_text">
@@ -349,7 +381,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <textarea id="review_text" name="review_text"
                               maxlength="1000"
                               placeholder="The apartment felt calm and well considered..."
-                              oninput="updateCount(this)"><?= htmlspecialchars($_POST['review_text'] ?? '') ?></textarea>
+                              oninput="updateCount(this)"><?= h($_POST['review_text'] ?? '') ?></textarea>
                     <div class="char-count">
                         <span id="charCount">0</span> / 1000
                     </div>
@@ -424,8 +456,23 @@ function updateCount(el) {
 function checkSubmit() {
     const text = document.getElementById('review_text').value;
     const btn  = document.getElementById('submitBtn');
-    btn.disabled = !(currentRating > 0 && text.trim().length >= 10);
+    const catsDone = Array.from(document.querySelectorAll('.cat-stars')).every(function (g) {
+        return parseInt(document.getElementById('in_' + g.dataset.name).value, 10) > 0;
+    });
+    btn.disabled = !(currentRating > 0 && catsDone && text.trim().length >= 10);
 }
+
+// Category star pickers
+document.querySelectorAll('.cat-stars').forEach(function (g) {
+    const input = document.getElementById('in_' + g.dataset.name);
+    const paint = function (v) { g.querySelectorAll('.cat-star').forEach(function (b, i) { b.classList.toggle('on', i < v); }); };
+    paint(parseInt(input.value, 10) || 0);
+    g.querySelectorAll('.cat-star').forEach(function (b) {
+        b.addEventListener('click', function () { input.value = b.dataset.value; paint(+b.dataset.value); checkSubmit(); });
+        b.addEventListener('mouseover', function () { paint(+b.dataset.value); });
+        b.addEventListener('mouseout', function () { paint(parseInt(input.value, 10) || 0); });
+    });
+});
 
 // Init char count
 const ta = document.getElementById('review_text');
