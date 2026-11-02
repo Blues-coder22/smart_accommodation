@@ -89,13 +89,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <label for="email">Email</label>
                 <input type="email" id="email" name="email"
                        value="<?= h($_POST['email'] ?? '') ?>"
-                       autocomplete="email" placeholder="amina@example.com" required>
+                       autocomplete="email" required>
             </div>
 
             <div class="field">
                 <label for="password">Password</label>
                 <input type="password" id="password" name="password"
-                       autocomplete="current-password" placeholder="Your password" required>
+                       autocomplete="current-password" required>
             </div>
 
             <button type="submit" class="btn">Sign in</button>

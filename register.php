@@ -97,21 +97,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <label for="full_name">Full name</label>
                 <input type="text" id="full_name" name="full_name"
                        value="<?= h($_POST['full_name'] ?? '') ?>"
-                       autocomplete="name" placeholder="Amina Wanjiku" required>
+                       autocomplete="name" required>
             </div>
 
             <div class="field">
                 <label for="email">Email</label>
                 <input type="email" id="email" name="email"
                        value="<?= h($_POST['email'] ?? '') ?>"
-                       autocomplete="email" placeholder="amina@example.com" required>
+                       autocomplete="email" required>
             </div>
 
             <div class="field">
                 <label for="phone">Phone number</label>
                 <input type="tel" id="phone" name="phone"
                        value="<?= h($_POST['phone'] ?? '') ?>"
-                       autocomplete="tel" placeholder="+254 7XX XXX XXX">
+                       autocomplete="tel">
             </div>
 
             <div class="field full">
@@ -134,14 +134,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="field">
                 <label for="password">Password</label>
                 <input type="password" id="password" name="password"
-                       minlength="8" autocomplete="new-password" placeholder="At least 8 characters" required>
+                       minlength="8" autocomplete="new-password" required>
             </div>
 
             <div class="field">
                 <label for="confirm_password">Confirm Password</label>
                 <input type="password" id="confirm_password"
                        name="confirm_password"
-                       minlength="8" autocomplete="new-password" placeholder="Repeat your password" required>
+                       minlength="8" autocomplete="new-password" required>
             </div>
 
             <label class="check full">

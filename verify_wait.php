@@ -10,6 +10,24 @@ if (!is_array($w) || empty($w['user_id'])) {
     redirect($base . '/login.php');         // nothing to wait for: go and sign in
 }
 
+// Typed the 6-digit code from the email (works without the phone ever opening the link)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['verify_code'])) {
+    requireCsrf();
+    $c = verifyWaitCheck($pdo);
+    if ($c['state'] === 'verified') redirect(verifyWaitComplete($pdo, $c['user']));
+    if ($c['state'] !== 'waiting') {
+        setFlash('error', 'This page has timed out. Press "Send the email again", or sign in.');
+    } else {
+        $r = verifyCodeSubmit($pdo, (int)$w['user_id'], $_POST['verify_code']);
+        if ($r['ok']) {
+            $c = verifyWaitCheck($pdo);
+            if ($c['state'] === 'verified') redirect(verifyWaitComplete($pdo, $c['user']));
+        }
+        setFlash('error', $r['message']);
+    }
+    redirect($base . '/verify_wait.php');
+}
+
 // Resend the email (at most once a minute)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     requireCsrf();
@@ -65,6 +83,16 @@ $cooldown = max(0, 60 - (time() - (int)($w['last_sent'] ?? 0)));
     <div class="vw-box" id="vwBox" role="status" aria-live="polite"><span class="vw-spin" id="vwSpin"></span><span id="vwText">Waiting for you to open the link&hellip;</span></div>
 
     <ol class="vw-steps"><li>Open the email from StayExplore Kenya (check spam too).</li><li>Tap <strong>Verify Email</strong>, on any device.</li><li>This page signs you in automatically.</li></ol>
+
+    <div style="margin-top:22px;padding-top:18px;border-top:1px solid #e2e8e4">
+      <p class="small" style="line-height:1.6;margin:0 0 10px"><strong>Phone can&rsquo;t open the link?</strong> No problem: type the 6-digit code from the same email here.</p>
+      <form method="POST" autocomplete="off" style="display:flex;gap:10px">
+        <input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
+        <input type="text" name="verify_code" inputmode="numeric" pattern="[0-9 ]{6,7}" maxlength="7" autocomplete="one-time-code" placeholder="123456" required
+               aria-label="6-digit code" style="flex:1;min-width:0;font-size:22px;letter-spacing:6px;text-align:center;padding:10px;border:1px solid #cfdcd5;border-radius:10px">
+        <button type="submit" class="btn">Verify</button>
+      </form>
+    </div>
 
     <form method="POST" style="margin-top:18px">
       <input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">

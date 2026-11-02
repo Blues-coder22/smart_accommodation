@@ -34,3 +34,17 @@ Open the email link on any device, a phone is fine. The waiting page checks ever
 soon as the email is verified. The device that opened the link shows "Email verified" and offers a **Continue on this device** button.
 If the link is opened in the same browser that registered, that browser is signed in immediately.
 The waiting code lives only in the waiting browser's session, works once, expires after 30 minutes and is stored hashed in the `verify_waits` table.
+
+## Verifying when the phone cannot open the link (v9.10)
+
+The link in the email points at `APP_BASE_URL` (for example `http://localhost/...`). A phone that is not on the same network
+as the computer running XAMPP cannot open that address, so tapping the link shows a page that never loads. That is a network
+limit, not a bug: a link can only verify an account if the phone can reach the site.
+
+So every verification email now also contains a **6-digit code**. On the page where you registered (the "Confirm your email" page),
+type the code into the box and press **Verify**: the email is verified and that browser is signed in. No link and no phone
+connection to the computer is needed. The code works for 30 minutes, locks after 5 wrong tries, and "Send the email again" issues a new one.
+Codes are stored hashed in the `verify_codes` table (created automatically; `database/migration_verify_codes.sql` if you prefer to run it).
+
+The link still works, and still signs the waiting browser in automatically, whenever the phone CAN reach the site: same Wi-Fi with
+`APP_BASE_URL` set to the computer's address (e.g. `http://192.168.1.20/smart_accommodation`), or once the site is hosted on a real domain.

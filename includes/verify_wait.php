@@ -88,3 +88,65 @@ if (!function_exists('verifyWaitComplete')) {
         return $user['role'] === 'host' ? $base . '/host/profile.php' : roleHome($user['role']);
     }
 }
+
+
+/*
+ * Verification CODE (works even when the phone cannot open the link, e.g. the site runs on a PC the phone cannot reach).
+ * The email carries a 6-digit code; typing it into the waiting browser verifies the email and signs that browser in.
+ * Only a keyed hash is stored, the code expires after 30 minutes and is locked after 5 wrong tries.
+ */
+if (!function_exists('ensureVerifyCodesTable')) {
+    function ensureVerifyCodesTable($pdo) {
+        static $done = false;
+        if ($done) return;
+        $done = true;
+        try {
+            $pdo->exec("CREATE TABLE IF NOT EXISTS verify_codes (
+                user_id INT NOT NULL PRIMARY KEY,
+                code_hash CHAR(64) NOT NULL,
+                expires_at DATETIME NOT NULL,
+                attempts TINYINT NOT NULL DEFAULT 0,
+                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+        } catch (Throwable $e) {}
+    }
+}
+
+if (!function_exists('verifyCodeHash')) {
+    function verifyCodeHash($user_id, $code) {
+        return hash('sha256', 'verify-code|' . (int)$user_id . '|' . preg_replace('/\D/', '', (string)$code));
+    }
+}
+
+if (!function_exists('issueVerifyCode')) {
+    /** Creates (replacing any older) 6-digit code for this user and returns it for the email. */
+    function issueVerifyCode($pdo, $user_id) {
+        ensureVerifyCodesTable($pdo);
+        $code = str_pad((string)random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+        $pdo->prepare("REPLACE INTO verify_codes (user_id, code_hash, expires_at, attempts) VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 30 MINUTE), 0)")
+            ->execute([(int)$user_id, verifyCodeHash($user_id, $code)]);
+        return $code;
+    }
+}
+
+if (!function_exists('verifyCodeSubmit')) {
+    /** @return array ['ok' => bool, 'message' => string]. On success the user's email is marked verified. */
+    function verifyCodeSubmit($pdo, $user_id, $code) {
+        ensureVerifyCodesTable($pdo);
+        $code = preg_replace('/\D/', '', (string)$code);
+        if (strlen($code) !== 6) return ['ok' => false, 'message' => 'Enter the 6-digit code from the email.'];
+        $q = $pdo->prepare("SELECT code_hash, attempts, (expires_at > NOW()) AS alive FROM verify_codes WHERE user_id = ? LIMIT 1");
+        $q->execute([(int)$user_id]);
+        $row = $q->fetch(PDO::FETCH_ASSOC);
+        if (!$row || !(int)$row['alive']) return ['ok' => false, 'message' => 'That code has expired. Press "Send the email again" to get a new one.'];
+        if ((int)$row['attempts'] >= 5) return ['ok' => false, 'message' => 'Too many wrong tries. Press "Send the email again" to get a new code.'];
+        if (!hash_equals($row['code_hash'], verifyCodeHash($user_id, $code))) {
+            $pdo->prepare("UPDATE verify_codes SET attempts = attempts + 1 WHERE user_id = ?")->execute([(int)$user_id]);
+            $left = max(0, 4 - (int)$row['attempts']);
+            return ['ok' => false, 'message' => 'That code is not right.' . ($left > 0 ? ' ' . $left . ' more ' . ($left === 1 ? 'try' : 'tries') . ' left.' : ' Request a new code.')];
+        }
+        $pdo->prepare("DELETE FROM verify_codes WHERE user_id = ?")->execute([(int)$user_id]);
+        $pdo->prepare("UPDATE users SET email_verified = 1, verification_token = NULL WHERE user_id = ?")->execute([(int)$user_id]);
+        return ['ok' => true, 'message' => 'Verified.'];
+    }
+}
