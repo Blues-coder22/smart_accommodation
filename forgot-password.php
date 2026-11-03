@@ -15,14 +15,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = filter_var(trim($_POST['email'] ?? ''), FILTER_VALIDATE_EMAIL);
     if (!$email) {
         $error = 'Enter a valid email address.';
+    } elseif (emailIsOffline()) {
+        $error = emailOfflineMessage();   // nothing is created or used up while we are offline
     } else {
         // The reply is the same whether or not the address belongs to an account, so this page cannot be used
         // to find out who is registered.
         $message = 'If an account exists for that address, a password reset link has been sent. It works once and expires in '
                  . RESET_VALID_MINUTES . ' minutes.';
-        if (!emailIsConfigured()) {
-            $message .= ' (Email delivery is not configured on this server yet; the link is written to logs/mail.log instead.)';
-        }
         try {
             $stmt = $pdo->prepare("SELECT user_id, full_name, email FROM users
                                    WHERE email = ? AND account_deleted_at IS NULL AND account_closed_at IS NULL LIMIT 1");
@@ -46,7 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 ?>
 <!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Forgot password — StayExplore Kenya</title><link rel="stylesheet" href="assets/css/style.css"></head>
-<body><?php include __DIR__ . '/includes/header.php'; ?><main class="auth-page"><section class="auth-visual"><div class="auth-copy"><div class="eyebrow">Locked out?</div><h1>Let's get you back in.</h1><p>We'll email you a secure link to choose a new password.</p></div></section><section class="auth-form"><div class="auth-box"><h1>Forgot password</h1><p class="small">Enter the email address you registered with.</p>
+<body><?php include __DIR__ . '/includes/header.php'; ?><main class="auth-page"><section class="auth-visual"><div class="auth-copy"><div class="eyebrow">Locked out?</div><p class="auth-heading">Let's get you back in.</p><p>We'll email you a secure link to choose a new password.</p></div></section><section class="auth-form"><div class="auth-box"><h1>Forgot password</h1><p class="small">Enter the email address you registered with.</p>
 <?php if ($error): ?><div class="alert alert-error"><p><?= h($error) ?></p></div><?php endif; ?>
 <?php if ($message): ?><div class="alert alert-success"><p><?= h($message) ?></p></div><?php endif; ?>
 <form method="post" class="grid" style="margin-top:20px">

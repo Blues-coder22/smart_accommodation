@@ -39,11 +39,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $q->execute([(int)$w['user_id']]);
         $u = $q->fetch(PDO::FETCH_ASSOC);
         if ($u && !(int)$u['email_verified']) {
-            $token = bin2hex(random_bytes(32));
-            $pdo->prepare('UPDATE users SET verification_token = ? WHERE user_id = ?')->execute([$token, $u['user_id']]);
-            $_SESSION['verify_wait']['last_sent'] = time();
-            if (sendVerificationEmail($u['email'], $u['full_name'], $token)) setFlash('success', 'A new link is on its way. Older links no longer work.');
-            else setFlash('error', 'The email could not be sent. Email delivery is not set up on this server yet.' . (emailIsConfigured() ? '' : ' See SETUP_LOGIN_AND_EMAIL.md.'));
+            $r = resendVerificationEmailSafely($pdo, $u);
+            if ($r === 'sent') {
+                $_SESSION['verify_wait']['last_sent'] = time();      // the one-minute wait only starts after a real send
+                unset($_SESSION['verify_wait']['unsent']);
+                setFlash('success', 'A new email is on its way. Older links no longer work.');
+            } elseif ($r === 'offline') {
+                setFlash('warning', emailOfflineMessage());
+            } else {
+                setFlash('error', 'We couldn’t send the email just now. Please try again in a little while.');
+            }
         }
     }
     redirect($base . '/verify_wait.php');
@@ -52,6 +57,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $c = verifyWaitCheck($pdo);
 if ($c['state'] === 'verified') redirect(verifyWaitComplete($pdo, $c['user']));   // verified while this page was closed
 $email = (string)($w['email'] ?? '');
+$unsent = !empty($w['unsent']);
 $cooldown = max(0, 60 - (time() - (int)($w['last_sent'] ?? 0)));
 ?>
 <!DOCTYPE html>
@@ -73,12 +79,16 @@ $cooldown = max(0, 60 - (time() - (int)($w['last_sent'] ?? 0)));
 <body>
 <?php include __DIR__ . '/includes/header.php'; ?>
 <main class="auth-page">
-  <section class="auth-visual"><div class="auth-copy"><div class="eyebrow" style="color:#efb59e">One more step</div><h1>Check your inbox.</h1><p>Open the link we emailed you on any device. This page notices and signs you in by itself.</p></div></section>
+  <section class="auth-visual"><div class="auth-copy"><div class="eyebrow" style="color:#efb59e">One more step</div><p class="auth-heading">Check your inbox.</p><p>Open the link we emailed you on any device. This page notices and signs you in by itself.</p></div></section>
   <section class="auth-form"><div class="auth-box">
     <div class="eyebrow">Confirm your email</div>
     <h1>Waiting for you to confirm.</h1>
     <?= showFlash() ?>
+    <?php if ($unsent): ?>
+    <p class="small" style="line-height:1.6">We haven&rsquo;t been able to email <strong><?= h($email) ?></strong> yet. When you&rsquo;re back online, press <strong>Send the email again</strong> below.</p>
+    <?php else: ?>
     <p class="small" style="line-height:1.6">We sent a link to <strong><?= h($email) ?></strong>. You can open it on your phone or any other device, you do not have to come back to this one first.</p>
+    <?php endif; ?>
 
     <div class="vw-box" id="vwBox" role="status" aria-live="polite"><span class="vw-spin" id="vwSpin"></span><span id="vwText">Waiting for you to open the link&hellip;</span></div>
 

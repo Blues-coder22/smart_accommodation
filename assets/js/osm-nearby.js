@@ -201,7 +201,7 @@
     async function searchNearby(force) {
       if (busy) {
         pendingRefresh = true;
-        if (force && status) status.textContent = 'Still searching… this can take up to a minute when the map service is busy.';
+        if (force && status) status.textContent = 'Still searching… this can take up to a minute.';
         return;
       }
       // A map inside a hidden panel has no size; search once it is shown instead of wasting a request.
@@ -246,7 +246,7 @@
           : 'No named places found nearby. Pan the map or try a different location.';
       } catch (error) {
         lastCentre = null;   // so the next automatic or manual search tries again
-        if (status) status.textContent = 'The OpenStreetMap place service is busy or not reachable right now (it is a free shared service). Please press the button again in a minute.';
+        if (status) status.textContent = 'We couldn\u2019t load nearby places just now. Please try again in a minute, or when you\u2019re back online.';
         if (resultsBox) {
           resultsBox.replaceChildren();
           const message = document.createElement('p');

@@ -16,8 +16,8 @@ try {
         ]
     );
 } catch (PDOException $e) {
-    die(json_encode([
-        'error' => 'Database connection failed: ' . $e->getMessage()
-    ]));
+    error_log('Database connection failed: ' . $e->getMessage());
+    http_response_code(503);
+    die('We can’t load this page right now. Please try again in a moment.');
 }
 ?>

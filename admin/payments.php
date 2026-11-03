@@ -148,7 +148,7 @@ $badge = ['confirmed' => ['#e7f3ec', '#1f5a3f', 'Received'], 'pending' => ['#fff
         </div>
         <form method="GET" style="margin-bottom:16px;display:flex;gap:8px;flex-wrap:wrap">
             <input type="hidden" name="filter" value="<?= h($filter) ?>">
-            <input type="text" name="q" value="<?= h($search) ?>" placeholder="Search a reference, name, listing or booking number" style="flex:1;min-width:220px;padding:9px 12px;border:1px solid #d8d4c8;border-radius:8px">
+            <input aria-label="Search a reference, name, listing or booking number" type="text" name="q" value="<?= h($search) ?>" placeholder="Search a reference, name, listing or booking number" style="flex:1;min-width:220px;padding:9px 12px;border:1px solid #d8d4c8;border-radius:8px">
             <button class="btn" type="submit">Search</button>
         </form>
 
@@ -190,7 +190,7 @@ $badge = ['confirmed' => ['#e7f3ec', '#1f5a3f', 'Received'], 'pending' => ['#fff
                     <form method="POST" class="decide" onsubmit="return this.note.value.trim().length >= 5 || (alert('Please write a short reason first.'), false);">
                         <input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
                         <input type="hidden" name="payment_id" value="<?= (int)$r['payment_id'] ?>">
-                        <input type="text" name="note" maxlength="500" placeholder="Reason (required)">
+                        <input aria-label="Reason (required)" type="text" name="note" maxlength="500" placeholder="Reason (required)">
                         <div class="row">
                             <?php if ($r['payment_status'] !== 'confirmed'): ?><button type="submit" name="new_status" value="confirmed">Confirm as received</button><?php endif; ?>
                             <?php if ($r['payment_status'] !== 'pending'): ?><button type="submit" name="new_status" value="pending" class="alt">Set to awaiting</button><?php endif; ?>

@@ -69,9 +69,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (empty($errors)) {
         // Record payment details as pending for host review. Reuse the existing row if the form is resubmitted.
-        $existingPayment = $pdo->prepare("SELECT payment_id FROM payments WHERE booking_id = ? ORDER BY payment_id DESC LIMIT 1");
+        $existingPayment = $pdo->prepare("SELECT payment_id, payment_status, payment_method, payment_reference FROM payments WHERE booking_id = ? ORDER BY payment_id DESC LIMIT 1");
         $existingPayment->execute([$booking_id]);
-        $existingPaymentId = (int)$existingPayment->fetchColumn();
+        $existingRow = $existingPayment->fetch(PDO::FETCH_ASSOC) ?: null;
+        $existingPaymentId = $existingRow ? (int)$existingRow['payment_id'] : 0;
+        // Already confirmed, or the very same details sent again (double click, Back button, refresh):
+        // change nothing and do not email the host a second time.
+        if ($existingRow && ($existingRow['payment_status'] === 'confirmed'
+            || ($existingRow['payment_method'] === $method && (string)$existingRow['payment_reference'] === (string)$reference))) {
+            redirect("confirmation.php?booking_id=$booking_id");
+        }
         if ($existingPaymentId) {
             $stmt = $pdo->prepare("UPDATE payments SET payment_method = ?, payment_reference = ?, payment_status = 'pending', payment_date = NOW() WHERE payment_id = ? AND booking_id = ?");
             $stmt->execute([$method, $reference !== '' ? $reference : null, $existingPaymentId, $booking_id]);
@@ -84,7 +91,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Notify the host about the request; this is not a confirmation email.
         sendEmail(
             $booking['host_email'],
-            'New booking request — Smart Accommodation Kenya',
+            'New booking request — StayExplore Kenya',
             '<p>You have a new booking request for <strong>' . h($booking['title'], ENT_QUOTES, 'UTF-8') . '</strong>.</p>' .
             '<p>Booking reference: #BK' . str_pad((string)$booking_id, 5, '0', STR_PAD_LEFT) . '</p>' .
             '<p>The request is still pending. Sign in to review the payment details and either confirm or decline the booking.</p>'
@@ -99,7 +106,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Payment — Smart Accommodation Kenya</title>
+    <title>Payment — StayExplore Kenya</title>
     <link rel="stylesheet" href="../assets/css/style.css">
     <style>
         .page-wrap   { max-width:900px; margin:0 auto; padding:32px 24px }

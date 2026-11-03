@@ -48,6 +48,83 @@ function appAbsoluteUrl($path) {
     return $baseUrl . '/' . ltrim($path, '/');
 }
 
+
+/**
+ * True when email IS set up but this computer cannot reach the mail service (for example no internet).
+ * Checked once per page, with a short 4-second wait.
+ */
+function emailIsOffline() {
+    static $cached = null;
+    if ($cached !== null) return $cached;
+    if (!emailIsConfigured()) return $cached = false;   // not set up is a different situation (messages go to logs/mail.log)
+    $errno = 0; $errstr = '';
+    $fp = @fsockopen(mailSetting('SMTP_HOST', 'smtp.gmail.com'), (int)mailSetting('SMTP_PORT', 587), $errno, $errstr, 4);
+    if ($fp) { fclose($fp); return $cached = false; }
+    return $cached = true;
+}
+
+/** Plain wording for people when an email could not go out because we are offline. */
+function emailOfflineMessage() {
+    return 'We can’t send emails right now. Please try again when you’re back online. Nothing has changed on your account, and any email we already sent still works.';
+}
+
+/**
+ * Who hears about things that need an administrator (new listing, new report, flagged review...).
+ * ADMIN_NOTIFY_EMAIL in includes/config.php wins when it is filled in (several addresses may be separated by commas);
+ * otherwise every active, confirmed administrator account is used, always with its CURRENT email address.
+ * Returns ['email' => 'a@x.com,b@y.com'] or false when there is nobody to tell.
+ */
+function adminNotificationRecipient($pdo) {
+    $emails = [];
+    $configured = trim((string)mailSetting('ADMIN_NOTIFY_EMAIL'));
+    if ($configured !== '') {
+        foreach (preg_split('/[,;\s]+/', $configured) as $e) if (filter_var($e, FILTER_VALIDATE_EMAIL)) $emails[strtolower($e)] = $e;
+    }
+    if (!$emails) {
+        try {
+            $rows = $pdo->query("SELECT email FROM users WHERE role = 'admin' AND status = 'active' AND email_verified = 1
+                                 AND account_closed_at IS NULL AND account_deleted_at IS NULL ORDER BY user_id")->fetchAll(PDO::FETCH_COLUMN);
+        } catch (Throwable $e) {
+            $rows = $pdo->query("SELECT email FROM users WHERE role = 'admin' ORDER BY user_id")->fetchAll(PDO::FETCH_COLUMN);
+        }
+        foreach ($rows as $e) if (filter_var($e, FILTER_VALIDATE_EMAIL)) $emails[strtolower($e)] = $e;
+    }
+    return $emails ? ['email' => implode(',', array_values($emails))] : false;
+}
+
+/**
+ * Sends a fresh verification email WITHOUT breaking the link the person may already have.
+ * The old link and code are only replaced once the new email has really gone out.
+ * @return string 'sent' | 'offline' | 'failed'
+ */
+function resendVerificationEmailSafely($pdo, array $user) {
+    if (emailIsOffline()) return 'offline';
+    $uid = (int)$user['user_id'];
+    $old = $pdo->prepare('SELECT verification_token FROM users WHERE user_id = ?');
+    $old->execute([$uid]);
+    $oldToken = $old->fetchColumn();
+    $oldCode = null;
+    try {
+        $q = $pdo->prepare('SELECT code_hash, expires_at, attempts FROM verify_codes WHERE user_id = ?');
+        $q->execute([$uid]);
+        $oldCode = $q->fetch(PDO::FETCH_ASSOC) ?: null;
+    } catch (Throwable $e) {}
+
+    $token = bin2hex(random_bytes(32));
+    $pdo->prepare('UPDATE users SET verification_token = ? WHERE user_id = ?')->execute([$token, $uid]);
+    if (sendVerificationEmail($user['email'], $user['full_name'], $token)) return 'sent';
+
+    if (emailIsConfigured()) {          // the email really failed: put the earlier link and code back
+        $pdo->prepare('UPDATE users SET verification_token = ? WHERE user_id = ?')->execute([$oldToken ?: null, $uid]);
+        try {
+            if ($oldCode) $pdo->prepare('REPLACE INTO verify_codes (user_id, code_hash, expires_at, attempts) VALUES (?, ?, ?, ?)')
+                               ->execute([$uid, $oldCode['code_hash'], $oldCode['expires_at'], $oldCode['attempts']]);
+            else $pdo->prepare('DELETE FROM verify_codes WHERE user_id = ?')->execute([$uid]);
+        } catch (Throwable $e) {}
+    }
+    return 'failed';
+}
+
 function sendEmail($to, $subject, $body) {
     // Development fallback: no SMTP password configured.
 if (mailSetting('SMTP_PASSWORD') === '') {
@@ -59,9 +136,15 @@ if (mailSetting('SMTP_PASSWORD') === '') {
         return false;
     }
 
+    if (emailIsOffline()) {
+        error_log('Email not sent (no internet connection): ' . $subject);
+        return false;
+    }
+
     $mail = new PHPMailer(true);
     try {
         $mail->isSMTP();
+        $mail->Timeout = 12;
         $smtpHost = mailSetting('SMTP_HOST', 'smtp.gmail.com');
         $smtpUser = mailSetting('SMTP_USERNAME');
         $smtpPass = str_replace(' ', '', mailSetting('SMTP_PASSWORD'));   // Google shows app passwords with spaces
@@ -87,7 +170,12 @@ if (mailSetting('SMTP_PASSWORD') === '') {
         $mail->CharSet    = 'UTF-8';
 
         $mail->setFrom($fromEmail, $fromName);
-        $mail->addAddress($to);
+        $any = false;
+        foreach ((is_array($to) ? $to : preg_split('/[,;]+/', (string)$to)) as $addr) {
+            $addr = trim($addr);
+            if ($addr !== '' && filter_var($addr, FILTER_VALIDATE_EMAIL)) { $mail->addAddress($addr); $any = true; }
+        }
+        if (!$any) return false;
         $mail->isHTML(true);
         $mail->Subject = $subject;
         $mail->Body    = $body;
@@ -125,7 +213,7 @@ function sendVerificationEmail($to, $name, $token) {
         }
     } catch (Throwable $e) { error_log('Verification code not created: ' . $e->getMessage()); }
     $body = "
-        <h2>Welcome to Smart Accommodation Kenya, $name!</h2>
+        <h2>Welcome to StayExplore Kenya, $name!</h2>
         <p>Please verify your email address by clicking the link below:</p>
         <a href='$link' style='background:#1D9E75;color:white;
            padding:10px 20px;text-decoration:none;border-radius:5px'>
@@ -134,7 +222,7 @@ function sendVerificationEmail($to, $name, $token) {
         $codeHtml
         <p>If you did not register, please ignore this email.</p>
     ";
-    return sendEmail($to, 'Verify Your Email — Smart Accommodation Kenya', $body);
+    return sendEmail($to, 'Verify Your Email — StayExplore Kenya', $body);
 }
 
 function sendBookingConfirmationEmail($to, $name, $booking) {
@@ -217,7 +305,7 @@ function sendListingApprovedEmail($to, $name, $listing_title) {
            approved and is now visible to tourists.</p>
         <p>Log in to your host dashboard to manage your listing.</p>
     ";
-    return sendEmail($to, 'Listing Approved — Smart Accommodation Kenya', $body);
+    return sendEmail($to, 'Listing Approved — StayExplore Kenya', $body);
 }
 
 function sendListingRejectedEmail($to, $name, $listing_title, $reason) {
@@ -228,7 +316,7 @@ function sendListingRejectedEmail($to, $name, $listing_title, $reason) {
         <p><strong>Reason:</strong> $reason</p>
         <p>Please update your listing and resubmit for review.</p>
     ";
-    return sendEmail($to, 'Listing Update Required — Smart Accommodation Kenya', $body);
+    return sendEmail($to, 'Listing Update Required — StayExplore Kenya', $body);
 }
 
 function sendIncidentReportEmail($admin_email, $reporter_name, 

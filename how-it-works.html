@@ -7,9 +7,10 @@
     <link rel="stylesheet" href="StayExplore_Kenya_Authenticated_Frontend/css/style.css">
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Ccircle cx=%2716%27 cy=%2716%27 r=%2716%27 fill=%27%230d3b2e%27/%3E%3Ctext x=%2716%27 y=%2721%27 font-size=%2713%27 fill=%27white%27 text-anchor=%27middle%27 font-family=%27Georgia%27%3ESE%3C/text%3E%3C/svg%3E">
       <link rel="stylesheet" href="assets/css/static-pages.css">
+      <link rel="stylesheet" href="assets/css/a11y.css">
   </head>
   <body>
-    <header class="public-nav"><a class="public-brand" href="index.php"><span class="brand-mark">SE</span><span>StayExplore<small>KENYA</small></span></a><nav class="public-links" aria-label="Main navigation"><a href="tourist/search.php?type=accommodation">Stays</a><a href="tourist/search.php?type=attraction">Attractions</a><a href="how-it-works.html">How it works</a><a href="about.html">About</a></nav><button class="nav-toggle" type="button" aria-label="Toggle navigation" aria-expanded="false">☰</button><div class="public-actions"><a href="login.php">Sign in</a><a class="btn" href="register.php">Sign up</a></div></header>
+    <header class="public-nav"><a class="public-brand" href="index.php"><span class="brand-mark">SE</span><span>StayExplore<small>KENYA</small></span></a><nav id="siteNav" class="public-links" aria-label="Main navigation"><a href="tourist/search.php?type=accommodation">Stays</a><a href="tourist/search.php?type=attraction">Attractions</a><a href="how-it-works.html">How it works</a><a href="about.html">About</a></nav><button class="nav-toggle" type="button" aria-label="Open menu" aria-controls="siteNav" aria-expanded="false">☰</button><div class="public-actions"><a href="login.php">Sign in</a><a class="btn" href="register.php">Sign up</a></div></header>
     <main class="page">
       <div class="eyebrow">How it works</div>
       <h1>Travel with more context.</h1>
@@ -65,6 +66,6 @@
       </section>
     </main>
     <footer class="hp-footer"><div><div class="brand">StayExplore Kenya</div><p>Thoughtfully matching travellers with Kenyan stays and experiences.</p></div><div><h4>Explore</h4><a href="tourist/search.php?type=accommodation">Stays</a><a href="tourist/search.php?type=attraction">Attractions</a></div><div><h4>Company</h4><a href="about.html">About</a><a href="contact.html">Contact</a><a href="register.php?role=host">List your property</a></div><div><h4>Support</h4><a href="help.html">Help centre</a><a href="privacy.html">Privacy</a><a href="terms.html">Terms</a></div></footer>
-    <script>(function(){var toggle=document.querySelector('.nav-toggle');var header=document.querySelector('.public-nav');if(toggle&&header){toggle.addEventListener('click',function(){var open=header.classList.toggle('nav-open');toggle.setAttribute('aria-expanded',open?'true':'false');});}})();</script>
+    <script src="assets/js/polish.js" defer></script>
   </body>
 </html>

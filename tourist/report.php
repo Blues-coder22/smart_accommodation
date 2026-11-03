@@ -156,16 +156,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         // Notify admin
-        $admin = $pdo->query("
-            SELECT email FROM users
-            WHERE role = 'admin' LIMIT 1
-        ")->fetch();
+        $admin = adminNotificationRecipient($pdo);
 
         if ($admin) {
             $urgency = $suspend ? '*** URGENT *** ' : '';
             sendEmail(
                 $admin['email'],
-                $urgency . 'New Report Submitted — Smart Accommodation Kenya',
+                $urgency . 'New Report Submitted — StayExplore Kenya',
                 "
                 <h2>{$urgency}New Report #RPT{$report_id}</h2>
                 <p><strong>Type:</strong> $type</p>
@@ -193,7 +190,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Report — Smart Accommodation Kenya</title>
+    <title>Report — StayExplore Kenya</title>
     <link rel="stylesheet" href="../assets/css/style.css">
     <style>
         .page-wrap   { max-width:760px; margin:0 auto; padding:32px 24px }
@@ -287,6 +284,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <h2 style="font-size:20px;font-weight:500;margin-bottom:8px">
                     Report submitted
                 </h2>
+<?php if (!empty($report_id)): ?><p style="font-size:14px;margin:0 0 14px">Your reference: <strong>#RPT<?= str_pad((string)$report_id, 5, '0', STR_PAD_LEFT) ?></strong>. Keep it in case you need to ask about this report.</p><?php endif; ?>
                 <p style="font-size:14px;color:var(--text-secondary);
                            margin-bottom:20px;line-height:1.6">
                     Our trust team will review your report within 24 hours.
@@ -386,7 +384,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <?php if ($booking_id): ?>
                     <div class="form-group">
                         <label>Related booking</label>
-                        <input type="text" readonly
+                        <input aria-label="Related booking" type="text" readonly
                                value="#BK<?= str_pad($booking_id, 5, '0',
                                    STR_PAD_LEFT) ?> &middot;
                                    <?= h($target_name) ?>">
@@ -423,7 +421,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="form-group">
                         <label>Supporting evidence (optional)</label>
                         <div class="file-input">
-                            <input type="file" name="evidence"
+                            <input aria-label="Evidence" type="file" name="evidence"
                                    accept="image/jpeg,image/png,image/webp"
                                    style="display:block;width:100%;
                                           cursor:pointer">

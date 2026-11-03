@@ -212,7 +212,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Edit Listing — Smart Accommodation Kenya</title>
+    <title>Edit Listing — StayExplore Kenya</title>
     <link rel="stylesheet" href="../assets/css/style.css">
     <link rel="stylesheet"
           href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -360,7 +360,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <h3>Basic details</h3>
                 <div class="form-group">
                     <label>Property title</label>
-                    <input type="text" name="title"
+                    <input aria-label="Property title" type="text" name="title"
                            value="<?= h(
                                $_POST['title']
                                ?? $listing['title']) ?>"
@@ -369,7 +369,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="form-row">
                     <div class="form-group">
                         <label>Property type</label>
-                        <select name="property_type" required>
+                        <select aria-label="Property type" name="property_type" required>
                             <?php foreach ([
                                 'Apartment','House','Guest House',
                                 'Villa','Studio','Cottage',
@@ -386,7 +386,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
                     <div class="form-group">
                         <label>Maximum guests</label>
-                        <select name="max_guests">
+                        <select aria-label="Maximum guests" name="max_guests">
                             <?php for ($i=1; $i<=20; $i++): ?>
                             <option value="<?= $i ?>"
                                 <?= (($_POST['max_guests']
@@ -401,14 +401,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <?= onsiteExperienceFormHtml($_POST['onsite_name'] ?? ($listing['onsite_experience_name'] ?? ''), $_POST['onsite_fee'] ?? ($listing['onsite_experience_fee'] ?? '')) ?>
                 <div class="form-group">
                     <label>Price per night (KES)</label>
-                    <input type="number" name="price_per_night"
+                    <input aria-label="Price per night (KES)" type="number" name="price_per_night"
                            value="<?= $_POST['price_per_night']
                                ?? $listing['price_per_night'] ?>"
                            min="1" required>
                 </div>
                 <div class="form-group">
                     <label>Description</label>
-                    <textarea name="description" rows="5"
+                    <textarea aria-label="Description" name="description" rows="5"
                               required><?= h(
                         $_POST['description']
                         ?? $listing['description']) ?></textarea>
@@ -420,7 +420,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <h3>Location</h3>
                 <div class="form-group">
                     <label>Location name</label>
-                    <input type="text" name="location_name"
+                    <input aria-label="Location name" type="text" name="location_name"
                            id="locationInput"
                            value="<?= h(
                                $_POST['location_name']
@@ -479,7 +479,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <h3>House rules</h3>
                 <div class="form-group">
                     <label>Rules (one per line)</label>
-                    <textarea name="house_rules" rows="5"
+                    <textarea aria-label="Rules (one per line)" name="house_rules" rows="5"
                               placeholder="No smoking inside&#10;No parties&#10;Quiet hours after 10pm"><?= h(
                         $_POST['house_rules']
                         ?? implode("\n", $rules)) ?></textarea>
@@ -525,7 +525,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="photo-upload"
                      onclick="document.getElementById(
                          'newPhotos').click()">
-                    <input type="file" id="newPhotos"
+                    <input aria-label="Photos" type="file" id="newPhotos"
                            name="photos[]" multiple
                            accept="image/jpeg,image/png,image/webp"
                            onchange="previewNewPhotos(this)">

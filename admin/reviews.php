@@ -185,7 +185,7 @@ $counts = $pdo->query("
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Review Moderation — Smart Accommodation Kenya</title>
+    <title>Review Moderation — StayExplore Kenya</title>
     <link rel="stylesheet" href="../assets/css/style.css">
     <style>
         

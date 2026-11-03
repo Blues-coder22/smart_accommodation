@@ -71,6 +71,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($user) {
         switch ($action) {
             case 'suspend':
+                if (in_array($user['status'], ['suspended', 'banned'], true)) {
+                    setFlash('info', "Nothing changed: {$user['full_name']}'s account is already {$user['status']}, so they were not emailed again.");
+                    break;
+                }
                 $pdo->prepare("
                     UPDATE users SET status = 'suspended'
                     WHERE user_id = ?
@@ -78,7 +82,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 sendEmail(
                     $user['email'],
-                    'Account Suspended — Smart Accommodation Kenya',
+                    'Account Suspended — StayExplore Kenya',
                     "
                     <h2>Account suspended</h2>
                     <p>Dear {$user['full_name']},</p>
@@ -96,6 +100,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 break;
 
             case 'ban':
+                if ($user['status'] === 'banned') {
+                    setFlash('info', "Nothing changed: {$user['full_name']}'s account is already banned, so they were not emailed again.");
+                    break;
+                }
                 $pdo->prepare("
                     UPDATE users SET status = 'banned'
                     WHERE user_id = ?
@@ -103,7 +111,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 sendEmail(
                     $user['email'],
-                    'Account Banned — Smart Accommodation Kenya',
+                    'Account Banned — StayExplore Kenya',
                     "
                     <h2>Account banned</h2>
                     <p>Dear {$user['full_name']},</p>
@@ -119,6 +127,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 break;
 
             case 'restore':
+                if ($user['status'] === 'active' && empty($user['account_closed_at'])) {
+                    setFlash('info', "Nothing changed: {$user['full_name']}'s account is already active, so they were not emailed again.");
+                    break;
+                }
                 $pdo->prepare("
                     UPDATE users SET status = 'active', account_closed_at = NULL
                     WHERE user_id = ? AND account_deleted_at IS NULL
@@ -126,7 +138,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 sendEmail(
                     $user['email'],
-                    'Account Restored — Smart Accommodation Kenya',
+                    'Account Restored — StayExplore Kenya',
                     "
                     <h2>Account restored</h2>
                     <p>Dear {$user['full_name']},</p>
@@ -223,7 +235,7 @@ $counts = $pdo->query("
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Users — Smart Accommodation Kenya</title>
+    <title>Users — StayExplore Kenya</title>
     <link rel="stylesheet" href="../assets/css/style.css">
     <style>
         
@@ -376,8 +388,8 @@ $counts = $pdo->query("
                     <input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken()) ?>">
                     <input type="hidden" name="verification_id" value="<?= (int)$pv['verification_id'] ?>">
                     <button type="submit" name="verification_action" value="verify" class="btn-sm btn-restore" onclick="return confirm('Approve this identity? Their ID details will be erased.');">Approve identity</button>
-                    <input type="text" name="reject_reason" maxlength="500" placeholder="Reason (required to reject), e.g. the ID photo is blurry" style="flex:1;min-width:240px;padding:6px 8px">
-                    <button type="submit" name="verification_action" value="reject" class="btn-sm">Reject</button>
+                    <input aria-label="Reason (required to reject), e.g. the ID photo is blurry" type="text" name="reject_reason" maxlength="500" placeholder="Reason (required to reject), e.g. the ID photo is blurry" style="flex:1;min-width:240px;padding:6px 8px">
+                    <button type="submit" name="verification_action" value="reject" class="btn-sm" onclick="return confirm('Reject this ID verification? The person will be emailed your reason and their ID details will be erased.')">Reject</button>
                 </form>
             </div>
             <?php endforeach; ?>
@@ -408,11 +420,11 @@ $counts = $pdo->query("
 
         <!-- Search and Filter -->
         <form method="GET" class="top-bar">
-            <input type="text" name="search"
+            <input aria-label="Search name or email" type="text" name="search"
                    class="search-input"
                    value="<?= h($search) ?>"
                    placeholder="Search name or email...">
-            <select name="role" class="filter-select"
+            <select aria-label="Role" name="role" class="filter-select"
                     onchange="this.form.submit()">
                 <option value="all" <?= $role_filter==='all'
                     ?'selected':'' ?>>All roles</option>
@@ -421,7 +433,7 @@ $counts = $pdo->query("
                 <option value="host" <?= $role_filter==='host'
                     ?'selected':'' ?>>Hosts</option>
             </select>
-            <select name="status" class="filter-select"
+            <select aria-label="Status" name="status" class="filter-select"
                     onchange="this.form.submit()">
                 <option value="all" <?= $status_filter==='all'
                     ?'selected':'' ?>>All statuses</option>
@@ -563,7 +575,7 @@ $counts = $pdo->query("
                                            value="<?= $u['user_id'] ?>">
                                     <input type="hidden" name="action"
                                            value="suspend">
-                                    <input type="text" name="reason"
+                                    <input aria-label="Reason" type="text" name="reason"
                                            class="reason-input"
                                            placeholder="Reason...">
                                     <button type="submit"

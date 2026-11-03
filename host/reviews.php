@@ -93,7 +93,7 @@ $stats = $stats->fetch();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reviews — Smart Accommodation Kenya</title>
+    <title>Reviews — StayExplore Kenya</title>
     <link rel="stylesheet" href="../assets/css/style.css">
     <style>
         
@@ -355,7 +355,7 @@ $stats = $stats->fetch();
                                value="<?= $r['review_id'] ?>">
                         <input type="hidden" name="submit_reply"
                                value="1">
-                        <textarea name="host_reply"
+                        <textarea aria-label="Write a public response to this review" name="host_reply"
                                   placeholder="Write a public response to this review..."
                                   required></textarea>
                         <div class="reply-actions">
@@ -397,7 +397,7 @@ $stats = $stats->fetch();
                                value="<?= $r['review_id'] ?>">
                         <input type="hidden" name="submit_reply"
                                value="1">
-                        <textarea name="host_reply"
+                        <textarea aria-label="Host reply" name="host_reply"
                                   required><?= h(
                             $r['host_reply']) ?></textarea>
                         <div class="reply-actions">

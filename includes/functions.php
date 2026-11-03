@@ -387,7 +387,7 @@ function validateCsrfToken($token) {
 function requireCsrf() {
     if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !validateCsrfToken($_POST['csrf_token'] ?? '')) {
         http_response_code(403);
-        exit('Invalid or expired security token. Please reload the page and try again.');
+        exit('This page has expired. Please go back, refresh it and try again.');
     }
 }
 ?>

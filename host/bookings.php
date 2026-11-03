@@ -46,7 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         // Booking acceptance and payment verification are separate decisions.
                         // The payment remains pending until the host verifies it in Payments.
                         $pdo->commit();
-                        sendEmail($booking['tourist_email'], 'Booking confirmed — Smart Accommodation Kenya', '<p>Your host has confirmed booking #BK' . str_pad((string)$booking_id, 5, '0', STR_PAD_LEFT) . ' for <strong>' . h($booking['title'], ENT_QUOTES, 'UTF-8') . '</strong>.</p>');
+                        sendEmail($booking['tourist_email'], 'Booking confirmed — StayExplore Kenya', '<p>Your host has confirmed booking #BK' . str_pad((string)$booking_id, 5, '0', STR_PAD_LEFT) . ' for <strong>' . h($booking['title'], ENT_QUOTES, 'UTF-8') . '</strong>.</p>');
                         setFlash('success', 'Booking confirmed. The tourist has been notified.');
                     }
                 }
@@ -55,7 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             case 'decline':
                 if ($booking['status'] === 'pending') {
                     $pdo->prepare("UPDATE bookings SET status = 'cancelled' WHERE booking_id = ? AND status = 'pending'")->execute([$booking_id]);
-                    sendEmail($booking['tourist_email'], 'Booking request not accepted — Smart Accommodation Kenya', '<p>Your host could not accept booking #BK' . str_pad((string)$booking_id, 5, '0', STR_PAD_LEFT) . ' for <strong>' . h($booking['title'], ENT_QUOTES, 'UTF-8') . '</strong>. Please choose another property or contact support about any payment details you submitted.</p>');
+                    sendEmail($booking['tourist_email'], 'Booking request not accepted — StayExplore Kenya', '<p>Your host could not accept booking #BK' . str_pad((string)$booking_id, 5, '0', STR_PAD_LEFT) . ' for <strong>' . h($booking['title'], ENT_QUOTES, 'UTF-8') . '</strong>. Please choose another property or contact support about any payment details you submitted.</p>');
                     setFlash('rejected', 'Booking declined. The tourist has been notified.');
                 }
                 break;
@@ -71,7 +71,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     // Notify tourist
                     sendEmail(
                         $booking['tourist_email'],
-                        'Booking Cancelled — Smart Accommodation Kenya',
+                        'Booking Cancelled — StayExplore Kenya',
                         "
                         <h2>Booking Cancelled</h2>
                         <p>Dear {$booking['tourist_name']},</p>
@@ -116,7 +116,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         // Allowed, but recorded: the administrator can see it and the guest is told so they can object.
                         logBookingEvent($pdo, $booking_id, $host_id, 'early_completion', $reason);
                         try {
-                            sendEmail($booking['tourist_email'], 'Your stay was marked as completed early — Smart Accommodation Kenya',
+                            sendEmail($booking['tourist_email'], 'Your stay was marked as completed early — StayExplore Kenya',
                                 '<p>Your host marked your stay at <strong>' . h($booking['title']) . '</strong> as completed before the check-out date (' . h($booking['check_out_date']) . ').</p><p>Reason given: ' . h($reason) . '</p><p>If this is not correct, please report it to the administrator through the Contact page.</p>');
                         } catch (Throwable $e) {}
                         setFlash('success', 'Booking marked as completed early. Your reason was recorded and the guest was told.');
@@ -141,10 +141,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ]);
 
                 // Notify admin
-                $admin = $pdo->query("
-                    SELECT email FROM users
-                    WHERE role = 'admin' LIMIT 1
-                ")->fetch();
+                $admin = adminNotificationRecipient($pdo);
 
                 if ($admin) {
                     sendEmail(
@@ -229,7 +226,7 @@ $counts = $counts->fetch();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bookings — Smart Accommodation Kenya</title>
+    <title>Bookings — StayExplore Kenya</title>
     <link rel="stylesheet" href="../assets/css/style.css">
     <style>
         
@@ -579,7 +576,7 @@ $counts = $counts->fetch();
                                value="<?= $b['booking_id'] ?>">
                         <input type="hidden" name="action"
                                value="flag_tourist">
-                        <input type="text" name="flag_reason"
+                        <input aria-label="Reason for flagging this guest" type="text" name="flag_reason"
                                placeholder="Reason for flagging this guest..."
                                required>
                         <button type="submit"

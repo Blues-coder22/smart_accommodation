@@ -27,7 +27,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $stmt->execute([$report_id]);
     $report = $stmt->fetch();
 
-    if ($report) {
+    if ($report && in_array($action, ['resolve', 'dismiss', 'suspend_user', 'suspend_listing'], true) && $report['status'] !== 'pending') {
+        setFlash('info', 'This report has already been handled, so nothing was changed and nobody was emailed again.');
+    } elseif ($report) {
         switch ($action) {
             case 'resolve':
                 $pdo->prepare("
@@ -40,7 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Notify reporter
                 sendEmail(
                     $report['reporter_email'],
-                    'Report Update — Smart Accommodation Kenya',
+                    'Report Update — StayExplore Kenya',
                     "
                     <h2>Your report has been resolved</h2>
                     <p>Dear {$report['reporter_name']},</p>
@@ -106,7 +108,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($target) {
                     sendEmail(
                         $target['email'],
-                        'Account Suspended — Smart Accommodation Kenya',
+                        'Account Suspended — StayExplore Kenya',
                         "
                         <h2>Account suspended</h2>
                         <p>Dear {$target['full_name']},</p>
@@ -216,7 +218,7 @@ $counts = $pdo->query("
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reports — Smart Accommodation Kenya</title>
+    <title>Reports — StayExplore Kenya</title>
     <link rel="stylesheet" href="../assets/css/style.css">
     <style>
         
@@ -591,7 +593,7 @@ $counts = $pdo->query("
                 <?php if ($rep['evidence_path']): ?>
                 <img src="../uploads/evidence/<?= h(
                     $rep['evidence_path']) ?>"
-                     alt="Evidence"
+                     alt="Evidence photo submitted with this report"
                      class="evidence-img">
                 <?php endif; ?>
 
@@ -610,7 +612,7 @@ $counts = $pdo->query("
                     <h4>Take action</h4>
 
                     <div class="action-note">
-                        <textarea id="note-<?= $rep['report_id'] ?>"
+                        <textarea aria-label="Describe the action taken (sent to reporter)" id="note-<?= $rep['report_id'] ?>"
                                   placeholder="Describe the action taken (sent to reporter)...">
                         </textarea>
                     </div>

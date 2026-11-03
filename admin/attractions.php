@@ -170,7 +170,7 @@ if ($pickTitles) [$pickedCommons, $pickedCommonsError] = commonsInfoForTitles($p
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manage Attractions — Smart Accommodation Kenya</title>
+    <title>Manage Attractions — StayExplore Kenya</title>
     <link rel="stylesheet" href="../assets/css/style.css">
     <link rel="stylesheet"
           href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -459,7 +459,7 @@ if ($pickTitles) [$pickedCommons, $pickedCommonsError] = commonsInfoForTitles($p
 
                         <div class="form-group">
                             <label>Name</label>
-                            <input type="text" name="name"
+                            <input aria-label="Name" type="text" name="name"
                                    value="<?= h(
                                        $editing['name']
                                        ?? ($_POST['name'] ?? ($prefill['name'] ?? ''))) ?>"
@@ -469,7 +469,7 @@ if ($pickTitles) [$pickedCommons, $pickedCommonsError] = commonsInfoForTitles($p
 
                         <div class="form-group">
                             <label>Category</label>
-                            <select name="category" required>
+                            <select aria-label="Category" name="category" required>
                                 <option value="">Select category</option>
                                 <?php foreach ($categories as $cat): ?>
                                 <option value="<?= h($cat) ?>"
@@ -488,7 +488,7 @@ if ($pickTitles) [$pickedCommons, $pickedCommonsError] = commonsInfoForTitles($p
 
                         <div class="form-group">
                             <label>Location name</label>
-                            <input type="text" name="location_name"
+                            <input aria-label="Location name" type="text" name="location_name"
                                    id="locInput"
                                    value="<?= h(
                                        $editing['location_name']
@@ -501,7 +501,7 @@ if ($pickTitles) [$pickedCommons, $pickedCommonsError] = commonsInfoForTitles($p
 
                         <div class="form-group">
                             <label>Description</label>
-                            <textarea name="description"
+                            <textarea aria-label="Description" name="description"
                                       placeholder="Brief description of the attraction..."><?= h(
                                 $editing['description']
                                 ?? ($_POST['description'] ?? '')) ?>
@@ -510,40 +510,40 @@ if ($pickTitles) [$pickedCommons, $pickedCommonsError] = commonsInfoForTitles($p
 
                         <div class="form-group">
                             <label>Tagline (one catchy line)</label>
-                            <input type="text" name="tagline" maxlength="200"
+                            <input aria-label="Tagline (one catchy line)" type="text" name="tagline" maxlength="200"
                                    placeholder="e.g. Endless savannah and the Great Migration"
                                    value="<?= h($editExtras['tagline'] ?? ($_POST['tagline'] ?? '')) ?>">
                         </div>
                         <div class="form-group">
                             <label>Best time to visit</label>
-                            <input type="text" name="best_time" maxlength="150"
+                            <input aria-label="Best time to visit" type="text" name="best_time" maxlength="150"
                                    placeholder="e.g. July – October, or December – March and July – October"
                                    value="<?= h($editExtras['best_time'] ?? ($_POST['best_time'] ?? '')) ?>">
                         </div>
                         <div class="form-group">
                             <label>Climate</label>
-                            <input type="text" name="climate" maxlength="150"
+                            <input aria-label="Climate" type="text" name="climate" maxlength="150"
                                    value="<?= h($editExtras['climate'] ?? ($_POST['climate'] ?? '')) ?>">
                         </div>
                         <div class="form-group">
                             <label>Landscape</label>
-                            <input type="text" name="terrain" maxlength="190"
+                            <input aria-label="Landscape" type="text" name="terrain" maxlength="190"
                                    value="<?= h($editExtras['terrain'] ?? ($_POST['terrain'] ?? '')) ?>">
                         </div>
                         <div class="form-group">
                             <label>Best for</label>
-                            <input type="text" name="best_for" maxlength="190"
+                            <input aria-label="Best for" type="text" name="best_for" maxlength="190"
                                    placeholder="e.g. Wildlife, photography, families"
                                    value="<?= h($editExtras['best_for'] ?? ($_POST['best_for'] ?? '')) ?>">
                         </div>
                         <div class="form-group">
                             <label>“Did you know?” facts (one per line)</label>
-                            <textarea name="did_you_know" rows="4"
+                            <textarea aria-label="“Did you know?” facts (one per line)" name="did_you_know" rows="4"
                                       placeholder="One fun, true fact per line"><?= h($editExtras['did_you_know'] ?? ($_POST['did_you_know'] ?? '')) ?></textarea>
                         </div>
                         <div class="form-group">
                             <label>“What’s new” updates (one per line)</label>
-                            <textarea name="whats_new" rows="3"
+                            <textarea aria-label="“What’s new” updates (one per line)" name="whats_new" rows="3"
                                       placeholder="e.g. New viewing deck opened this month"><?= h($editExtras['whats_new'] ?? ($_POST['whats_new'] ?? '')) ?></textarea>
                         </div>
 
@@ -568,7 +568,7 @@ if ($pickTitles) [$pickedCommons, $pickedCommonsError] = commonsInfoForTitles($p
                                 <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px">
                                 <?php foreach ($pickedCommons as $cp): ?>
                                     <label style="display:block;font-size:11px;color:var(--text-secondary);cursor:pointer">
-                                        <img src="<?= h($cp['thumb']) ?>" alt="" style="width:100%;height:86px;object-fit:cover;border-radius:8px;display:block;margin-bottom:4px">
+                                        <img src="<?= h($cp['thumb']) ?>" alt="Photo suggestion by <?= h($cp['artist']) ?>" style="width:100%;height:86px;object-fit:cover;border-radius:8px;display:block;margin-bottom:4px">
                                         <input type="checkbox" name="commons_titles[]" value="<?= h($cp['title']) ?>" checked>
                                         <?= h($cp['artist']) ?> &middot; <?= h($cp['license']) ?>
                                     </label>
@@ -578,7 +578,7 @@ if ($pickTitles) [$pickedCommons, $pickedCommonsError] = commonsInfoForTitles($p
                             <?php elseif ($pickedCommonsError): ?>
                             <p style="font-size:12px;color:#8a2b22;margin:0 0 10px"><?= h($pickedCommonsError) ?></p>
                             <?php endif; ?>
-                            <input type="file" name="photos[]" multiple accept="image/jpeg,image/png,image/webp">
+                            <input aria-label="Photos" type="file" name="photos[]" multiple accept="image/jpeg,image/png,image/webp">
                             <p style="font-size:11px;color:var(--text-secondary);margin:6px 0 0">
                                 Hold Ctrl (or Cmd) to pick several photos at once. JPG, PNG or WebP, up to 5MB each. The first photo is the cover and visitors can flip through the rest as a slideshow.
                             </p>

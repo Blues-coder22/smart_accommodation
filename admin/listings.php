@@ -27,7 +27,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $listing = $stmt->fetch();
 
     if ($listing) {
-        if ($action === 'approve') {
+        if ($action === 'approve' && $listing['status'] === 'approved') {
+            setFlash('info', "Nothing changed: \"{$listing['title']}\" is already approved, so the host was not emailed again.");
+
+        } elseif ($action === 'approve') {
             $pdo->prepare("
                 UPDATE accommodations
                 SET status = 'approved'
@@ -41,6 +44,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             );
             setFlash('success',
                 "Listing \"{$listing['title']}\" approved.");
+
+        } elseif ($action === 'reject' && $listing['status'] === 'rejected') {
+            setFlash('info', "Nothing changed: \"{$listing['title']}\" is already rejected, so the host was not emailed again.");
 
         } elseif ($action === 'reject') {
             $pdo->prepare("
@@ -58,6 +64,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             setFlash('success',
                 "Listing \"{$listing['title']}\" rejected.");
 
+        } elseif ($action === 'suspend' && $listing['status'] === 'suspended') {
+            setFlash('info', "Nothing changed: \"{$listing['title']}\" is already suspended, so the host was not emailed again.");
+
         } elseif ($action === 'suspend') {
             $pdo->prepare("
                 UPDATE accommodations
@@ -67,7 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             sendEmail(
                 $listing['host_email'],
-                'Listing Suspended — Smart Accommodation Kenya',
+                'Listing Suspended — StayExplore Kenya',
                 "
                 <h2>Listing suspended</h2>
                 <p>Dear {$listing['host_name']},</p>
@@ -82,6 +91,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             setFlash('success',
                 "Listing \"{$listing['title']}\" suspended.");
 
+        } elseif ($action === 'restore' && $listing['status'] !== 'suspended') {
+            setFlash('info', "Nothing changed: \"{$listing['title']}\" is already live (it is not suspended), so the host was not emailed again.");
+
         } elseif ($action === 'restore') {
             $pdo->prepare("
                 UPDATE accommodations
@@ -91,7 +103,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             sendEmail(
                 $listing['host_email'],
-                'Listing Restored — Smart Accommodation Kenya',
+                'Listing Restored — StayExplore Kenya',
                 "
                 <h2>Listing restored</h2>
                 <p>Dear {$listing['host_name']},</p>
@@ -203,7 +215,7 @@ if ($reviewing) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Listing Approvals — Smart Accommodation Kenya</title>
+    <title>Listing Approvals — StayExplore Kenya</title>
     <link rel="stylesheet" href="../assets/css/style.css">
     <style>
         
@@ -483,12 +495,12 @@ if ($reviewing) {
                     Approve listing
                 </button>
             </form>
-            <form method="POST" style="flex:1">
+            <form method="POST" onsubmit="return confirm(<?= h(json_encode('Reject “' . $reviewing['title'] . '”? The host will be emailed the reason you wrote.')) ?>)" style="flex:1">
 <input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
                 <input type="hidden" name="listing_id"
                        value="<?= $reviewing['accommodation_id'] ?>">
                 <input type="hidden" name="action" value="reject">
-                <textarea name="reason"
+                <textarea required aria-label="Reason for rejection (sent to host)" name="reason"
                           placeholder="Reason for rejection (sent to host)..."
                           style="width:100%;padding:7px 10px;
                                  border:1px solid var(--border-strong);
@@ -497,8 +509,7 @@ if ($reviewing) {
                                  margin-bottom:6px;
                                  font-family:inherit;
                                  background:var(--surface-2);
-                                 color:var(--text-primary)">
-                </textarea>
+                                 color:var(--text-primary)"></textarea>
                 <button type="submit" class="btn-reject"
                         style="width:100%">
                     Reject listing
@@ -643,16 +654,15 @@ if ($reviewing) {
                             Approve
                         </button>
                     </form>
-                    <form method="POST" style="width:100%">
+                    <form method="POST" onsubmit="return confirm(<?= h(json_encode('Reject “' . $l['title'] . '”? The host will be emailed the reason you wrote.')) ?>)" style="width:100%">
 <input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
                         <input type="hidden" name="listing_id"
                                value="<?= $l['accommodation_id'] ?>">
                         <input type="hidden" name="action"
                                value="reject">
                         <div class="reason-form">
-                            <textarea name="reason"
-                                      placeholder="Rejection reason...">
-                            </textarea>
+                            <textarea required aria-label="Rejection reason" name="reason"
+                                      placeholder="Rejection reason..."></textarea>
                             <button type="submit"
                                     class="btn-reject"
                                     style="width:100%;
@@ -663,16 +673,15 @@ if ($reviewing) {
                     </form>
 
                     <?php elseif ($l['status'] === 'approved'): ?>
-                    <form method="POST" style="width:100%">
+                    <form method="POST" onsubmit="return confirm(<?= h(json_encode('Suspend “' . $l['title'] . '”? The host will be emailed the reason you wrote.')) ?>)" style="width:100%">
 <input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
                         <input type="hidden" name="listing_id"
                                value="<?= $l['accommodation_id'] ?>">
                         <input type="hidden" name="action"
                                value="suspend">
                         <div class="reason-form">
-                            <textarea name="reason"
-                                      placeholder="Suspension reason...">
-                            </textarea>
+                            <textarea required aria-label="Suspension reason" name="reason"
+                                      placeholder="Suspension reason..."></textarea>
                             <button type="submit"
                                     class="btn-suspend"
                                     style="width:100%;

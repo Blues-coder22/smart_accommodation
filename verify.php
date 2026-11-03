@@ -38,7 +38,7 @@ if ($result['success']) {
 <body>
 <?php include __DIR__ . '/includes/header.php'; ?>
 <main class="auth-page">
-  <section class="auth-visual"><div class="auth-copy"><div class="eyebrow" style="color:#efb59e">All set</div><h1>You&rsquo;re verified.</h1><p>Thanks for confirming your email.</p></div></section>
+  <section class="auth-visual"><div class="auth-copy"><div class="eyebrow" style="color:#efb59e">All set</div><p class="auth-heading">You&rsquo;re verified.</p><p>Thanks for confirming your email.</p></div></section>
   <section class="auth-form"><div class="auth-box" style="text-align:center">
     <div style="width:64px;height:64px;border-radius:50%;background:#e7f3ec;color:#1f5a3f;display:grid;place-items:center;margin:0 auto 14px;font-size:30px">&#10003;</div>
     <h1 style="margin-bottom:8px">Email verified<?= $firstName !== '' ? ', ' . h($firstName) : '' ?>.</h1>

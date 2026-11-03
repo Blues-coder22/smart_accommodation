@@ -140,10 +140,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // If flagged notify admin
         if ($is_flagged) {
-            $admin = $pdo->query("
-                SELECT email FROM users
-                WHERE role = 'admin' LIMIT 1
-            ")->fetch();
+            $admin = adminNotificationRecipient($pdo);
 
             if ($admin) {
                 sendEmail(
@@ -166,7 +163,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Leave a Review — Smart Accommodation Kenya</title>
+    <title>Leave a Review — StayExplore Kenya</title>
     <link rel="stylesheet" href="../assets/css/style.css">
     <style>
         .page-wrap  { max-width:680px; margin:0 auto; padding:32px 24px }

@@ -37,13 +37,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($result['success']) {
             // Send verification email
-            $emailSent = sendVerificationEmail($email, $full_name, $result['token']);
+            // No internet: do not even try, so nothing half-sends. The person can press "Send the email again" later.
+            $emailSent = emailIsOffline() ? false : sendVerificationEmail($email, $full_name, $result['token']);
             // Keep this browser waiting: when the link is opened on ANY device, this browser signs itself in.
             require_once __DIR__ . '/includes/verify_wait.php';
             startVerifyWait($pdo, (int)$result['user_id'], $email);
+            if (!$emailSent) { $_SESSION['verify_wait']['unsent'] = true; $_SESSION['verify_wait']['last_sent'] = 0; }
             setFlash($emailSent ? 'success' : 'warning', $emailSent
                 ? 'Account created. We sent a verification link to ' . $email . '.'
-                : 'Your account was created, but the verification email could not be sent. Configure SMTP, then press "Send the email again".');
+                : 'Your account is ready, but we couldn’t send your confirmation email just now. Please check your internet connection, then press "Send the email again" when you’re back online.');
             redirect(appBasePath() . '/verify_wait.php');
         } else {
             $errors[] = $result['message'];
@@ -56,7 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Register — Smart Accommodation Kenya</title>
+    <title>Register — StayExplore Kenya</title>
     <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
@@ -67,7 +69,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <section class="auth-visual">
         <div class="auth-copy">
             <div class="eyebrow" style="color:#efb59e">Join the journey</div>
-            <h1>Create your account</h1>
+            <p class="auth-heading">Create your account</p>
             <p>Choose how you use StayExplore. Your account role controls which part of the website you can access.</p>
         </div>
     </section>

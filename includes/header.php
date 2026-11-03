@@ -40,14 +40,14 @@ $base = appBasePath();
     }
     $__path = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH) ?: '';
   ?>
-  <nav class="<?= $is_homepage ? 'hp-nav' : 'public-links' ?>" aria-label="Main navigation">
+  <nav id="siteNav" class="<?= $is_homepage ? 'hp-nav' : 'public-links' ?>" aria-label="Main navigation">
     <?php foreach ($__navLinks as [$__href, $__label]):
         $__hp = parse_url($__href, PHP_URL_PATH);
         $__active = $__hp && $__hp === $__path && (strpos($__href, '?') === false || strpos($_SERVER['REQUEST_URI'] ?? '', substr($__href, strpos($__href, '?'))) !== false); ?>
       <a href="<?= h($__href) ?>"<?= $__active ? ' class="active" aria-current="page"' : '' ?>><?= h($__label) ?></a>
     <?php endforeach; ?>
   </nav>
-  <button class="nav-toggle" type="button" aria-label="Toggle navigation" aria-expanded="false">☰</button>
+  <button class="nav-toggle" type="button" aria-label="Open menu" aria-controls="siteNav" aria-expanded="false">☰</button>
   <div class="<?= $is_homepage ? 'hp-actions' : 'public-actions' ?>">
   <?php if ($__role !== ''): ?>
     <span class="role-pill" title="You are signed in as a <?= h(strtolower($__roleLabel)) ?>"><?= h($__roleLabel) ?></span>

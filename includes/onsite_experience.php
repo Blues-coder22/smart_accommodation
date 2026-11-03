@@ -50,8 +50,8 @@ if (!function_exists('onsiteExperienceFormHtml')) {
             . 'like a guided farm walk or a private nature trail. The fee is added to the guest&rsquo;s total, once per guest. '
             . 'Do <strong>not</strong> enter fees for national parks, museums or other public places nearby. '
             . 'Those belong to the government or the site owner, and guests pay them at the gate.</p>'
-            . '<input type="text" name="onsite_name" maxlength="120" value="' . $name . '" placeholder="e.g. Guided farm walk with our resident guide" style="width:100%;margin-bottom:8px">'
-            . '<input type="number" name="onsite_fee" min="0" max="100000" step="50" value="' . $fee . '" placeholder="Fee per guest (KES)" style="width:100%">'
+            . '<input aria-label="Name of the tour or guide you offer" type="text" name="onsite_name" maxlength="120" value="' . $name . '" placeholder="e.g. Guided farm walk with our resident guide" style="width:100%;margin-bottom:8px">'
+            . '<input aria-label="Fee per guest (KES)" type="number" name="onsite_fee" min="0" max="100000" step="50" value="' . $fee . '" placeholder="Fee per guest (KES)" style="width:100%">'
             . '</div>';
     }
 }

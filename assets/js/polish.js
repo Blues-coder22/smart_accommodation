@@ -70,3 +70,33 @@
     w.appendChild(tb);
   });
 })();
+
+/* ---- v9.12: mobile menu on every page that uses the shared header (it had no click handler before) ---- */
+(function () {
+  var btn = document.querySelector('.public-nav .nav-toggle');
+  var bar = btn && btn.closest('.public-nav');
+  if (!btn || !bar || btn.dataset.bound) return;
+  btn.dataset.bound = '1';
+  function setOpen(open) {
+    bar.classList.toggle('nav-open', open);
+    btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    btn.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+    btn.textContent = open ? '\u2715' : '\u2630';
+  }
+  btn.addEventListener('click', function () { setOpen(!bar.classList.contains('nav-open')); });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && bar.classList.contains('nav-open')) { setOpen(false); btn.focus(); }
+  });
+  // choosing a link or growing the window closes the menu again
+  bar.addEventListener('click', function (e) { if (e.target.closest('.public-links a')) setOpen(false); });
+  window.addEventListener('resize', function () { if (window.innerWidth > 760) setOpen(false); });
+})();
+
+/* ---- v9.12: "Skip to main content" for keyboard users ---- */
+(function () {
+  var main = document.querySelector('main'); if (!main || document.querySelector('.skip-link')) return;
+  if (!main.id) main.id = 'main-content';
+  main.setAttribute('tabindex', '-1');
+  var a = document.createElement('a'); a.className = 'skip-link'; a.href = '#' + main.id; a.textContent = 'Skip to main content';
+  document.body.insertBefore(a, document.body.firstChild);
+})();

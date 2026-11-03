@@ -119,7 +119,7 @@ $hstats = $hstats->fetch();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Host Profile — Smart Accommodation Kenya</title>
+    <title>Host Profile — StayExplore Kenya</title>
     <link rel="stylesheet" href="../assets/css/style.css">
     <style>
         
@@ -229,7 +229,7 @@ $hstats = $hstats->fetch();
             <div class="avatar">
                 <?php if ($user['profile_photo']): ?>
                     <img src="<?= h(profilePhotoUrl($user['user_id'], $user['profile_photo'])) ?>"
-                         alt="Profile photo">
+                         alt="Your profile photo">
                 <?php else: ?>
                     <?= strtoupper(substr($user['full_name'],0,1)) ?>
                 <?php endif; ?>
@@ -299,14 +299,14 @@ $hstats = $hstats->fetch();
                 <div class="form-row">
                     <div class="form-group">
                         <label>Full name</label>
-                        <input type="text" name="full_name"
+                        <input aria-label="Full name" type="text" name="full_name"
                                value="<?= h(
                                    $user['full_name']) ?>"
                                required>
                     </div>
                     <div class="form-group">
                         <label>Phone number</label>
-                        <input type="tel" name="phone"
+                        <input aria-label="Phone number" type="tel" name="phone"
                                value="<?= h(
                                    $user['phone_number'] ?? '') ?>"
                                placeholder="+254 7XX XXX XXX">
@@ -314,7 +314,7 @@ $hstats = $hstats->fetch();
                 </div>
                 <div class="form-group">
                     <label>Profile photo</label>
-                    <input type="file" name="profile_photo"
+                    <input aria-label="Profile photo" type="file" name="profile_photo"
                            accept="image/jpeg,image/png,image/webp">
                 </div>
                 <button type="submit" class="btn-save">
@@ -348,20 +348,20 @@ $hstats = $hstats->fetch();
                        value="1">
                 <div class="form-group">
                     <label>Current password</label>
-                    <input type="password"
+                    <input aria-label="Current password" type="password"
                            name="current_password"
                            placeholder="Enter current password">
                 </div>
                 <div class="form-row">
                     <div class="form-group">
                         <label>New password</label>
-                        <input type="password"
+                        <input aria-label="New password" type="password"
                                name="new_password"
                                placeholder="Minimum 8 characters">
                     </div>
                     <div class="form-group">
                         <label>Confirm new password</label>
-                        <input type="password"
+                        <input aria-label="Confirm new password" type="password"
                                name="confirm_password"
                                placeholder="Repeat new password">
                     </div>

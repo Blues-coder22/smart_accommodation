@@ -18,3 +18,4 @@ h1,h2,h3{font-family:'Instrument Serif','Cormorant Garamond',Georgia,serif;font-
 main h1,main h2,main p,main .card,main .pad{animation:plRise .6s cubic-bezier(.2,.7,.2,1) both}
 main h2{animation-delay:.08s}main p{animation-delay:.12s}
 @media(prefers-reduced-motion:reduce){body,main *{animation:none!important}}
+.public-nav .nav-toggle{color:#0d3b2e;border-color:#c9bfae;background:transparent}

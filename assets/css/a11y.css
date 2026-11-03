@@ -1,0 +1,32 @@
+
+/* =========================================================
+   v9.12 accessibility and readability pass
+   Larger text, clear keyboard focus, comfortable touch targets.
+   ========================================================= */
+body{font-size:15px;line-height:1.55}
+.small,small{font-size:13px}
+label,.field label,.form-group label,.filter-group label,.tourist-search .filter-group label{font-size:13.5px!important;letter-spacing:0!important;text-transform:none!important}
+.public-nav .public-links{font-size:14px}
+.public-nav .public-actions>a:not(.btn),.nav-signout,.hp-signout{font-size:13.5px}
+.dash-wrap th,table th{font-size:12px!important;letter-spacing:.04em}
+.dash-wrap>.sidebar .sidebar-role{font-size:12px!important}
+.side-badge,.smart-score,.msg-badge,.att-badge,.att-new-tag,.se-count{font-size:12px}
+.bc-dow{font-size:12px}
+input,select,textarea{font-size:15px}
+.btn,button.btn,.btn-save{font-size:14.5px;min-height:42px}
+@media(max-width:760px){
+  .public-nav .public-links a,.public-nav .public-actions a,.btn,button,select,input:not([type=checkbox]):not([type=radio]){min-height:44px}
+  .public-nav .public-links{font-size:15px}
+}
+@media(max-width:760px){.public-nav .nav-toggle{width:44px;height:44px;font-size:20px}}
+
+/* Keyboard focus: a clear ring on everything that can be tabbed to, including form fields */
+:focus-visible,
+.btn:focus-visible,a:focus-visible,button:focus-visible,summary:focus-visible,
+input:focus-visible,select:focus-visible,textarea:focus-visible,
+input:not([type=checkbox]):not([type=radio]):focus-visible,select:focus-visible,textarea:focus-visible{
+  outline:3px solid #b8532f!important;outline-offset:2px!important;
+}
+.public-nav :focus-visible,.app-sidebar :focus-visible,.dash-wrap>.sidebar :focus-visible{outline-color:#ffd9a8!important}
+.skip-link{position:absolute;left:-999px;top:8px;background:#0d3b2e;color:#fff;padding:10px 14px;border-radius:8px;z-index:9999}
+.skip-link:focus{left:8px}

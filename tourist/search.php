@@ -203,7 +203,7 @@ $property_types = $pdo->query("
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>
         <?= $type === 'accommodation' ? 'Find Accommodation' : 'Explore Attractions' ?>
-        — Smart Accommodation Kenya
+        — StayExplore Kenya
     </title>
     <link rel="stylesheet" href="../assets/css/style.css">
     <link rel="stylesheet" href="../assets/css/attractions.css">
@@ -402,11 +402,11 @@ $property_types = $pdo->query("
             <div class="filter-group">
                 <label>Price per night (KES)</label>
                 <div class="price-range">
-                    <input type="number" name="min_price"
+                    <input aria-label="Minimum price per night (KES)" type="number" name="min_price"
                            value="<?= $min_price ?>"
                            placeholder="Min" min="0">
                     <span>to</span>
-                    <input type="number" name="max_price"
+                    <input aria-label="Maximum price per night (KES)" type="number" name="max_price"
                            value="<?= $max_price == 999999 
                                        ? '' : $max_price ?>"
                            placeholder="Max" min="0">
@@ -416,7 +416,7 @@ $property_types = $pdo->query("
             <!-- Property Type -->
             <div class="filter-group">
                 <label>Property Type</label>
-                <select name="property_type">
+                <select aria-label="Property Type" name="property_type">
                     <option value="">All Types</option>
                     <?php foreach ($property_types as $pt): ?>
                         <option value="<?= h($pt) ?>"
@@ -447,7 +447,7 @@ $property_types = $pdo->query("
             <!-- Search Radius -->
             <div class="filter-group">
                 <label>Search Radius</label>
-                <select name="radius">
+                <select aria-label="Search Radius" name="radius">
                     <option value="5" 
                         <?= $radius == 5 ? 'selected':'' ?>>5 km</option>
                     <option value="10" 
@@ -466,7 +466,7 @@ $property_types = $pdo->query("
             <?php if ($near_stay): ?>
             <div class="filter-group">
                 <label>Distance from the stay</label>
-                <select name="radius">
+                <select aria-label="Distance from the stay" name="radius">
                     <?php foreach ([10, 25, 50, 100, 200, 500] as $rk): ?>
                         <option value="<?= $rk ?>" <?= (int)$attRadius === $rk ? 'selected' : '' ?>><?= $rk ?> km</option>
                     <?php endforeach; ?>
@@ -477,7 +477,7 @@ $property_types = $pdo->query("
             <!-- Category Filter for Attractions -->
             <div class="filter-group">
                 <label>Category</label>
-                <select name="category">
+                <select aria-label="Category" name="category">
                     <option value="">All Categories</option>
                     <?php foreach ([
                         'National Parks','Museums','Beaches',
@@ -534,7 +534,7 @@ $property_types = $pdo->query("
                 <?php endif; ?>
             </div>
             <?php if ($type === 'accommodation'): ?>
-            <select class="sort-select" onchange="
+            <select aria-label="Sort results" class="sort-select" onchange="
                 const url = new URL(window.location);
                 url.searchParams.set('sort', this.value);
                 window.location = url;">

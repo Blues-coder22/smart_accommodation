@@ -137,7 +137,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Complete your booking — Smart Accommodation Kenya</title>
+    <title>Complete your booking — StayExplore Kenya</title>
     <link rel="stylesheet" href="../assets/css/style.css">
     <style>
         .page-wrap { max-width:960px; margin:0 auto; padding:32px 24px; }

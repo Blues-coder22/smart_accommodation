@@ -46,7 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login — Smart Accommodation Kenya</title>
+    <title>Login — StayExplore Kenya</title>
     <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
@@ -57,7 +57,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <section class="auth-visual" style="background-image:url('assets/user-mount-kenya.jpg')">
         <div class="auth-copy">
             <div class="eyebrow" style="color:#efb59e">Continue exploring</div>
-            <h1>Stay close to what matters.</h1>
+            <p class="auth-heading">Stay close to what matters.</p>
             <p>Sign in to manage bookings, saved places, properties or administration tasks according to your account role.</p>
         </div>
     </section>

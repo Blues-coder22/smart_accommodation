@@ -114,7 +114,7 @@ function payLabel($r) {
         </div>
         <form method="GET" style="margin-bottom:16px;display:flex;gap:8px;flex-wrap:wrap">
             <input type="hidden" name="filter" value="<?= h($filter) ?>">
-            <input type="text" name="q" value="<?= h($search) ?>" placeholder="Search a booking number, guest, host, listing or payment reference" style="flex:1;min-width:220px;padding:9px 12px;border:1px solid #d8d4c8;border-radius:8px">
+            <input aria-label="Search a booking number, guest, host, listing or payment reference" type="text" name="q" value="<?= h($search) ?>" placeholder="Search a booking number, guest, host, listing or payment reference" style="flex:1;min-width:220px;padding:9px 12px;border:1px solid #d8d4c8;border-radius:8px">
             <button class="btn" type="submit">Search</button>
         </form>
 

@@ -131,7 +131,7 @@ $stmt = $pdo->prepare($sql); $stmt->execute($params); $imports = $stmt->fetchAll
 $existingAttractions = $pdo->query("SELECT attraction_id, name, latitude, longitude FROM attractions WHERE latitude IS NOT NULL AND longitude IS NOT NULL")->fetchAll(PDO::FETCH_ASSOC);
 ?>
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Discover Attractions — Smart Accommodation Kenya</title>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Discover Attractions — StayExplore Kenya</title>
 <link rel="stylesheet" href="../assets/css/style.css"><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
 .osm-page{max-width:1180px;margin:0 auto;padding:28px 20px}.osm-card{background:#fff;border:1px solid #e3e7e5;border-radius:12px;padding:20px;margin-bottom:20px}.osm-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.osm-grid label{display:block;font-size:13px;margin-bottom:5px}.osm-grid input,.osm-grid select{width:100%;padding:10px;border:1px solid #ccd4d0;border-radius:7px}.osm-map{height:320px;border-radius:10px;margin:16px 0}.osm-results{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px}.osm-result{border:1px solid #e0e5e2;border-radius:9px;padding:12px}.osm-result label{display:flex;gap:8px;align-items:flex-start}.osm-muted{color:#66736d;font-size:13px}.osm-pill{display:inline-block;border-radius:20px;padding:3px 9px;background:#fff1df;color:#96520c;font-size:11px}.osm-table{width:100%;border-collapse:collapse}.osm-table th,.osm-table td{text-align:left;padding:10px;border-bottom:1px solid #e5e9e7;vertical-align:top}.osm-actions{display:flex;gap:8px;flex-wrap:wrap}.osm-actions button{cursor:pointer}.osm-source{font-size:12px;word-break:break-all;color:#68736e}.osm-map{height:440px}.osm-buttons{display:flex;gap:10px;flex-wrap:wrap}.osm-help{margin:4px 0 14px;font-size:13px;background:#f4f8f6;border:1px solid #dfe9e4;border-radius:9px;padding:10px 14px}.osm-help summary{cursor:pointer;font-weight:700;color:#0d3b2e}.osm-help ol{margin:10px 0 2px 18px;padding:0;line-height:1.55}.osm-help li{margin-bottom:6px}.osm-have{display:inline-block;font-size:11px;font-weight:700;color:#1b6b4a;background:#e3f4ea;border-radius:10px;padding:2px 8px;margin-top:4px}.osm-have-card{background:#f6fbf8}.osm-popup{font-size:13px}.leaflet-container .osm-popup a.btn,.osm-result a.btn{color:#fff;text-decoration:none}.leaflet-container .osm-popup a.btn-primary:hover{color:#fff}.osm-popup-actions,.osm-card-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.osm-popup-actions .btn,.osm-card-actions .btn{min-height:30px;padding:5px 10px;font-size:11px}.osm-result{display:flex;flex-direction:column;justify-content:space-between}.osm-result label{cursor:pointer}@media(max-width:680px){.osm-grid{grid-template-columns:1fr}.osm-table{font-size:12px}.osm-table th,.osm-table td{padding:7px}}
@@ -150,13 +150,12 @@ $existingAttractions = $pdo->query("SELECT attraction_id, name, latitude, longit
 <details style="margin-top:12px"><summary style="cursor:pointer;font-size:13px">Enter the exact location instead</summary><div class="osm-grid" style="margin-top:12px"><div><label for="osmLat">Latitude</label><input id="osmLat" type="number" step="any" value="-1.2921" min="-90" max="90"></div><div><label for="osmLng">Longitude</label><input id="osmLng" type="number" step="any" value="36.8219" min="-180" max="180"></div></div><p class="osm-muted">You can also click the map below.</p></details>
 <div id="osmAdminMap" class="osm-map" aria-label="Map: click to place the pin, click an orange dot to add that place"></div>
 <p id="osmSearchStatus" class="osm-muted" role="status" aria-live="polite">Ready to search. Details may be incomplete, so please check each place before approving.</p>
-<details class="osm-help"><summary>How does this map work?</summary>
+<details class="osm-help"><summary>How does this work?</summary>
 <ol>
-<li><strong>The map picture</strong> (the streets and labels) comes from OpenStreetMap, a free map of the world edited by volunteers. The page shows it with a small library called Leaflet.</li>
-<li><strong>Area name → pin.</strong> When you press <em>Find places</em>, the name you typed (for example “Naivasha”) is sent to OpenStreetMap’s search service (Nominatim), which answers with a latitude and longitude. If you already placed the pin yourself by clicking the map, your pin is used instead.</li>
-<li><strong>Places around the pin.</strong> The type you chose (restaurants, museums, parks…) is turned into a question for the Overpass service: “list every <em>named</em> place of this type within the distance I picked”. Each answer becomes an orange dot.</li>
-<li><strong>Adding.</strong> <em>Add attraction</em> opens the Manage Attractions form with the name, category and exact position filled in, so you only add a description, fee and photos. <em>Add to review list</em> instead keeps the place in the queue below until you approve it.</li>
-<li>Nothing is shown to tourists until it is saved as an attraction. OpenStreetMap is edited by the public, so names and positions can be wrong or missing. Please check each place.</li>
+<li><strong>Pick an area.</strong> Type a town or area (for example &ldquo;Naivasha&rdquo;) and press <em>Find places</em>, or click the map to place a pin yourself.</li>
+<li><strong>See what is nearby.</strong> Choose a type of place (restaurants, museums, parks&hellip;) and the distance. Each place found appears as an orange dot.</li>
+<li><strong>Add what you like.</strong> <em>Add attraction</em> opens the form with the name, category and position already filled in, so you only add a description and photos. <em>Find photos</em> suggests free photos with the photographer&rsquo;s credit. <em>Add to review list</em> keeps the place in the list below until you approve it.</li>
+<li>Nothing is shown to tourists until it is saved as an attraction. Map details come from volunteers, so names and positions can be wrong or missing. Please check each place.</li>
 </ol></details>
 <form method="post" id="osmImportForm"><input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>"><input type="hidden" name="action" value="import_selected"><input type="hidden" name="selected_places" id="osmSelectedPlaces" value="[]"><div id="osmResults" class="osm-results"></div><div style="margin-top:14px"><button type="submit" class="btn btn-primary" id="osmImportButton" disabled>Add selected to review list</button></div></form>
 </section>
@@ -345,7 +344,7 @@ $existingAttractions = $pdo->query("SELECT attraction_id, name, latitude, longit
    statusEl.textContent='Finding “'+area+'” on the map…';
    try{
     const geoResponse=await fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=ke&q='+encodeURIComponent(area));
-    if(!geoResponse.ok) throw new Error('The place search service returned an error.');
+    if(!geoResponse.ok) throw new Error('The area search isn\u2019t available right now. Please try again in a minute.');
     const geo=await geoResponse.json();
     if(!geo.length) throw new Error('No matching Kenyan area was found. Try adding a county or the word Kenya, or click the map to place the pin yourself.');
     p={lat:Number(geo[0].lat),lng:Number(geo[0].lon)};
@@ -417,7 +416,7 @@ $existingAttractions = $pdo->query("SELECT attraction_id, name, latitude, longit
  async function savePhotosFromBrowser(p,titles){
   const d=await cmQuery({iiurlwidth:'1280',titles:titles.join('|')});
   const infos=((d.query&&d.query.pages)||[]).map(cmToPhoto).filter(Boolean);
-  if(!infos.length)throw new Error('Those photos could not be read from Commons.');
+  if(!infos.length)throw new Error('read');
   const fd=new FormData(),meta=[];let skipped=0;
   for(const ph of infos){
    try{
@@ -427,11 +426,11 @@ $existingAttractions = $pdo->query("SELECT attraction_id, name, latitude, longit
     fd.append('files[]',blob,'cm.'+ext);meta.push({credit:ph.artist,license:ph.license,license_url:ph.license_url,source_url:ph.page_url});
    }catch(e){skipped++;}
   }
-  if(!meta.length)throw new Error('The photos could not be downloaded to this browser.');
+  if(!meta.length)throw new Error('download');
   fd.append('csrf_token',CSRF);fd.append('action','import_files');fd.append('attraction_id',p.existing.id);fd.append('meta',JSON.stringify(meta));
   const r=await timedFetch('commons_photos.php',{method:'POST',body:fd},90000);
   const res=await r.json();
-  if(skipped)(res.errors=res.errors||[]).push(skipped+' photo(s) could not be downloaded and were skipped.');
+  if(skipped)(res.errors=res.errors||[]).push(skipped+' photo(s) could not be saved and were skipped.');
   return res;
  }
  const CSRF=<?= json_encode(generateCsrfToken()) ?>;
@@ -457,7 +456,7 @@ $existingAttractions = $pdo->query("SELECT attraction_id, name, latitude, longit
   cmEl.modal.hidden=false;document.body.style.overflow='hidden';cmSync();
   try{
    cm.photos=await commonsSearchBrowser(p);
-  }catch(e){cmEl.status.textContent='Could not reach Wikimedia Commons from this browser (no internet, or it is busy). Try again in a moment, or upload photos by hand.';return;}
+  }catch(e){cmEl.status.textContent='We couldn\u2019t load photos right now. Please check your connection and try again, or upload photos yourself.';return;}
   cm.serverOk=true;
   if(!p.existing){
    try{const pr=await timedFetch('commons_photos.php?action=ping',{},15000);const pj=await pr.json();cm.serverOk=!!pj.ok;}catch(e){cm.serverOk=false;}
@@ -488,7 +487,7 @@ $existingAttractions = $pdo->query("SELECT attraction_id, name, latitude, longit
    cmEl.status.textContent=(d.saved||0)+' photo'+(d.saved===1?'':'s')+' saved with credit.'+((d.errors||[]).length?' '+d.errors.join(' '):'');
    if(d.saved){cmEl.grid.replaceChildren();cmEl.count.textContent='';const a=document.createElement('a');a.className='btn btn-primary cm-extra';a.href='attractions.php?edit='+p.existing.id;a.textContent='Open attraction';cmEl.actions.replaceChildren(a);}
    else cmEl.go.disabled=false;
-  }catch(e){cmEl.status.textContent=(e&&e.message&&e.message.length<120?e.message+' ':'')+'Saving failed. Check Manage Attractions to see whether any photos were added before trying again, or upload them by hand.';cmEl.go.disabled=false;}
+  }catch(e){cmEl.status.textContent='We couldn\u2019t save the photos. Check Manage Attractions to see whether any photos were added before trying again, or upload them by hand.';cmEl.go.disabled=false;}
  });
 
 })();

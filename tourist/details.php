@@ -191,7 +191,7 @@ foreach (reviewCategoryLabels() as $col => $n) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= h($acc['title']) ?> — Smart Accommodation Kenya</title>
+    <title><?= h($acc['title']) ?> — StayExplore Kenya</title>
     <link rel="stylesheet" href="../assets/css/style.css">
     <link rel="stylesheet"
           href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -379,7 +379,7 @@ foreach (reviewCategoryLabels() as $col => $n) {
                 <div class="host-avatar">
                     <?php if ($acc['host_photo']): ?>
                         <img src="<?= h(profilePhotoUrl($acc['host_id'], $acc['host_photo'])) ?>"
-                             alt="Host">
+                             alt="Photo of <?= h($acc['host_name']) ?>">
                     <?php else: ?>
                         <?= h(strtoupper(substr($acc['host_name'], 0, 1))) ?>
                     <?php endif; ?>

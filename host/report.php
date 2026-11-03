@@ -94,10 +94,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $report_id = $pdo->lastInsertId();
 
         // Notify admin
-        $admin = $pdo->query("
-            SELECT email FROM users
-            WHERE role = 'admin' LIMIT 1
-        ")->fetch();
+        $admin = adminNotificationRecipient($pdo);
 
         if ($admin) {
             $urgency = ($report_type === 'incident')
@@ -114,7 +111,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             sendEmail(
                 $admin['email'],
-                $urgency . 'Host Report — Smart Accommodation Kenya',
+                $urgency . 'Host Report — StayExplore Kenya',
                 "
                 <h2>{$urgency}New host report #RPT{$report_id}</h2>
                 <p><strong>Type:</strong> $report_type</p>
@@ -172,7 +169,7 @@ $my_reports = $my_reports->fetchAll();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reports — Smart Accommodation Kenya</title>
+    <title>Reports — StayExplore Kenya</title>
     <link rel="stylesheet" href="../assets/css/style.css">
     <style>
         
@@ -321,6 +318,7 @@ $my_reports = $my_reports->fetchAll();
                        margin-bottom:8px">
                 Report submitted
             </h2>
+<?php if (!empty($report_id)): ?><p style="font-size:14px;margin:0 0 14px">Your reference: <strong>#RPT<?= str_pad((string)$report_id, 5, '0', STR_PAD_LEFT) ?></strong>. Keep it in case you need to ask about this report.</p><?php endif; ?>
             <p style="font-size:14px;color:var(--text-secondary);
                        margin-bottom:24px;line-height:1.6">
                 Our team will review your report within 24 hours.
@@ -369,7 +367,7 @@ $my_reports = $my_reports->fetchAll();
                         <!-- Report Type -->
                         <div class="form-group">
                             <label>Report type</label>
-                            <select name="report_type"
+                            <select aria-label="Report type" name="report_type"
                                     onchange="toggleIncident(this)"
                                     required>
                                 <option value="">Select type</option>
@@ -387,7 +385,7 @@ $my_reports = $my_reports->fetchAll();
                              id="incidentGroup"
                              style="display:none">
                             <label>Incident type</label>
-                            <select name="incident_type">
+                            <select aria-label="Incident type" name="incident_type">
                                 <option value="">Select type</option>
                                 <option value="property_damage">
                                     Property damage
@@ -415,7 +413,7 @@ $my_reports = $my_reports->fetchAll();
                         <!-- Related Booking -->
                         <div class="form-group">
                             <label>Related booking (optional)</label>
-                            <select name="booking_id">
+                            <select aria-label="Related booking (optional)" name="booking_id">
                                 <option value="">
                                     Select a booking
                                 </option>
@@ -442,7 +440,7 @@ $my_reports = $my_reports->fetchAll();
                         <!-- Description -->
                         <div class="form-group">
                             <label>Details</label>
-                            <textarea name="description"
+                            <textarea aria-label="Details" name="description"
                                       placeholder="Describe what happened in as much detail as possible..."
                                       required></textarea>
                         </div>
@@ -453,7 +451,7 @@ $my_reports = $my_reports->fetchAll();
                                 Supporting evidence (optional)
                             </label>
                             <div class="file-zone">
-                                <input type="file" name="evidence"
+                                <input aria-label="Evidence" type="file" name="evidence"
                                        accept="image/jpeg,image/png,
                                                image/webp">
                                 <p>
