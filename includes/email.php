@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/booking_rules.php';
 require_once __DIR__ . '/helpers.php';
 // Simple email function using PHPMailer
 // Install PHPMailer: composer require phpmailer/phpmailer
@@ -215,7 +216,7 @@ function sendVerificationEmail($to, $name, $token) {
     $body = "
         <h2>Welcome to StayExplore Kenya, $name!</h2>
         <p>Please verify your email address by clicking the link below:</p>
-        <a href='$link' style='background:#1D9E75;color:white;
+        <a href='$link' style='background:#126b4e;color:white;
            padding:10px 20px;text-decoration:none;border-radius:5px'>
            Verify Email
         </a>
@@ -233,13 +234,14 @@ function sendBookingConfirmationEmail($to, $name, $booking) {
         <p>Your stay is reserved. Here are your details:</p>
         <table border='1' cellpadding='8'>
             <tr><td>Booking ID</td><td>$ref</td></tr>
-            <tr><td>Property</td><td>{$booking['title']}</td></tr>
+            <tr><td>Property</td><td>" . h($booking['title']) . "</td></tr>
             <tr><td>Check-in</td><td>{$booking['check_in_date']}</td></tr>
             <tr><td>Check-out</td><td>{$booking['check_out_date']}</td></tr>
             <tr><td>Total</td><td>KES " . number_format($booking['total_amount']) . "</td></tr>
         </table>
         <p>Payment is made directly to the host (cash, bank transfer or M-Pesa). You will get another
            email when the host confirms they have received it.</p>
+        " . bookingRulesEmailHtml() . "
         <p>Thank you for using StayExplore Kenya.</p>
     ";
     return sendEmail($to, 'Booking Confirmed — StayExplore Kenya', $body);
@@ -275,8 +277,9 @@ function sendPaymentConfirmationEmail($to, $name, $booking) {
            Your host will confirm once the payment has actually been
            received, and you'll get a separate email when that happens.</p>
         <p><strong>Amount:</strong> KES " . number_format($booking['total_amount']) . "</p>
-        <p><strong>Property:</strong> {$booking['title']}</p>
+        <p><strong>Property:</strong> " . h($booking['title']) . "</p>
         <p><strong>Check-in:</strong> {$booking['check_in_date']}</p>
+        " . bookingRulesEmailHtml() . "
         <p>Thank you for using StayExplore Kenya.</p>
     ";
     return sendEmail($to, 'Payment details received — StayExplore Kenya', $body);
@@ -291,7 +294,7 @@ function sendPaymentVerifiedEmail($to, $name, $booking) {
         <p>Your host has confirmed receiving your payment for
            Booking $ref.</p>
         <p><strong>Amount:</strong> KES " . number_format($booking['total_amount']) . "</p>
-        <p><strong>Property:</strong> {$booking['title']}</p>
+        <p><strong>Property:</strong> " . h($booking['title']) . "</p>
         <p>Thank you for using StayExplore Kenya.</p>
     ";
     return sendEmail($to, 'Payment Confirmed — StayExplore Kenya', $body);
@@ -336,6 +339,81 @@ function sendIncidentReportEmail($admin_email, $reporter_name,
                      $body);
 }
 
+// ---- Payment / booking-hold notices -------------------------------------------------------------------------------
+function paymentMethodLabel($m) {
+    return ['cash' => 'Cash (pay on arrival)', 'bank_transfer' => 'Bank transfer', 'mpesa' => 'M-Pesa'][$m] ?? ucfirst((string)$m);
+}
+
+// To the HOST when a guest submits payment details: tells them to check their account and mark it received.
+function sendPaymentSubmittedHostEmail($to, $hostName, $booking, $method, $reference) {
+    $ref = '#BK' . str_pad($booking['booking_id'], 5, '0', STR_PAD_LEFT);
+    $refLine = ($reference !== null && $reference !== '') ? '<tr><td>Transaction reference</td><td>' . h($reference) . '</td></tr>' : '';
+    $body = "
+        <h2>A guest has submitted payment details</h2>
+        <p>Hello " . h($hostName) . ",</p>
+        <p>The guest says they have paid for booking $ref. This is <strong>not</strong> a confirmation that the money has arrived.</p>
+        <table border='1' cellpadding='8'>
+            <tr><td>Property</td><td>" . h($booking['title']) . "</td></tr>
+            <tr><td>Check-in</td><td>" . h($booking['check_in_date']) . "</td></tr>
+            <tr><td>Check-out</td><td>" . h($booking['check_out_date']) . "</td></tr>
+            <tr><td>Amount</td><td>KES " . number_format($booking['total_amount']) . "</td></tr>
+            <tr><td>Method</td><td>" . h(paymentMethodLabel($method)) . "</td></tr>
+            $refLine
+        </table>
+        <p>Check your M-Pesa or bank account. When the money has really arrived, open <strong>Payments</strong> in your host area
+           and choose <strong>Mark as paid</strong>; the guest is then emailed automatically. Until then the booking request stays pending.</p>";
+    return sendEmail($to, 'Payment details submitted — check your account — StayExplore Kenya', $body);
+}
+
+// To the GUEST when a host reverses a payment that was marked as received.
+function sendPaymentReversedEmail($to, $name, $booking, $reason) {
+    $ref = '#BK' . str_pad($booking['booking_id'], 5, '0', STR_PAD_LEFT);
+    $body = "
+        <h2>Your payment was set back to awaiting</h2>
+        <p>Hello " . h($name) . ",</p>
+        <p>The host of <strong>" . h($booking['title']) . "</strong> changed the payment for booking $ref from <em>received</em> to <em>awaiting</em>.</p>
+        <p><strong>Reason given by the host:</strong> " . h($reason) . "</p>
+        <p>If you did pay, keep your M-Pesa message or bank receipt and report this from the Report page of your account.
+           An administrator has been told and can review it; a payment confirmed by an administrator cannot be undone by the host.</p>";
+    return sendEmail($to, 'Your payment status changed — StayExplore Kenya', $body);
+}
+
+// To every ADMINISTRATOR when a host reverses a received payment.
+function sendPaymentReversedAdminEmail($to, $booking, $hostName, $touristName, $reason) {
+    $ref = '#BK' . str_pad($booking['booking_id'], 5, '0', STR_PAD_LEFT);
+    $body = "
+        <h2>A host reversed a received payment</h2>
+        <table border='1' cellpadding='8'>
+            <tr><td>Booking</td><td>$ref</td></tr>
+            <tr><td>Property</td><td>" . h($booking['title']) . "</td></tr>
+            <tr><td>Host</td><td>" . h($hostName) . "</td></tr>
+            <tr><td>Guest</td><td>" . h($touristName) . "</td></tr>
+            <tr><td>Check-in</td><td>" . h($booking['check_in_date']) . "</td></tr>
+            <tr><td>Amount</td><td>KES " . number_format($booking['amount']) . "</td></tr>
+            <tr><td>Reason given</td><td>" . h($reason) . "</td></tr>
+        </table>
+        <p>Open <strong>Payments</strong> in the admin area and use the <em>reversed</em> filter to review it.</p>";
+    return sendEmail($to, 'Payment reversed by host — review needed — StayExplore Kenya', $body);
+}
+
+// When a pending request expires and the dates are released.
+function sendBookingExpiredEmail($to, $name, $booking, $why, $forHost = false) {
+    $ref = '#BK' . str_pad($booking['booking_id'], 5, '0', STR_PAD_LEFT);
+    if ($why === 'no_payment') {
+        $line = 'We did not receive payment details within ' . (int)BOOKING_NO_PAYMENT_HOLD_HOURS . ' hours, so the dates were released for other guests.';
+    } elseif ($forHost) {
+        $line = 'You did not accept or decline this request within ' . (int)BOOKING_HOST_REPLY_HOURS . ' hours, so it expired and the dates were released. Please reply to requests promptly.';
+    } else {
+        $line = 'The host did not reply within ' . (int)BOOKING_HOST_REPLY_HOURS . ' hours, so the request expired and the dates were released. You have not been charged by this website; if you already sent money to the host, ask for a refund.';
+    }
+    $body = "
+        <h2>Booking request expired</h2>
+        <p>Hello " . h($name) . ",</p>
+        <p>Your request $ref for <strong>" . h($booking['title']) . "</strong> (" . h($booking['check_in_date']) . " to " . h($booking['check_out_date']) . ") has expired.</p>
+        <p>$line</p>";
+    return sendEmail($to, 'Booking request expired — StayExplore Kenya', $body);
+}
+
 function sendPasswordResetEmail($to, $name, $token) {
     $link = appAbsoluteUrl('reset-password.php?token=' . rawurlencode($token));
     $name = h($name);
@@ -344,7 +422,7 @@ function sendPasswordResetEmail($to, $name, $token) {
         <p>Hello $name,</p>
         <p>We received a request to reset the password for your StayExplore Kenya account. This link works once and
            expires in 60 minutes:</p>
-        <p><a href='$link' style='background:#1D9E75;color:white;padding:10px 20px;text-decoration:none;border-radius:5px'>Choose a new password</a></p>
+        <p><a href='$link' style='background:#126b4e;color:white;padding:10px 20px;text-decoration:none;border-radius:5px'>Choose a new password</a></p>
         <p>If you did not ask for this, you can ignore this email. Your password will not change.</p>
     ";
     return sendEmail($to, 'Reset your password — StayExplore Kenya', $body);
@@ -360,3 +438,49 @@ function sendPasswordChangedEmail($to, $name) {
     ";
     return sendEmail($to, 'Your password was changed — StayExplore Kenya', $body);
 }
+
+// ---- Booking reminders, releases and host cancellations (v9.14) ----
+// Reminder: the guest has not entered payment details and the dates will be released soon.
+function sendPaymentDeadlineReminderEmail($to, $name, $booking, $minutesLeft) {
+    $ref = '#BK' . str_pad($booking['booking_id'], 5, '0', STR_PAD_LEFT);
+    $body = "<h2>Your dates will be released soon</h2><p>Dear " . h($name) . ",</p>"
+          . "<p>We are holding <strong>" . h($booking['title']) . "</strong> (" . h($booking['check_in_date']) . " to " . h($booking['check_out_date']) . ") for you, booking $ref.</p>"
+          . "<p>We have not yet received your payment details. If they are not entered in about <strong>" . (int)$minutesLeft . " minutes</strong>, the request is cancelled and the dates are released to other guests.</p>"
+          . "<p>If you are paying by <strong>cash on arrival</strong>, open the payment page and choose <strong>Cash (pay on arrival)</strong> to keep your dates.</p>"
+          . "<p><a href='" . h(appAbsoluteUrl('tourist/payment.php?booking_id=' . (int)$booking['booking_id'])) . "'>Go to the payment page</a></p>";
+    return sendEmail($to, 'Your dates will be released soon — StayExplore Kenya', $body);
+}
+
+// Host releases the dates of a pending request (decline), with an optional note.
+function sendBookingReleasedEmail($to, $name, $booking, $note = '') {
+    $ref = '#BK' . str_pad($booking['booking_id'], 5, '0', STR_PAD_LEFT);
+    $body = "<h2>Booking request not accepted</h2><p>Dear " . h($name) . ",</p>"
+          . "<p>Your host could not accept booking $ref for <strong>" . h($booking['title']) . "</strong> (" . h($booking['check_in_date']) . " to " . h($booking['check_out_date']) . "). The dates have been released.</p>"
+          . ($note !== '' ? "<p><strong>Message from your host:</strong> " . nl2br(h($note)) . "</p>" : "")
+          . "<p>If you already sent any money, please ask your host to return it. You are welcome to look for another stay.</p>";
+    return sendEmail($to, 'Booking request not accepted — StayExplore Kenya', $body);
+}
+
+// Host cancels a booking (guest gets the reason).
+function sendHostCancelledGuestEmail($to, $name, $booking, $reason, $paymentStatus) {
+    $ref = '#BK' . str_pad($booking['booking_id'], 5, '0', STR_PAD_LEFT);
+    $paid = in_array($paymentStatus, ['confirmed'], true);
+    $body = "<h2>Your booking was cancelled by the host</h2><p>Dear " . h($name) . ",</p>"
+          . "<p>Your host has cancelled booking $ref for <strong>" . h($booking['title']) . "</strong> (" . h($booking['check_in_date']) . " to " . h($booking['check_out_date']) . ").</p>"
+          . "<p><strong>Reason given:</strong> " . nl2br(h($reason)) . "</p>"
+          . ($paid ? "<p><strong>You had already paid.</strong> Your host should refund you in full. If they do not, please contact us using the report option so an administrator can follow it up.</p>"
+                   : "<p>If you sent any money, please ask your host to return it.</p>")
+          . "<p>We are sorry about this. You can search for another stay at any time.</p>";
+    return sendEmail($to, 'Booking cancelled by the host — StayExplore Kenya', $body);
+}
+
+function sendHostCancelledAdminEmail($to, $booking, $hostName, $guestName, $reason, $paymentStatus) {
+    $ref = '#BK' . str_pad($booking['booking_id'], 5, '0', STR_PAD_LEFT);
+    $body = "<h2>A host cancelled a booking</h2>"
+          . "<p><strong>Booking:</strong> $ref — " . h($booking['title']) . " (" . h($booking['check_in_date']) . " to " . h($booking['check_out_date']) . ")</p>"
+          . "<p><strong>Host:</strong> " . h($hostName) . " &nbsp; <strong>Guest:</strong> " . h($guestName) . "</p>"
+          . "<p><strong>Booking status before:</strong> " . h($booking['status']) . " &nbsp; <strong>Payment:</strong> " . h($paymentStatus !== '' ? $paymentStatus : 'none recorded') . "</p>"
+          . "<p><strong>Reason given:</strong> " . nl2br(h($reason)) . "</p>";
+    return sendEmail($to, 'Host cancelled a booking — StayExplore Kenya', $body);
+}
+

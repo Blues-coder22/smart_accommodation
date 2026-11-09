@@ -188,6 +188,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
+        // Always keep one main photo: if the main one was removed (or none was ever set), promote the oldest remaining photo
+        $hasPrimary = $pdo->prepare('SELECT COUNT(*) FROM accommodation_photos WHERE accommodation_id = ? AND is_primary = 1');
+        $hasPrimary->execute([$lid]);
+        if ((int)$hasPrimary->fetchColumn() === 0) {
+            $pdo->prepare('UPDATE accommodation_photos SET is_primary = 1 WHERE accommodation_id = ? ORDER BY photo_id ASC LIMIT 1')
+                ->execute([$lid]);
+        }
+
         if ($needs_review) {
             setFlash('success',
                 'Listing updated and resubmitted for approval.');
@@ -228,7 +236,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                       top:52px; height:calc(100vh - 52px);
                       overflow-y:auto }
         .sidebar-role { font-size:10px; font-weight:700;
-                        letter-spacing:.08em; color:#1D9E75;
+                        letter-spacing:.08em; color:#126b4e;
                         text-transform:uppercase;
                         padding:0 20px; margin-bottom:12px }
         .sidebar-link { display:flex; align-items:center; gap:10px;
@@ -239,10 +247,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                               background:var(--surface-1) }
         .sidebar-link.active { color:#085041; font-weight:500;
                                background:#E1F5EE;
-                               border-left:3px solid #1D9E75 }
+                               border-left:3px solid #126b4e }
         .main       { padding:28px; max-width:800px }
         .page-tag   { font-size:11px; font-weight:600;
-                      letter-spacing:.06em; color:#1D9E75;
+                      letter-spacing:.06em; color:#126b4e;
                       text-transform:uppercase; margin-bottom:8px }
         .page-title { font-size:26px; font-weight:400;
                       margin-bottom:4px }
@@ -272,7 +280,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .form-group input:focus,
         .form-group select:focus,
         .form-group textarea:focus { outline:none;
-                                     border-color:#1D9E75 }
+                                     border-color:#126b4e }
         .form-row   { display:grid;
                       grid-template-columns:1fr 1fr; gap:14px }
         .amenity-grid { display:grid;
@@ -281,7 +289,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .amenity-check { display:flex; align-items:center;
                          gap:8px; font-size:13px }
         .amenity-check input { width:15px; height:15px;
-                               accent-color:#1D9E75 }
+                               accent-color:#126b4e }
         #map        { height:260px; border-radius:6px;
                       border:1px solid var(--border-strong);
                       margin-top:8px }
@@ -317,7 +325,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .resubmit-notice { background:#FFF8E1;
                            border:1px solid #F9D57C;
                            border-radius:6px; padding:12px 14px;
-                           font-size:13px; color:#9A6A00;
+                           font-size:13px; color:#7a5200;
                            margin-bottom:20px }
         .submit-btn { width:100%; padding:12px; background:#085041;
                       color:#fff; border:none; border-radius:6px;
@@ -443,7 +451,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <p class="map-hint">
                     Click to move the pin to your exact location.
                     <span id="coordDisplay"
-                          style="color:#1D9E75;margin-left:6px">
+                          style="color:#126b4e;margin-left:6px">
                         <?= number_format($listing['latitude'],4) ?>,
                         <?= number_format($listing['longitude'],4) ?>
                     </span>

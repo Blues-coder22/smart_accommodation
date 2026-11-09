@@ -8,8 +8,8 @@ h1,h2,h3{font-family:'Instrument Serif','Cormorant Garamond',Georgia,serif;font-
 .public-nav .public-brand,.public-nav .brand{color:#0d3b2e}
 .public-nav .brand-mark{border:1.5px solid #0d3b2e!important;color:#0d3b2e;font-family:Georgia,serif;font-weight:700;transition:background .25s,color .25s}
 .public-nav .public-brand:hover .brand-mark{background:#0d3b2e;color:#fff}
-.public-nav a:not(.btn){color:#6b6f68;position:relative;transition:color .2s}
-.public-nav a:not(.btn)::after{content:"";position:absolute;left:0;right:0;bottom:-6px;height:2px;background:#c0623a;transform:scaleX(0);transform-origin:left;transition:transform .25s}
+.public-nav a:not(.btn){color:#565c55;position:relative;transition:color .2s}
+.public-nav a:not(.btn)::after{content:"";position:absolute;left:0;right:0;bottom:-6px;height:2px;background:#a3462a;transform:scaleX(0);transform-origin:left;transition:transform .25s}
 .public-nav a:not(.btn):hover{color:#1f241f}.public-nav a:not(.btn):hover::after{transform:scaleX(1)}
 .public-nav .btn{background:#0d3b2e;color:#fff;border:1px solid #0d3b2e}
 .hp-footer{background:#0a1c11;color:#c9d3cb}.hp-footer .brand,.hp-footer h4{color:#fff}
@@ -19,3 +19,4 @@ main h1,main h2,main p,main .card,main .pad{animation:plRise .6s cubic-bezier(.2
 main h2{animation-delay:.08s}main p{animation-delay:.12s}
 @media(prefers-reduced-motion:reduce){body,main *{animation:none!important}}
 .public-nav .nav-toggle{color:#0d3b2e;border-color:#c9bfae;background:transparent}
+.hp-footer h2{font-family:Arial,sans-serif;font-size:12px;color:#fff;margin:0 0 10px;font-weight:700;letter-spacing:0}

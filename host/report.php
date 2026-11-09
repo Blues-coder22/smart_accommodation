@@ -181,7 +181,7 @@ $my_reports = $my_reports->fetchAll();
                        top:52px; height:calc(100vh - 52px);
                        overflow-y:auto }
         .sidebar-role{ font-size:10px; font-weight:700;
-                       letter-spacing:.08em; color:#1D9E75;
+                       letter-spacing:.08em; color:#126b4e;
                        text-transform:uppercase;
                        padding:0 20px; margin-bottom:12px }
         .sidebar-link{ display:flex; align-items:center; gap:10px;
@@ -192,13 +192,13 @@ $my_reports = $my_reports->fetchAll();
                               background:var(--surface-1) }
         .sidebar-link.active { color:#085041; font-weight:500;
                                background:#E1F5EE;
-                               border-left:3px solid #1D9E75 }
+                               border-left:3px solid #126b4e }
         .main        { padding:28px }
         .page-layout { display:grid;
                        grid-template-columns:1fr 260px;
                        gap:20px; align-items:start }
         .page-tag    { font-size:11px; font-weight:600;
-                       letter-spacing:.06em; color:#DC2626;
+                       letter-spacing:.06em; color:#b42318;
                        text-transform:uppercase; margin-bottom:8px }
         .page-title  { font-size:26px; font-weight:400;
                        margin-bottom:4px }
@@ -229,7 +229,7 @@ $my_reports = $my_reports->fetchAll();
         .form-group input:focus,
         .form-group select:focus,
         .form-group textarea:focus { outline:none;
-                                     border-color:#1D9E75 }
+                                     border-color:#126b4e }
         .file-zone   { border:0.5px dashed var(--border-strong);
                        border-radius:6px; padding:16px;
                        text-align:center }
@@ -249,11 +249,11 @@ $my_reports = $my_reports->fetchAll();
                             background:#FEF2F2 }
         .side-card h4{ font-size:13px; font-weight:600;
                        margin-bottom:6px }
-        .side-card.urgent h4 { color:#DC2626 }
+        .side-card.urgent h4 { color:#b42318 }
         .side-card p { font-size:13px; color:var(--text-secondary);
                        line-height:1.5 }
         .emergency   { font-size:20px; font-weight:700;
-                       color:#DC2626; margin:6px 0 }
+                       color:#b42318; margin:6px 0 }
         .history-card{ background:var(--surface-2);
                        border:1px solid var(--border);
                        border-radius:8px; overflow:hidden }
@@ -270,7 +270,7 @@ $my_reports = $my_reports->fetchAll();
         .status-pill { display:inline-block; font-size:10px;
                        font-weight:600; padding:2px 7px;
                        border-radius:3px; float:right }
-        .s-pending   { background:#FFF8E1; color:#9A6A00;
+        .s-pending   { background:#FFF8E1; color:#7a5200;
                        border:1px solid #F9D57C }
         .s-reviewed  { background:#E1F5EE; color:#0F6E56;
                        border:1px solid #9FE1CB }
@@ -285,7 +285,7 @@ $my_reports = $my_reports->fetchAll();
                        align-items:center; justify-content:center;
                        margin:0 auto 16px;
                        border:1px solid #9FE1CB }
-        .success-icon svg { width:22px; height:22px; stroke:#1D9E75 }
+        .success-icon svg { width:22px; height:22px; stroke:#126b4e }
         @media(max-width:1000px){
             .dash-wrap { grid-template-columns:1fr }
             .sidebar   { display:none }

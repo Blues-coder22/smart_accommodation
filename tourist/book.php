@@ -2,6 +2,9 @@
 require_once '../includes/auth.php';
 require_once '../includes/functions.php';
 require_once '../includes/db.php';
+require_once '../includes/booking_rules.php';
+require_once '../includes/booking_holds.php';
+expireStaleBookingRequests($pdo);   // releases dates held by unpaid or unanswered requests
 require_once '../includes/onsite_experience.php';
 ensureOnsiteExperienceColumns($pdo);
 
@@ -34,7 +37,7 @@ if (!$acc) redirect('search.php?type=accommodation');
 // Get primary photo
 $photo = $pdo->prepare("
     SELECT photo_path FROM accommodation_photos
-    WHERE accommodation_id = ? AND is_primary = 1 LIMIT 1
+    WHERE accommodation_id = ? ORDER BY is_primary DESC, photo_id ASC LIMIT 1
 ");
 $photo->execute([$accommodation_id]);
 $photo = $photo->fetchColumn();
@@ -142,7 +145,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <style>
         .page-wrap { max-width:960px; margin:0 auto; padding:32px 24px; }
         .page-tag  { font-size:11px; font-weight:600; letter-spacing:.06em;
-                     color:#1D9E75; text-transform:uppercase;
+                     color:#126b4e; text-transform:uppercase;
                      margin-bottom:8px; }
         .page-title { font-size:28px; font-weight:400; color:var(--text-primary);
                       margin-bottom:4px; }
@@ -172,7 +175,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .agree-row { display:flex; align-items:flex-start; gap:10px;
                      margin-top:16px; }
         .agree-row input[type=checkbox] { margin-top:2px; 
-                                          accent-color:#1D9E75;
+                                          accent-color:#126b4e;
                                           width:15px; height:15px;
                                           flex-shrink:0; }
         .agree-row label { font-size:13px; color:var(--text-secondary);
@@ -315,6 +318,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     Your information is encrypted and handled securely.
                 </p>
 
+                <p class="small" style="margin:0 0 12px">Before you send this request, please read the <?php bookingRulesDialog(); ?>.</p>
                 <button type="submit" class="submit-btn">
                     Continue to payment
                 </button>
@@ -357,7 +361,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <span>Total</span>
                             <span>KES <?= number_format($total) ?></span>
                         </div>
-                        <p style="font-size:12px;color:#68776f;line-height:1.5;margin-top:10px">
+                        <p style="font-size:12px;color:#4f5f57;line-height:1.5;margin-top:10px">
                             <?php if ($onsiteFee > 0): ?>The extra KES <?= number_format($onsiteFee) ?> is for <strong><?= h($onsiteName) ?></strong>, a tour or guide your host offers at the stay (KES <?= number_format($onsitePer) ?> per guest). <?php endif; ?>
                             Entry fees for parks and other attractions nearby are not included. You pay those at the gate when you visit.
                         </p>

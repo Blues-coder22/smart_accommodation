@@ -159,7 +159,8 @@ function applyWeightedScoring($results, $useDistance = null) {
     $max_bookings   = max(array_column($results, 'total_bookings')) ?: 1;
 
     foreach ($results as &$item) {
-        $rating_score   = ($item['avg_rating'] / 5);
+        // A stay with no reviews yet gets a neutral 3 out of 5 for ranking only, so new listings are not buried below reviewed ones.
+        $rating_score   = ((float)$item['avg_rating'] > 0 ? (float)$item['avg_rating'] : 3.0) / 5;
         $price_score    = 1 - ($item['price_per_night'] / $max_price);
         $popularity     = ($item['total_bookings'] / $max_bookings);
         if ($useDistance) {

@@ -2,6 +2,9 @@
 require_once '../includes/auth.php';
 require_once '../includes/functions.php';
 require_once '../includes/db.php';
+require_once '../includes/booking_rules.php';
+require_once '../includes/booking_holds.php';
+expireStaleBookingRequests($pdo);   // releases dates held by unpaid or unanswered requests
 require_once '../includes/onsite_experience.php';
 
 if (session_status() === PHP_SESSION_NONE) session_start();
@@ -26,7 +29,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'cance
         $upd = $pdo->prepare("UPDATE bookings SET status = 'cancelled' WHERE booking_id = ? AND tourist_id = ? AND status IN ('pending','confirmed')");
         $upd->execute([$cancelId, (int)$_SESSION['user_id']]);
         if ($upd->rowCount()) {
-            setFlash('success', 'Your booking has been cancelled and your host has been told. If you already paid, please agree any refund directly with your host.');
+            $late = isLateCancellation($owned['check_in_date']);
+            setFlash('success', $late
+                ? 'Your booking has been cancelled and your host has been told. This is closer than ' . BOOKING_FREE_CANCEL_HOURS . ' hours to check-in, so any refund of money you already paid is up to your host.'
+                : 'Your booking has been cancelled and your host has been told. If you already paid, please agree the refund directly with your host.');
             // Let the host know so the dates are not held for a guest who is no longer coming.
             try {
                 $info = $pdo->prepare("SELECT a.title, h.email AS host_email, b.check_in_date, b.check_out_date, t.full_name AS guest_name
@@ -37,7 +43,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'cance
                     require_once '../includes/email.php';
                     sendEmail($i['host_email'], 'Booking cancelled by guest — StayExplore Kenya',
                         '<p>' . h($i['guest_name'], ENT_QUOTES, 'UTF-8') . ' has cancelled their booking for <strong>' . h($i['title'], ENT_QUOTES, 'UTF-8') . '</strong> (' .
-                        h($i['check_in_date']) . ' to ' . h($i['check_out_date']) . ').</p><p>Those dates are open for other guests again.</p>');
+                        h($i['check_in_date']) . ' to ' . h($i['check_out_date']) . ').</p><p>Those dates are open for other guests again.</p>' .
+                        ($late ? '<p><strong>Late cancellation:</strong> this was within ' . (int)BOOKING_FREE_CANCEL_HOURS . ' hours of check-in, so any refund is at your discretion.</p>' : ''));
                 }
             } catch (Throwable $e) { /* the booking is cancelled even if the email fails */ }
         } else {
@@ -55,7 +62,7 @@ $stmt = $pdo->prepare("
            p.payment_method, p.payment_status,
            (SELECT photo_path FROM accommodation_photos
             WHERE accommodation_id = a.accommodation_id
-            AND is_primary = 1 LIMIT 1) AS primary_photo,
+            ORDER BY is_primary DESC, photo_id ASC LIMIT 1) AS primary_photo,
            (SELECT review_id FROM reviews
             WHERE booking_id = b.booking_id
             AND tourist_id = b.tourist_id
@@ -103,7 +110,7 @@ $current = $tab === 'completed' ? $completed
     <style>
         .page-wrap  { max-width:900px; margin:0 auto; padding:32px 24px }
         .page-tag   { font-size:11px; font-weight:600; letter-spacing:.06em;
-                      color:#1D9E75; text-transform:uppercase;
+                      color:#126b4e; text-transform:uppercase;
                       margin-bottom:8px }
         .page-title { font-size:28px; font-weight:400; margin-bottom:4px }
         .page-sub   { font-size:14px; color:var(--text-secondary);
@@ -150,7 +157,7 @@ $current = $tab === 'completed' ? $completed
                          border-radius:3px }
         .s-confirmed   { background:#E1F5EE; color:#0F6E56;
                          border:1px solid #9FE1CB }
-        .s-pending     { background:#FFF8E1; color:#9A6A00;
+        .s-pending     { background:#FFF8E1; color:#7a5200;
                          border:1px solid #F9D57C }
         .s-completed   { background:#F0F4FF; color:#1A4DB3;
                          border:1px solid #B3C5F5 }
@@ -182,6 +189,7 @@ $current = $tab === 'completed' ? $completed
 
     <div class="page-tag">Your journeys</div>
     <h1 class="page-title">My bookings</h1>
+    <p class="small" style="margin:0 0 14px"><?php bookingRulesDialog(); ?></p>    <h1 class="page-title">My bookings</h1>
     <p class="page-sub">Everything planned, past and remembered.</p>
 
     <!-- Tabs -->
@@ -261,7 +269,7 @@ $current = $tab === 'completed' ? $completed
                     KES <?= number_format($b['total_amount']) ?>
                 </div>
                 <?php $bbr = bookingPriceBreakdown($b); if ($bbr['extra'] > 0): ?>
-                <div style="font-size:11px;color:#68776f;margin-top:2px">incl. KES <?= number_format($bbr['extra']) ?> host tour/guide</div>
+                <div style="font-size:11px;color:#4f5f57;margin-top:2px">incl. KES <?= number_format($bbr['extra']) ?> host tour/guide</div>
                 <?php endif; ?>
                 <div class="booking-ref">
                     #BK<?= str_pad($b['booking_id'], 5, '0', STR_PAD_LEFT) ?>
@@ -307,7 +315,7 @@ $current = $tab === 'completed' ? $completed
                     <?php if ($b['status'] === 'confirmed' || $b['status'] === 'pending'): ?>
                         <a href="confirmation.php?booking_id=<?= (int)$b['booking_id'] ?>" class="btn-sm btn-sm-outline">View details</a>
                         <?php if ($b['check_in_date'] > date('Y-m-d')): ?>
-                        <form method="post" style="display:inline" onsubmit="return confirm('Cancel this booking? This cannot be undone.');">
+                        <form method="post" style="display:inline" onsubmit="return confirm('<?= isLateCancellation($b['check_in_date']) ? 'Cancel this booking? It is closer than ' . (int)BOOKING_FREE_CANCEL_HOURS . ' hours to check-in, so any refund is up to your host. This cannot be undone.' : 'Cancel this booking? This cannot be undone.' ?>');">
                             <input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
                             <input type="hidden" name="action" value="cancel_booking">
                             <input type="hidden" name="booking_id" value="<?= (int)$b['booking_id'] ?>">

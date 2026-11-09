@@ -130,7 +130,7 @@ $today         = date('Y-m-d');
                        top:52px; height:calc(100vh - 52px);
                        overflow-y:auto }
         .sidebar-role{ font-size:10px; font-weight:700;
-                       letter-spacing:.08em; color:#1D9E75;
+                       letter-spacing:.08em; color:#126b4e;
                        text-transform:uppercase;
                        padding:0 20px; margin-bottom:12px }
         .sidebar-link{ display:flex; align-items:center; gap:10px;
@@ -141,10 +141,10 @@ $today         = date('Y-m-d');
                               background:var(--surface-1) }
         .sidebar-link.active { color:#085041; font-weight:500;
                                background:#E1F5EE;
-                               border-left:3px solid #1D9E75 }
+                               border-left:3px solid #126b4e }
         .main        { padding:28px }
         .page-tag    { font-size:11px; font-weight:600;
-                       letter-spacing:.06em; color:#1D9E75;
+                       letter-spacing:.06em; color:#126b4e;
                        text-transform:uppercase; margin-bottom:8px }
         .page-title  { font-size:26px; font-weight:400;
                        margin-bottom:4px }
@@ -173,7 +173,7 @@ $today         = date('Y-m-d');
                        border-radius:4px; text-decoration:none;
                        color:var(--text-secondary);
                        border:1px solid var(--border) }
-        .cal-nav a:hover { border-color:#1D9E75; color:#1D9E75 }
+        .cal-nav a:hover { border-color:#126b4e; color:#126b4e }
         .cal-grid    { padding:14px }
         .dow-row     { display:grid; grid-template-columns:repeat(7,1fr);
                        gap:4px; margin-bottom:4px }
@@ -188,16 +188,16 @@ $today         = date('Y-m-d');
                        cursor:pointer; border:1px solid transparent;
                        user-select:none; position:relative }
         .day-cell.empty { cursor:default }
-        .day-cell.today { border-color:#1D9E75;
+        .day-cell.today { border-color:#126b4e;
                           font-weight:600; color:#085041 }
         .day-cell.available { background:#E1F5EE; color:#0F6E56 }
-        .day-cell.unavailable { background:#FEF2F2; color:#DC2626;
+        .day-cell.unavailable { background:#FEF2F2; color:#b42318;
                                 text-decoration:line-through }
         .day-cell.booked { background:#E0E7FF; color:#3730A3;
                            cursor:not-allowed }
         .day-cell.booked-pending { background:#FDE9B0; color:#7A5A00; cursor:default }
         .day-cell.past   { opacity:.4; cursor:default }
-        .day-cell.selected { box-shadow:0 0 0 2px #1D9E75;
+        .day-cell.selected { box-shadow:0 0 0 2px #126b4e;
                              z-index:1 }
         .day-cell:not(.empty):not(.booked):not(.past):hover {
             border-color:var(--border-strong) }
@@ -223,9 +223,9 @@ $today         = date('Y-m-d');
                        border:1px solid var(--border);
                        border-radius:6px; cursor:pointer;
                        transition:.15s }
-        .avail-opt:has(input:checked) { border-color:#1D9E75;
+        .avail-opt:has(input:checked) { border-color:#126b4e;
                                         background:#F0FAF6 }
-        .avail-opt input { accent-color:#1D9E75 }
+        .avail-opt input { accent-color:#126b4e }
         .avail-opt span  { font-size:13px; font-weight:500 }
         .avail-opt small { font-size:11px; color:var(--text-secondary);
                            display:block }
@@ -404,7 +404,7 @@ $today         = date('Y-m-d');
                     </div>
                     <div class="legend-item">
                         <div class="legend-dot"
-                             style="border:1.5px solid #1D9E75">
+                             style="border:1.5px solid #126b4e">
                         </div>
                         Today
                     </div>

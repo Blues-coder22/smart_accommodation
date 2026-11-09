@@ -2,6 +2,8 @@
 require_once '../includes/auth.php';
 require_once '../includes/functions.php';
 require_once '../includes/db.php';
+require_once '../includes/booking_holds.php';
+expireStaleBookingRequests($pdo);   // releases dates held by unpaid or unanswered requests
 require_once '../includes/review_extras.php';   // person chips (photo + name + profile link)
 require_once '../includes/booking_events.php';
 ensureBookingEventsTable($pdo);
@@ -74,8 +76,8 @@ $notes = [
 $bookingBadge = ['pending' => ['#fff6dc', '#7a5a00', 'Pending'], 'confirmed' => ['#e7f3ec', '#1f5a3f', 'Confirmed'],
                  'cancelled' => ['#fdecea', '#8a2b22', 'Cancelled'], 'completed' => ['#e8f0fa', '#24476f', 'Completed'], 'no_show' => ['#f3e8ee', '#6e2a4d', 'No show']];
 function payLabel($r) {
-    if (!$r['payment_id']) return ['#f1efe8', '#6b6f68', 'No payment submitted'];
-    return ['confirmed' => ['#e7f3ec', '#1f5a3f', 'Received'], 'pending' => ['#fff6dc', '#7a5a00', 'Awaiting host'], 'failed' => ['#fdecea', '#8a2b22', 'Failed']][$r['payment_status']] ?? ['#f1efe8', '#6b6f68', 'Unknown'];
+    if (!$r['payment_id']) return ['#f1efe8', '#565c55', 'No payment submitted'];
+    return ['confirmed' => ['#e7f3ec', '#1f5a3f', 'Received'], 'pending' => ['#fff6dc', '#7a5a00', 'Awaiting host'], 'failed' => ['#fdecea', '#8a2b22', 'Failed']][$r['payment_status']] ?? ['#f1efe8', '#565c55', 'Unknown'];
 }
 ?>
 <!DOCTYPE html>
@@ -86,7 +88,7 @@ function payLabel($r) {
 <link rel="stylesheet" href="../assets/css/style.css">
 <style>
 .bk-table{width:100%;border-collapse:collapse;font-size:13px}
-.bk-table th{text-align:left;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#6b6f68;padding:10px 12px;border-bottom:1px solid #e4e1d8;white-space:nowrap}
+.bk-table th{text-align:left;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#565c55;padding:10px 12px;border-bottom:1px solid #e4e1d8;white-space:nowrap}
 .bk-table td{padding:12px;border-bottom:1px solid #eee;vertical-align:top}
 .pill{display:inline-block;padding:3px 10px;border-radius:99px;font-size:11px;font-weight:700;white-space:nowrap}
 .note{border-radius:8px;padding:7px 10px;font-size:12px;margin-top:8px;line-height:1.4}
@@ -122,14 +124,14 @@ function payLabel($r) {
         <table class="bk-table">
             <thead><tr><th>Booking</th><th>Guest and host</th><th>Booking status</th><th>Payment</th></tr></thead>
             <tbody>
-            <?php if (!$rows): ?><tr><td colspan="4" style="text-align:center;color:#888;padding:30px">Nothing here. <?= $filter === 'attention' ? 'No bookings need a look right now.' : '' ?></td></tr><?php endif; ?>
-            <?php foreach ($rows as $r): $bb = $bookingBadge[$r['status']] ?? ['#f1efe8', '#6b6f68', ucfirst($r['status'])]; $pl = payLabel($r); ?>
+            <?php if (!$rows): ?><tr><td colspan="4" style="text-align:center;color:#565c55;padding:30px">Nothing here. <?= $filter === 'attention' ? 'No bookings need a look right now.' : '' ?></td></tr><?php endif; ?>
+            <?php foreach ($rows as $r): $bb = $bookingBadge[$r['status']] ?? ['#f1efe8', '#565c55', ucfirst($r['status'])]; $pl = payLabel($r); ?>
             <tr>
                 <td>
                     <strong>#<?= (int)$r['booking_id'] ?></strong> &middot; <a href="../tourist/details.php?id=<?= (int)$r['accommodation_id'] ?>"><?= h($r['title']) ?></a><br>
-                    <span style="color:#777"><?= date('d M', strtotime($r['check_in_date'])) ?> &ndash; <?= date('d M Y', strtotime($r['check_out_date'])) ?> &middot; <?= (int)$r['num_guests'] ?> guest<?= $r['num_guests'] == 1 ? '' : 's' ?></span><br>
+                    <span style="color:#565c55"><?= date('d M', strtotime($r['check_in_date'])) ?> &ndash; <?= date('d M Y', strtotime($r['check_out_date'])) ?> &middot; <?= (int)$r['num_guests'] ?> guest<?= $r['num_guests'] == 1 ? '' : 's' ?></span><br>
                     <strong>KES <?= number_format($r['total_amount']) ?></strong>
-                    <span style="color:#999;font-size:11px">&middot; booked <?= date('d M Y', strtotime($r['created_at'])) ?></span>
+                    <span style="color:#565c55;font-size:11px">&middot; booked <?= date('d M Y', strtotime($r['created_at'])) ?></span>
                 </td>
                 <td>
                     <div style="margin-bottom:8px"><?= personChipHtml($r['t_id'], $r['t_name'], $r['t_photo'], 32, 'Guest') ?></div>
@@ -139,7 +141,7 @@ function payLabel($r) {
                 <td>
                     <span class="pill" style="background:<?= $pl[0] ?>;color:<?= $pl[1] ?>"><?= h($pl[2]) ?></span>
                     <?php if ($r['payment_id']): ?>
-                        <div style="font-size:12px;color:#777;margin-top:6px">KES <?= number_format($r['paid_amount']) ?> &middot; <?= h($r['payment_method'] ?: 'method not given') ?><br>Ref: <?= h($r['payment_reference'] ?: 'none') ?></div>
+                        <div style="font-size:12px;color:#565c55;margin-top:6px">KES <?= number_format($r['paid_amount']) ?> &middot; <?= h($r['payment_method'] ?: 'method not given') ?><br>Ref: <?= h($r['payment_reference'] ?: 'none') ?></div>
                         <a href="payments.php?filter=all&q=<?= (int)$r['booking_id'] ?>" style="font-size:12px">Open in Payment tracking &rarr;</a>
                     <?php endif; ?>
                     <?php if ($r['flag'] !== ''): $n = $notes[$r['flag']]; ?>

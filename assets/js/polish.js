@@ -100,3 +100,23 @@
   var a = document.createElement('a'); a.className = 'skip-link'; a.href = '#' + main.id; a.textContent = 'Skip to main content';
   document.body.insertBefore(a, document.body.firstChild);
 })();
+
+/* v9.16: loading state on form submit. Shows a spinner on the pressed button and ignores a second click
+   while the first request is still going (prevents double bookings, double payments and double ratings).
+   The button is NOT disabled, so its name/value (e.g. action=hide) is still sent. */
+(function () {
+  function reset(form) {
+    form.removeAttribute('data-submitting');
+    form.querySelectorAll('.is-loading').forEach(function (b) { b.classList.remove('is-loading'); b.removeAttribute('aria-busy'); });
+  }
+  document.addEventListener('submit', function (e) {
+    var form = e.target;
+    if (!form || form.tagName !== 'FORM' || e.defaultPrevented || form.hasAttribute('data-no-loading')) return;
+    if (form.getAttribute('data-submitting') === '1') { e.preventDefault(); return; }
+    form.setAttribute('data-submitting', '1');
+    var btn = e.submitter || form.querySelector('button[type=submit],input[type=submit],button:not([type])');
+    if (btn) { btn.classList.add('is-loading'); btn.setAttribute('aria-busy', 'true'); }
+    setTimeout(function () { reset(form); }, 12000);   // safety: e.g. a file download that never leaves the page
+  });
+  window.addEventListener('pageshow', function () { document.querySelectorAll('form[data-submitting]').forEach(reset); });
+})();

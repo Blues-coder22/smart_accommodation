@@ -258,7 +258,7 @@ function attractionCreditsHtml($pdo, array $names) {
             : h($c['source_name'] ?? 'Wikimedia Commons');
         $items .= '<li>Photo ' . (int)$pos . ': ' . h($c['credit']) . ($lic !== '' ? ' &middot; ' . $lic : '') . ' &middot; ' . $src . '</li>';
     }
-    return $items === '' ? '' : '<div class="att-credits" style="font-size:12px;color:#68776f;line-height:1.6;margin:10px 0 0">'
+    return $items === '' ? '' : '<div class="att-credits" style="font-size:12px;color:#4f5f57;line-height:1.6;margin:10px 0 0">'
         . '<strong style="font-size:11px;letter-spacing:.08em;text-transform:uppercase">Photo credits</strong>'
         . '<ul style="margin:4px 0 0;padding-left:18px">' . $items . '</ul></div>';
 }

@@ -47,7 +47,7 @@ if (!function_exists('personChipHtml')) {
         return '<a href="' . h($url) . '" class="person-chip" title="View profile" style="display:inline-flex;align-items:center;gap:10px;text-decoration:none;color:inherit">'
              . avatarHtml((int)$user_id, $full_name, $photo, (int)$size)
              . '<span><strong style="display:block;font-size:14px">' . h($full_name) . '</strong>'
-             . ($sub !== '' ? '<span style="display:block;font-size:12px;color:#68776f">' . h($sub) . '</span>' : '')
+             . ($sub !== '' ? '<span style="display:block;font-size:12px;color:#4f5f57">' . h($sub) . '</span>' : '')
              . '</span></a>';
     }
 }
@@ -60,8 +60,8 @@ if (!function_exists('categoryBarsHtml')) {
             if (empty($r[$col])) continue;
             $v = (int)$r[$col];
             $out .= '<div style="display:grid;grid-template-columns:90px minmax(0,1fr) 22px;gap:8px;align-items:center;font-size:12px;margin:3px 0">'
-                  . '<span style="color:#6b6f68">' . h($label) . '</span>'
-                  . '<div style="height:6px;background:#e8e5dc;border-radius:99px;overflow:hidden"><span style="display:block;height:100%;width:' . ($v * 20) . '%;background:#c0623a"></span></div>'
+                  . '<span style="color:#565c55">' . h($label) . '</span>'
+                  . '<div style="height:6px;background:#e8e5dc;border-radius:99px;overflow:hidden"><span style="display:block;height:100%;width:' . ($v * 20) . '%;background:#a3462a"></span></div>'
                   . '<strong style="text-align:right">' . $v . '</strong></div>';
         }
         return $out === '' ? '' : '<div style="max-width:320px;margin:8px 0">' . $out . '</div>';

@@ -30,3 +30,28 @@ input:not([type=checkbox]):not([type=radio]):focus-visible,select:focus-visible,
 .public-nav :focus-visible,.app-sidebar :focus-visible,.dash-wrap>.sidebar :focus-visible{outline-color:#ffd9a8!important}
 .skip-link{position:absolute;left:-999px;top:8px;background:#0d3b2e;color:#fff;padding:10px 14px;border-radius:8px;z-index:9999}
 .skip-link:focus{left:8px}
+
+/* =========================================================
+   v9.16 polish: tabular numbers, balanced headlines, loading and feedback states
+   ========================================================= */
+table,th,td,[class*="price"],[class*="amount"],[class*="total"],[class*="stat-"],.stat,.kpi,.tab-count,.badge,.hx-stay-price{font-variant-numeric:tabular-nums}
+h1,h2,h3{text-wrap:balance}
+p,li,dd,.hx-stay-desc{text-wrap:pretty}
+
+/* loading state on submit buttons (added by polish.js) */
+button.is-loading,.btn.is-loading,input.is-loading{position:relative;cursor:progress;opacity:.9;pointer-events:none}
+button.is-loading::after,.btn.is-loading::after{content:"";display:inline-block;width:14px;height:14px;margin-left:9px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;vertical-align:-2px;animation:se-spin .7s linear infinite}
+@keyframes se-spin{to{transform:rotate(360deg)}}
+
+/* useful feedback: messages ease in, buttons respond to a press */
+.flash{animation:se-flash-in .35s cubic-bezier(.2,.7,.2,1) both}
+.flash-success .flash-icon{animation:se-pop .4s .1s cubic-bezier(.2,.9,.3,1.4) both}
+@keyframes se-flash-in{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+@keyframes se-pop{from{transform:scale(.4);opacity:0}to{transform:scale(1);opacity:1}}
+button,.btn,.btn-sm{transition:background-color .15s ease,box-shadow .15s ease,transform .1s ease}
+button:not(:disabled):active,.btn:active,.btn-sm:active{transform:translateY(1px)}
+@media(prefers-reduced-motion:reduce){
+  .flash,.flash-success .flash-icon{animation:none!important}
+  button.is-loading::after,.btn.is-loading::after{animation-duration:1.6s!important}
+  button:not(:disabled):active,.btn:active,.btn-sm:active{transform:none}
+}

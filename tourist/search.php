@@ -2,6 +2,9 @@
 require_once '../includes/auth.php';
 require_once '../includes/functions.php';
 require_once '../includes/db.php';
+require_once '../includes/booking_holds.php';
+expireStaleBookingRequests($pdo);   // releases dates held by unpaid or unanswered requests
+require_once '../includes/attraction_reviews.php';
 
 if (session_status() === PHP_SESSION_NONE) session_start();
 
@@ -184,6 +187,14 @@ require_once __DIR__ . '/../includes/attraction_content.php';
 require_once __DIR__ . '/../includes/gallery.php';
 ensureAttractionPhotosTable($pdo);
 $attExtras = ($type === 'attraction') ? getAttractionExtrasMap($pdo, $attractions) : [];
+$attRatings = ($type === 'attraction') ? attractionRatingsMap($pdo, array_column($attractions, 'attraction_id')) : [];
+if ($type === 'attraction' && $sort === 'rating') {
+    // Highest rated first; places with no ratings yet go last (never treated as zero stars).
+    usort($attractions, function ($a, $b) use ($attRatings) {
+        $ra = $attRatings[(int)$a['attraction_id']] ?? null; $rb = $attRatings[(int)$b['attraction_id']] ?? null;
+        return [$rb ? $rb['avg'] : -1, $rb ? $rb['count'] : 0] <=> [$ra ? $ra['avg'] : -1, $ra ? $ra['count'] : 0];
+    });
+}
 
 // Get amenities for filter display
 $amenity_list = $pdo->query("
@@ -263,7 +274,7 @@ $property_types = $pdo->query("
         .acc-card-body { padding: 14px; }
         .acc-card-title { font-size: 15px; font-weight: 600;
                           margin-bottom: 4px; color: #085041; }
-        .acc-card-location { font-size: 12px; color: #888;
+        .acc-card-location { font-size: 12px; color: #565c55;
                              margin-bottom: 8px; }
         .acc-card-meta { display: flex; justify-content: space-between;
                          align-items: center; margin-bottom: 8px; }
@@ -291,7 +302,7 @@ $property_types = $pdo->query("
         .search-bar-top select { flex: 1; padding: 10px 14px;
                                   border: none; border-radius: 6px;
                                   font-size: 14px; }
-        .search-bar-top button { background: #1D9E75; color: white;
+        .search-bar-top button { background: #126b4e; color: white;
                                   border: none; padding: 10px 20px;
                                   border-radius: 6px; cursor: pointer;
                                   font-size: 14px; white-space: nowrap; }
@@ -304,7 +315,7 @@ $property_types = $pdo->query("
         .att-card-body { padding: 14px; }
         .att-card-title { font-size: 15px; font-weight: 600;
                           color: #085041; margin-bottom: 4px; }
-        .att-card-location { font-size: 12px; color: #888;
+        .att-card-location { font-size: 12px; color: #565c55;
                              margin-bottom: 8px; }
         .att-card-footer { display: flex;
                            justify-content: space-between;
@@ -319,12 +330,12 @@ $property_types = $pdo->query("
         }
             .disc-head { max-width:1400px; margin:0 auto; padding:28px 24px 0; }
         .disc-head-row { display:flex; justify-content:space-between; align-items:flex-end; gap:16px; flex-wrap:wrap; }
-        .disc-eyebrow { font-size:11px; letter-spacing:.14em; text-transform:uppercase; font-weight:700; color:#c0623a; }
+        .disc-eyebrow { font-size:11px; letter-spacing:.14em; text-transform:uppercase; font-weight:700; color:#a3462a; }
         .disc-head h1 { margin:4px 0 6px; font-size:42px; line-height:1.05; }
-        .disc-sub { margin:0; color:#6b6f68; font-size:14px; }
+        .disc-sub { margin:0; color:#565c55; font-size:14px; }
         .disc-tabs { display:flex; gap:6px; margin-top:22px; border-bottom:1px solid #e4e1d8; }
-        .disc-tab { padding:10px 20px; font-size:14px; font-weight:600; color:#6b6f68; border-bottom:3px solid transparent; margin-bottom:-1px; text-decoration:none; }
-        .disc-tab.active { color:#0d3b2e; border-bottom-color:#c0623a; }
+        .disc-tab { padding:10px 20px; font-size:14px; font-weight:600; color:#565c55; border-bottom:3px solid transparent; margin-bottom:-1px; text-decoration:none; }
+        .disc-tab.active { color:#0d3b2e; border-bottom-color:#a3462a; }
         #mapBox[hidden] { display:none; }
         #mapBox { margin-bottom:18px; }
         .explainer { background:#fff; border:1px solid #e4e1d8; border-radius:12px; padding:0; margin-bottom:16px; }
@@ -352,7 +363,7 @@ $property_types = $pdo->query("
     <div class="disc-head-row">
         <div>
             <div class="disc-eyebrow">Discover</div>
-            <h1><?= $type === 'accommodation' ? 'Stays that feel like Kenya.' : 'Places worth the journey.' ?></h1>
+            <h1><?= $type === 'accommodation' ? 'Find a stay near what you want to see.' : 'Find places to see, then stay close.' ?></h1>
             <p class="disc-sub"><?= $type === 'accommodation' ? 'Recommended stays around Kenya, with the attractions close to each one.' : 'Attractions across Kenya, with the stays close to each one.' ?></p>
         </div>
         <button type="button" class="btn btn-outline" id="toggleMap" aria-expanded="false">View map</button>
@@ -556,13 +567,19 @@ $property_types = $pdo->query("
                 </option>
             </select>
             <?php endif; ?>
+            <?php if ($type === 'attraction'): ?>
+            <select aria-label="Sort attractions" class="sort-select" onchange="const url = new URL(window.location); url.searchParams.set('sort', this.value); window.location = url;">
+                <option value="smart_score" <?= $sort !== 'rating' ? 'selected' : '' ?>>Sort: Default</option>
+                <option value="rating" <?= $sort === 'rating' ? 'selected' : '' ?>>Sort: Highest rated</option>
+            </select>
+            <?php endif; ?>
         </div>
 
         <?php if ($type === 'accommodation'): ?>
         <details class="explainer" id="how-scores">
             <summary>How are the smart score and distance worked out?</summary>
             <div class="ex-body">
-                <p><strong>Smart score (out of 100).</strong> A quick way to see which stays suit you best. It mixes four things: guest ratings (the biggest part), how close the stay is to the place you searched, how good the price is compared with the other results, and how often guests have stayed there. A higher score means a better overall match. It is only a guide, so you always choose.</p>
+                <p><strong>Smart score (out of 100).</strong> A quick way to see which stays suit you best. It mixes four things: guest ratings (the biggest part; a stay with no reviews yet is treated as a neutral 3 out of 5), how close the stay is to the place you searched, how good the price is compared with the other results, and how often guests have stayed there. A higher score means a better overall match. It is only a guide, so you always choose.</p>
                 <p><strong>Distance.</strong> &ldquo;3.2 km away&rdquo; is the straight-line distance on the map, as a bird would fly it. We work it out from the two map positions with the haversine method, which allows for the curve of the Earth. Roads twist, so the drive is usually a bit longer than this number.</p>
             </div>
         </details>
@@ -594,15 +611,16 @@ $property_types = $pdo->query("
                     <div class="acc-card" onclick="if(!event.target.closest('a,button'))window.location='<?= h($detailsUrl) ?>'">
                         <?= slideshowHtml($urls, $acc['title'], 'card') ?>
                         <div class="acc-card-body">
+                            <?php if (!empty($acc['created_at']) && strtotime($acc['created_at']) > strtotime('-14 days')): ?><span class="smart-badge" style="background:#a3462a;color:#fff;margin:0 6px 4px 0">New</span><?php endif; ?>
                             <div class="smart-badge" style="margin:0 0 4px">Smart score <?= $score100 ?> <a href="#how-scores" title="How is this worked out?" style="font-weight:400">(how?)</a></div>
                             <div class="acc-card-title">
                                 <a href="<?= h($detailsUrl) ?>" style="color:inherit;text-decoration:none"><?= h($acc['title']) ?></a>
                                 <?php if (!empty($verifiedHosts[(int)($acc['host_id'] ?? 0)])) echo hostVerifiedBadge(); ?>
                             </div>
                             <?php if ((int)$acc['total_bookings'] >= 0 && (float)$acc['avg_rating'] > 0): ?>
-                            <div class="acc-rating" style="margin:2px 0 4px"><?= str_repeat('&#9733;', (int)round($acc['avg_rating'])) ?><span style="color:#d6d3c8"><?= str_repeat('&#9733;', 5 - (int)round($acc['avg_rating'])) ?></span> <span style="font-size:12px;color:#6b6f68"><?= number_format($acc['avg_rating'], 1) ?></span></div>
+                            <div class="acc-rating" style="margin:2px 0 4px"><?= str_repeat('&#9733;', (int)round($acc['avg_rating'])) ?><span style="color:#d6d3c8"><?= str_repeat('&#9733;', 5 - (int)round($acc['avg_rating'])) ?></span> <span style="font-size:12px;color:#565c55"><?= number_format($acc['avg_rating'], 1) ?></span></div>
                             <?php else: ?>
-                            <div class="acc-rating" style="margin:2px 0 4px;font-size:12px;color:#6b6f68">New listing, no reviews yet</div>
+                            <div class="acc-rating" style="margin:2px 0 4px;font-size:12px;color:#565c55">New listing, no reviews yet</div>
                             <?php endif; ?>
                             <div class="acc-card-location">
                                 <?= h($acc['location_name']) ?>
@@ -647,6 +665,7 @@ $property_types = $pdo->query("
                         <div class="att-card-body">
                             <div class="att-card-title"><?= h($att['name']) ?></div>
                             <div class="att-card-location"><?= h($att['location_name']) ?></div>
+                            <div class="att-card-location" style="color:#7a5b00"><?= h(attractionRatingLabel($attRatings[(int)$att['attraction_id']] ?? null)) ?></div>
                             <?php if ($att['distance_km'] !== null): ?><div class="near-km-tag"><?= number_format((float)$att['distance_km'], 1) ?> km from <?= h($near_stay['title']) ?></div><?php endif; ?>
                             <p class="att-card-tag"><?= h($blurb) ?></p>
                             <div class="att-card-footer">

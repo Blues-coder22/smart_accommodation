@@ -1,6 +1,6 @@
 /* StayExplore Kenya homepage — warm cream, forest green and terracotta, matching the supplied design. */
-:root{--hx-cream:#faf6ef;--hx-sand:#f1ebdf;--hx-paper:#fffdf9;--hx-ink:#1f241f;--hx-muted:#6b6f68;--hx-line:#e4ddcf;
---hx-forest:#0b3b24;--hx-forest2:#082c1b;--hx-terra:#c0623a;--hx-terra-soft:#f6e3da;
+:root{--hx-cream:#faf6ef;--hx-sand:#f1ebdf;--hx-paper:#fffdf9;--hx-ink:#1f241f;--hx-muted:#565c55;--hx-line:#e4ddcf;
+--hx-forest:#0b3b24;--hx-forest2:#082c1b;--hx-terra:#a3462a;--hx-terra-soft:#f6e3da;
 --hx-serif:'Instrument Serif','Cormorant Garamond',Georgia,'Times New Roman',serif;
 --hx-sans:'Work Sans',system-ui,-apple-system,'Segoe UI',Arial,sans-serif}
 *{box-sizing:border-box}
@@ -208,3 +208,28 @@ body.hx{margin:0;background:var(--hx-cream);color:var(--hx-ink);font-family:var(
 .hx-att-links a{color:#fff;text-decoration:underline;text-underline-offset:3px}
 .hx-att-links span{opacity:.7;margin:0 4px}
 @media(max-width:760px){.hx-att-layout{grid-template-columns:1fr}.hx-att-feature{min-height:360px}.hx-att-card{min-height:300px}.hx-att-feature h3{font-size:22px}}
+
+/* v9.13: homepage stays show name + description only (scores, ratings and prices live in Discover) */
+.hx-stay-body h3{margin:0 0 8px}
+.hx-stay-desc{margin:0;color:var(--hx-muted);font-size:15px;line-height:1.55;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.hx-stay-foot{justify-content:flex-start}
+
+/* v9.13: attractions - the photo is shown clean at the top, the words sit below it on paper instead of over the picture */
+.hx-att-layout{gap:26px}
+.hx-att-feature,.hx-att-card{display:flex;flex-direction:column;color:var(--hx-ink,#1f241f);background:var(--hx-paper,#fffdf8);border:1px solid var(--hx-line,#e4ddcf);min-height:0;isolation:auto}
+.hx-att-feature::after,.hx-att-card::after{display:none}
+.hx-att-feature>img,.hx-att-card>img{position:static;inset:auto;z-index:auto;width:100%;height:auto;aspect-ratio:16/10;object-fit:cover;display:block;background:#e3dccd}
+.hx-att-feature>img{aspect-ratio:21/9}
+.hx-att-feature .copy,.hx-att-card .copy{position:static;max-width:none;padding:22px 24px 24px}
+.hx-att-kicker{color:#a3462a}
+.hx-att-feature h3,.hx-att-card h3{text-shadow:none;color:var(--hx-ink,#1f241f)}
+.hx-att-feature h3 a,.hx-att-card h3 a{color:inherit}
+.hx-insight{color:var(--hx-ink,#1f241f);background:#f4efe3;backdrop-filter:none;border-left-color:#a3462a}
+.hx-insight span{color:#a3462a}
+.hx-att-links a{color:#0d3b2e}
+@media(max-width:760px){.hx-att-feature>img{aspect-ratio:16/10}}
+
+/* v9.13: "New" / "In season" label on photos */
+.hx-stay-photo{position:relative}
+.hx-new{position:absolute;left:12px;top:12px;background:#a3462a;color:#fff;font-size:12px;font-weight:700;letter-spacing:.04em;padding:4px 10px;border-radius:999px;z-index:2}
+.hx-footer h2{font:600 14px var(--hx-sans);color:#fff;margin:0 0 18px;letter-spacing:0}

@@ -55,7 +55,7 @@ $listings = $pdo->prepare("
                  THEN b.booking_id END) AS active_bookings,
            (SELECT photo_path FROM accommodation_photos
             WHERE accommodation_id = a.accommodation_id
-            AND is_primary = 1 LIMIT 1) AS primary_photo
+            ORDER BY is_primary DESC, photo_id ASC LIMIT 1) AS primary_photo
     FROM accommodations a
     LEFT JOIN reviews r
         ON r.accommodation_id = a.accommodation_id
@@ -86,7 +86,7 @@ $listings = $listings->fetchAll();
                       top:52px; height:calc(100vh - 52px);
                       overflow-y:auto }
         .sidebar-role { font-size:10px; font-weight:700;
-                        letter-spacing:.08em; color:#1D9E75;
+                        letter-spacing:.08em; color:#126b4e;
                         text-transform:uppercase;
                         padding:0 20px; margin-bottom:12px }
         .sidebar-link { display:flex; align-items:center; gap:10px;
@@ -97,12 +97,12 @@ $listings = $listings->fetchAll();
                               background:var(--surface-1) }
         .sidebar-link.active { color:#085041; font-weight:500;
                                background:#E1F5EE;
-                               border-left:3px solid #1D9E75 }
+                               border-left:3px solid #126b4e }
         .main       { padding:28px }
         .page-head  { display:flex; justify-content:space-between;
                       align-items:flex-start; margin-bottom:24px }
         .page-tag   { font-size:11px; font-weight:600;
-                      letter-spacing:.06em; color:#1D9E75;
+                      letter-spacing:.06em; color:#126b4e;
                       text-transform:uppercase; margin-bottom:6px }
         .page-title { font-size:26px; font-weight:400 }
         .btn-add    { padding:9px 18px; background:#085041;
@@ -123,7 +123,7 @@ $listings = $listings->fetchAll();
                          justify-content:center; font-size:28px;
                          flex-shrink:0 }
         .listing-thumb img { width:100%; height:100%;
-                             object-fit:cover }
+                             object-fit:contain }
         .listing-title { font-size:14px; font-weight:500;
                          margin-bottom:3px }
         .listing-meta  { font-size:12px; color:var(--text-secondary);
@@ -137,7 +137,7 @@ $listings = $listings->fetchAll();
                        border-radius:3px }
         .s-approved  { background:#E1F5EE; color:#0F6E56;
                        border:1px solid #9FE1CB }
-        .s-pending   { background:#FFF8E1; color:#9A6A00;
+        .s-pending   { background:#FFF8E1; color:#7a5200;
                        border:1px solid #F9D57C }
         .s-rejected  { background:#FEF2F2; color:#991B1B;
                        border:1px solid #FECACA }
@@ -153,8 +153,8 @@ $listings = $listings->fetchAll();
                       border:1px solid var(--border-strong);
                       background:none;
                       color:var(--text-secondary) }
-        .btn-sm:hover { border-color:#1D9E75; color:#1D9E75 }
-        .btn-sm-danger { border-color:#FECACA; color:#DC2626 }
+        .btn-sm:hover { border-color:#126b4e; color:#126b4e }
+        .btn-sm-danger { border-color:#FECACA; color:#b42318 }
         .btn-sm-danger:hover { background:#FEF2F2 }
         .empty-state { text-align:center; padding:64px 20px }
         .empty-state h3 { font-size:16px; font-weight:500;

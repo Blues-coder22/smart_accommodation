@@ -177,7 +177,7 @@ $existingAttractions = $pdo->query("SELECT attraction_id, name, latitude, longit
 .cm-item img{width:100%;height:120px;object-fit:cover;display:block;background:#eef1ef}
 .cm-item .cm-meta{padding:7px 9px;line-height:1.4}
 .cm-item input{margin-right:5px}
-.cm-sub{grid-column:1/-1;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#68776f;margin:8px 0 0}
+.cm-sub{grid-column:1/-1;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#4f5f57;margin:8px 0 0}
 .cm-foot{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 20px;border-top:1px solid #e3e7e5;flex-wrap:wrap}
 </style>
 <div id="cmModal" class="cm-back" hidden role="dialog" aria-modal="true" aria-labelledby="cmTitle">

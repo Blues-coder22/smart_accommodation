@@ -120,7 +120,7 @@ $tstats = $tstats->fetch();
         .page-wrap   { max-width:700px; margin:0 auto;
                        padding:32px 24px }
         .page-tag    { font-size:11px; font-weight:600;
-                       letter-spacing:.06em; color:#1D9E75;
+                       letter-spacing:.06em; color:#126b4e;
                        text-transform:uppercase; margin-bottom:8px }
         .page-title  { font-size:26px; font-weight:400;
                        margin-bottom:24px }
@@ -130,7 +130,7 @@ $tstats = $tstats->fetch();
                           border-radius:8px; padding:20px;
                           margin-bottom:20px }
         .avatar      { width:72px; height:72px; border-radius:50%;
-                       background:#1D9E75; display:flex;
+                       background:#126b4e; display:flex;
                        align-items:center; justify-content:center;
                        color:#fff; font-size:28px; font-weight:600;
                        overflow:hidden; flex-shrink:0 }
@@ -173,7 +173,7 @@ $tstats = $tstats->fetch();
                             color:var(--text-primary);
                             background:var(--surface-2) }
         .form-group input:focus { outline:none;
-                                  border-color:#1D9E75 }
+                                  border-color:#126b4e }
         .form-row    { display:grid;
                        grid-template-columns:1fr 1fr; gap:12px }
         .btn-save    { padding:9px 22px; background:#085041;

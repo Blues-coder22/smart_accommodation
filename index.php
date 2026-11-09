@@ -4,6 +4,7 @@ require_once __DIR__ . '/includes/functions.php';
 require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/includes/profile_photo.php';
 require_once __DIR__ . '/includes/attraction_content.php';
+require_once __DIR__ . '/includes/attraction_reviews.php';
 if (session_status() === PHP_SESSION_NONE) session_start();
 
 $base = appBasePath();
@@ -61,6 +62,32 @@ foreach ($popularAttractions as $k => $pa) {
 }
 usort($popularAttractions, function ($x, $y) { return $y['stays_near'] <=> $x['stays_near']; });
 $homeAttractions = array_slice($popularAttractions, 0, 3);
+
+
+// ---- In season now (from each attraction's best months) and Newly added stays ----
+$curMonth = (int)date('n');
+$seasonNow = [];
+try {
+    $allAtt = $pdo->query("SELECT attraction_id, name, category, location_name, photo_path FROM attractions ORDER BY name LIMIT 300")->fetchAll(PDO::FETCH_ASSOC);
+    $allExtras = getAttractionExtrasMap($pdo, $allAtt);
+    foreach ($allAtt as $a) {
+        $bt = trim((string)($allExtras[(int)$a['attraction_id']]['best_time'] ?? ''));
+        if ($bt === '') { $k = attractionKnowledge($a['name']); $bt = $k ? (string)($k['best_time'] ?? '') : ''; }
+        $m = parseSeasonMonths($bt);
+        // "All year" places are always in season, so they would crowd out the ones that are special right now.
+        if ($m && count($m) < 12 && in_array($curMonth, $m, true)) { $a['best_time'] = $bt; $seasonNow[] = $a; }
+    }
+} catch (Throwable $e) { $seasonNow = []; }
+$seasonNow = array_slice($seasonNow, 0, 4);
+
+$newStays = [];
+try {
+    $newStays = $pdo->query("SELECT a.accommodation_id, a.title, a.description, a.location_name,
+        (SELECT p.photo_path FROM accommodation_photos p WHERE p.accommodation_id=a.accommodation_id ORDER BY p.is_primary DESC, p.photo_id ASC LIMIT 1) AS primary_photo
+        FROM accommodations a WHERE a.status='approved' AND a.created_at >= (NOW() - INTERVAL 30 DAY)
+        ORDER BY a.created_at DESC LIMIT 4")->fetchAll(PDO::FETCH_ASSOC);
+} catch (Throwable $e) { $newStays = []; }
+$attRatingsHome = attractionRatingsMap($pdo, array_column($homeAttractions, 'attraction_id'));
 
 function homeInsightLabel($category) {
     $c = strtolower((string)$category);
@@ -164,6 +191,7 @@ $attrUrl   = $base . '/tourist/search.php?type=attraction';
   <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Work+Sans:wght@400;500;600;700&display=swap">
   <link rel="stylesheet" href="assets/css/home.css">
+  <link rel="stylesheet" href="assets/css/a11y.css">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Ccircle cx=%2716%27 cy=%2716%27 r=%2716%27 fill=%27%230d3b2e%27/%3E%3Ctext x=%2716%27 y=%2721%27 font-size=%2713%27 fill=%27white%27 text-anchor=%27middle%27 font-family=%27Georgia%27%3ESE%3C/text%3E%3C/svg%3E">
 </head>
 <body class="hx">
@@ -199,6 +227,7 @@ $attrUrl   = $base . '/tourist/search.php?type=attraction';
   <div class="hx-flash">Your account has been permanently deleted and your personal details erased.</div>
 <?php endif; ?>
 
+<main id="main-content">
 <!-- Hero with sliding images -->
 <section class="hx-hero" aria-roledescription="carousel" aria-label="Featured places in Kenya">
   <div class="hx-viewport">
@@ -209,12 +238,12 @@ $attrUrl   = $base . '/tourist/search.php?type=attraction';
     </div>
   </div>
   <div class="hx-hero-inner">
-    <span class="hx-pill"><?= hxIcon('sparkle') ?> Smart recommendations for Kenya and beyond</span>
-    <h1>Discover Kenya.<br>Stay.Explore.<br>Experience.</h1>
-    <p class="lead">From cosy rooms in Nairobi to lodges at the foot of Mt. Kenya, find where to stay and discover nearby attractions or start with a place you want to see and find the best stays around it.</p>
+    <span class="hx-pill"><?= hxIcon('sparkle') ?> Stays matched to places worth seeing</span>
+    <h1>Stay close to everything you came to see.</h1>
+    <p class="lead">Start with where you want to stay, or with a place you want to see, and we show you the best matches around it, from cosy rooms in Nairobi to lodges at the foot of Mt. Kenya.</p>
     <div class="hx-hero-cta">
-      <a class="hx-btn light" href="<?= h($stayUrl) ?>">View stays</a>
-      <a class="hx-btn ghost" href="<?= h($attrUrl) ?>">View attractions</a>
+      <a class="hx-btn light" href="<?= h($stayUrl) ?>">Find a stay</a>
+      <a class="hx-btn ghost" href="<?= h($attrUrl) ?>">Explore attractions</a>
     </div>
   </div>
   <div class="hx-ctrl">
@@ -227,9 +256,9 @@ $attrUrl   = $base . '/tourist/search.php?type=attraction';
 
 <!-- Benefits -->
 <section class="hx-benefits">
-  <div class="hx-benefit"><?= hxIcon('sparkle') ?><h3>Smart recommendations</h3><p>Results ranked to help you choose with confidence.</p></div>
+  <div class="hx-benefit"><?= hxIcon('sparkle') ?><h3>Ranked, not random</h3><p>Rating, price and distance combined into one score.</p></div>
   <div class="hx-benefit"><?= hxIcon('check') ?><h3>Verified reviews</h3><p>Only guests with confirmed bookings can leave reviews.</p></div>
-  <div class="hx-benefit"><?= hxIcon('shield') ?><h3>Booking information</h3><p>Keep your booking details and payment status organised.</p></div>
+  <div class="hx-benefit"><?= hxIcon('shield') ?><h3>Clear booking status</h3><p>See every booking and payment update in one place.</p></div>
   <div class="hx-benefit"><?= hxIcon('users') ?><h3>Local hosts</h3><p>Supporting Kenyan property owners and communities.</p></div>
 </section>
 
@@ -253,7 +282,7 @@ $attrUrl   = $base . '/tourist/search.php?type=attraction';
     <article class="hx-stay">
       <div class="hx-stay-photo">
         <a href="<?= h($url) ?>"><img src="<?= h($photo) ?>" alt="<?= h($acc['title']) ?>" loading="lazy" onerror="this.onerror=null;this.src='assets/user-house.jpg';"></a>
-        <span class="hx-match">Smart score <?= (int)$acc['match'] ?></span>
+        <?php if (!empty($acc['created_at']) && strtotime($acc['created_at']) > strtotime('-14 days')): ?><span class="hx-new">New</span><?php endif; ?>
         <?php if ($isTourist): ?>
           <div class="hx-heart<?= $saved ? ' on' : '' ?>"><form method="POST" action="<?= h($base) ?>/index.php#stays" style="display:contents">
             <input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken()) ?>"><input type="hidden" name="fav_stay" value="<?= (int)$acc['accommodation_id'] ?>">
@@ -263,11 +292,9 @@ $attrUrl   = $base . '/tourist/search.php?type=attraction';
         <?php endif; ?>
       </div>
       <div class="hx-stay-body">
-        <div class="hx-stay-top"><h3><a href="<?= h($url) ?>"><?= h($acc['title']) ?></a></h3>
-          <span class="hx-rate"><?= hxIcon('star') ?> <?= (float)$acc['avg_rating'] > 0 ? number_format((float)$acc['avg_rating'], 1) : 'New' ?></span></div>
-        <div class="hx-loc"><?= hxIcon('pin') ?> <?= h($acc['location_name'] ?: 'Kenya') ?></div>
+        <h3><a href="<?= h($url) ?>"><?= h($acc['title']) ?></a></h3>
+        <p class="hx-stay-desc"><?= h(trim((string)($acc['description'] ?? '')) !== '' ? mb_strimwidth(trim(preg_replace('/\s+/', ' ', (string)$acc['description'])), 0, 170, '…', 'UTF-8') : 'A comfortable place to stay in ' . ($acc['location_name'] ?: 'Kenya') . '.') ?></p>
         <div class="hx-stay-foot">
-          <span class="hx-price">KES <?= number_format((float)$acc['price_per_night']) ?> <small>/ night</small></span>
           <a class="hx-link" href="<?= h($url) ?>">View stay <?= hxIcon('arrow') ?></a>
         </div>
       </div>
@@ -309,6 +336,7 @@ $attrUrl   = $base . '/tourist/search.php?type=attraction';
             'open'  => $base . '/tourist/attraction.php?id=' . (int)$a['attraction_id'],
             'stays' => $base . '/tourist/search.php?type=accommodation&attraction_id=' . (int)$a['attraction_id'],
             'near'  => (int)$a['stays_near'],
+            'rating' => ($attRatingsHome[(int)$a['attraction_id']] ?? null),
           ];
         }
       } else {
@@ -330,6 +358,7 @@ $attrUrl   = $base . '/tourist/search.php?type=attraction';
           <?php endif; ?>
           <div class="hx-att-links">
             <a href="<?= h($c['open']) ?>">Explore <?= h($c['name']) ?></a>
+            <?php if (!empty($c['rating'])): ?><span aria-hidden="true">·</span> <span><?= h(attractionRatingLabel($c['rating'])) ?></span><?php endif; ?>
             <?php if ($c['stays'] !== '' && $c['near'] > 0): ?><span aria-hidden="true">·</span> <a href="<?= h($c['stays']) ?>"><?= (int)$c['near'] ?> stay<?= $c['near'] === 1 ? '' : 's' ?> nearby</a><?php endif; ?>
           </div>
         </div>
@@ -339,13 +368,58 @@ $attrUrl   = $base . '/tourist/search.php?type=attraction';
   </div>
 </section>
 
+
+<!-- In season now -->
+<?php if ($seasonNow): ?>
+<section class="hx-section hx-reveal" id="in-season">
+  <div class="hx-head">
+    <div><div class="hx-kicker">In season</div><h2>Great in <?= h(date('F')) ?></h2></div>
+    <p>Places in Kenya that are at their best this month.</p>
+  </div>
+  <div class="hx-row">
+    <?php foreach ($seasonNow as $a): ?>
+    <article class="hx-stay">
+      <div class="hx-stay-photo"><a href="<?= h($base . '/tourist/attraction.php?id=' . (int)$a['attraction_id']) ?>"><img src="<?= h(homeImagePath($a['photo_path'] ?? '', 'kenya-lake-shore.jpg', 'attractions')) ?>" alt="<?= h($a['name']) ?>" loading="lazy" onerror="this.onerror=null;this.src='assets/kenya-lake-shore.jpg';"></a><span class="hx-new" style="background:#0d3b2e">In season</span></div>
+      <div class="hx-stay-body">
+        <h3><a href="<?= h($base . '/tourist/attraction.php?id=' . (int)$a['attraction_id']) ?>"><?= h($a['name']) ?></a></h3>
+        <p class="hx-stay-desc">Best time: <?= h($a['best_time']) ?></p>
+        <div class="hx-stay-foot"><a class="hx-link" href="<?= h($base . '/tourist/attraction.php?id=' . (int)$a['attraction_id']) ?>">Explore <?= hxIcon('arrow') ?></a></div>
+      </div>
+    </article>
+    <?php endforeach; ?>
+  </div>
+</section>
+<?php endif; ?>
+
+<!-- Newly added stays -->
+<?php if ($newStays): ?>
+<section class="hx-section hx-reveal" id="new-stays">
+  <div class="hx-head">
+    <div><div class="hx-kicker">Just listed</div><h2>Newly added stays</h2></div>
+    <p>Fresh listings from our hosts in the last 30 days.</p>
+  </div>
+  <div class="hx-row">
+    <?php foreach ($newStays as $n): $nu = $base . '/tourist/details.php?id=' . (int)$n['accommodation_id']; ?>
+    <article class="hx-stay">
+      <div class="hx-stay-photo"><a href="<?= h($nu) ?>"><img src="<?= h(homeImagePath($n['primary_photo'] ?? '', 'user-house.jpg')) ?>" alt="<?= h($n['title']) ?>" loading="lazy" onerror="this.onerror=null;this.src='assets/user-house.jpg';"></a><span class="hx-new">New</span></div>
+      <div class="hx-stay-body">
+        <h3><a href="<?= h($nu) ?>"><?= h($n['title']) ?></a></h3>
+        <p class="hx-stay-desc"><?= h(trim((string)$n['description']) !== '' ? mb_strimwidth(trim(preg_replace('/\s+/', ' ', (string)$n['description'])), 0, 170, '…', 'UTF-8') : 'A new place to stay in ' . ($n['location_name'] ?: 'Kenya') . '.') ?></p>
+        <div class="hx-stay-foot"><a class="hx-link" href="<?= h($nu) ?>">View stay <?= hxIcon('arrow') ?></a></div>
+      </div>
+    </article>
+    <?php endforeach; ?>
+  </div>
+</section>
+<?php endif; ?>
+
 <!-- Host call to action -->
 <section class="hx-host hx-reveal">
   <img src="assets/user-house.jpg" alt="A welcoming Kenyan host home" loading="lazy">
   <div>
     <div class="hx-kicker">For Kenyan hosts</div>
-    <h2>Your place belongs in someone’s story.</h2>
-    <p>List your property, manage bookings and connect with travellers looking for an authentic Kenyan stay.</p>
+    <h2>Host guests and keep every booking in one place.</h2>
+    <p>List your property, accept requests yourself and get paid directly by your guests.</p>
     <div class="row">
       <a class="hx-btn" href="<?= h($hostUrl) ?>"><?= hxIcon('building') ?> List your property</a>
       <a class="hx-btn line" href="<?= h($base) ?>/how-hosting-works.php">How hosting works</a>
@@ -353,16 +427,18 @@ $attrUrl   = $base . '/tourist/search.php?type=attraction';
   </div>
 </section>
 
+</main>
 <footer class="hx-footer">
   <div class="hx-footer-grid">
     <div><div class="brand"><span class="hx-logo sm">SE</span> StayExplore Kenya</div><p>Thoughtfully matching travellers with Kenyan stays and experiences.</p></div>
-    <div><h4>Explore</h4><a href="<?= h($stayUrl) ?>">Stays</a><a href="<?= h($attrUrl) ?>">Attractions</a><a href="<?= h($stayUrl) ?>">Recommendations</a></div>
-    <div><h4>Company</h4><a href="<?= h($base) ?>/about.html">About</a><a href="<?= h($base) ?>/contact.html">Contact</a><a href="<?= h($hostUrl) ?>">List your property</a></div>
-    <div><h4>Support</h4><a href="<?= h($base) ?>/help.html">Help centre</a><a href="<?= h($base) ?>/privacy.html">Privacy</a><a href="<?= h($base) ?>/terms.html">Terms</a></div>
+    <div><h2>Explore</h2><a href="<?= h($stayUrl) ?>">Stays</a><a href="<?= h($attrUrl) ?>">Attractions</a><a href="<?= h($stayUrl) ?>">Recommendations</a></div>
+    <div><h2>Company</h2><a href="<?= h($base) ?>/about.html">About</a><a href="<?= h($base) ?>/contact.html">Contact</a><a href="<?= h($hostUrl) ?>">List your property</a></div>
+    <div><h2>Support</h2><a href="<?= h($base) ?>/help.html">Help centre</a><a href="<?= h($base) ?>/privacy.html">Privacy</a><a href="<?= h($base) ?>/terms.html">Terms</a></div>
   </div>
   <div class="hx-copy">© <?= date('Y') ?> StayExplore Kenya. Made for journeys worth remembering.</div>
 </footer>
 
 <script src="assets/js/home.js"></script>
+<script src="assets/js/polish.js" defer></script>
 </body>
 </html>

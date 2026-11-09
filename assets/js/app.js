@@ -348,7 +348,7 @@ function drawMonthlyTrend(root,series,description,valueLabel){
   const xAt=i=>xStart+(xEnd-xStart)*i/Math.max(1,series.totals.length-1);
   const yAt=value=>yBottom-(value/scale)*(yBottom-yTop);
   const points=series.totals.map((value,i)=>`${xAt(i)},${yAt(value)}`).join(' ');
-  const labels=series.months.map((date,i)=>`<text x="${xAt(i)}" y="183" text-anchor="middle" fill="#6f746d" font-size="11">${date.toLocaleDateString('en-KE',{month:'short',year:'2-digit'})}</text>`).join('');
+  const labels=series.months.map((date,i)=>`<text x="${xAt(i)}" y="183" text-anchor="middle" fill="#565c55" font-size="11">${date.toLocaleDateString('en-KE',{month:'short',year:'2-digit'})}</text>`).join('');
   const circles=series.totals.map((value,i)=>`<circle cx="${xAt(i)}" cy="${yAt(value)}" r="4" fill="#0d3b2e"><title>${series.months[i].toLocaleDateString('en-KE',{month:'long',year:'numeric'})}: ${valueLabel(value)}</title></circle>`).join('');
   const grid=[24,89,154].map(y=>`<line x1="${xStart}" y1="${y}" x2="${xEnd}" y2="${y}" stroke="#d9d5ca" stroke-width="1"/>`).join('');
   root.innerHTML=`<svg viewBox="0 0 ${width} 200" role="img" aria-label="${description}" preserveAspectRatio="none"><title>${description}</title>${grid}<polyline points="${points}" fill="none" stroke="#0d3b2e" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>${circles}${labels}</svg>`;

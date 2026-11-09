@@ -6,19 +6,19 @@
         <p>&copy; <?= date('Y') ?> StayExplore Kenya. All rights reserved.</p>
     </div>
     <div>
-        <h4>Explore</h4>
+        <h2>Explore</h2>
         <a href="<?= $base ?>/tourist/search.php?type=accommodation">Stays</a>
         <a href="<?= $base ?>/tourist/search.php?type=attraction">Attractions</a>
         <a href="<?= $base ?>/index.php#attractions">Discover Kenya</a>
     </div>
     <div>
-        <h4>Company</h4>
+        <h2>Company</h2>
         <a href="<?= $base ?>/about.html">About us</a>
         <a href="<?= $base ?>/contact.html">Contact</a>
         <a href="<?= $base ?>/register.php?role=host">List your property</a>
     </div>
     <div>
-        <h4>Support</h4>
+        <h2>Support</h2>
         <a href="<?= $base ?>/help.html">Help centre</a>
         <a href="<?= $base ?>/privacy.html">Privacy</a>
         <a href="<?= $base ?>/terms.html">Terms</a>

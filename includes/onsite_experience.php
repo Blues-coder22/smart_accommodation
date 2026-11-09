@@ -46,7 +46,7 @@ if (!function_exists('onsiteExperienceFormHtml')) {
         $fee  = ($fee !== null && $fee !== '' && (float)$fee > 0) ? (string)(float)$fee : '';
         return '<div class="form-group" style="border:1px solid #dfe7e3;border-radius:8px;padding:16px;margin:18px 0;background:#fafcfb">'
             . '<label style="font-weight:600">Tour guide or attraction inside your property (optional)</label>'
-            . '<p style="font-size:13px;color:#68776f;margin:4px 0 12px;line-height:1.5">Only fill this in if you offer something of your own on the property, '
+            . '<p style="font-size:13px;color:#4f5f57;margin:4px 0 12px;line-height:1.5">Only fill this in if you offer something of your own on the property, '
             . 'like a guided farm walk or a private nature trail. The fee is added to the guest&rsquo;s total, once per guest. '
             . 'Do <strong>not</strong> enter fees for national parks, museums or other public places nearby. '
             . 'Those belong to the government or the site owner, and guests pay them at the gate.</p>'
@@ -78,7 +78,7 @@ if (!function_exists('bookingPriceBreakdown')) {
 if (!function_exists('bookingExtraNoteHtml')) {
     function bookingExtraNoteHtml(array $br) {
         if ($br['extra'] <= 0) return '';
-        return '<div style="font-size:12px;color:#68776f;line-height:1.5;margin:8px 0 0">The extra KES ' . number_format($br['extra'])
+        return '<div style="font-size:12px;color:#4f5f57;line-height:1.5;margin:8px 0 0">The extra KES ' . number_format($br['extra'])
             . ' is for <strong>' . htmlspecialchars($br['extra_name'], ENT_QUOTES, 'UTF-8')
             . '</strong>, a tour or guide your host offers at the stay. It is charged per guest and is not part of the nightly price. '
             . 'Public attraction entry fees are never included.</div>';

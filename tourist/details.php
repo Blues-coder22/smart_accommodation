@@ -2,6 +2,8 @@
 require_once '../includes/auth.php';
 require_once '../includes/functions.php';
 require_once '../includes/db.php';
+require_once '../includes/booking_holds.php';
+expireStaleBookingRequests($pdo);   // releases dates held by unpaid or unanswered requests
 require_once '../includes/onsite_experience.php';
 require_once '../includes/review_extras.php';
 require_once '../includes/gallery.php';
@@ -227,7 +229,7 @@ foreach (reviewCategoryLabels() as $col => $n) {
                      padding: 16px; background: #f9f9f9;
                      border-radius: 10px; margin-bottom: 20px; }
         .host-avatar { width: 48px; height: 48px; border-radius: 50%;
-                       background: #1D9E75; display: flex;
+                       background: #126b4e; display: flex;
                        align-items: center; justify-content: center;
                        color: white; font-size: 18px; font-weight: 700;
                        overflow: hidden; }
@@ -247,7 +249,7 @@ foreach (reviewCategoryLabels() as $col => $n) {
         .rules-list li { padding: 8px 0; border-bottom: 1px solid #eee;
                          font-size: 14px; color: #555;
                          display: flex; gap: 8px; }
-        .rules-list li::before { content: "•"; color: #1D9E75; }
+        .rules-list li::before { content: "•"; color: #126b4e; }
         #map { height: 280px; border-radius: 10px;
                border: 1px solid #ddd; margin-bottom: 20px; }
         .booking-card { background: white; border-radius: 12px;
@@ -272,10 +274,10 @@ foreach (reviewCategoryLabels() as $col => $n) {
                          align-items: center; margin-bottom: 8px; }
         .review-author { font-size: 14px; font-weight: 600;
                          color: #085041; }
-        .review-date { font-size: 12px; color: #aaa; }
+        .review-date { font-size: 12px; color: #565c55; }
         .review-stars { color: #f39c12; margin-bottom: 6px; }
         .review-text { font-size: 14px; color: #555; line-height: 1.5; }
-        .host-reply { background: #e8f8f3; border-left: 3px solid #1D9E75;
+        .host-reply { background: #e8f8f3; border-left: 3px solid #126b4e;
                       padding: 10px 12px; margin-top: 10px;
                       border-radius: 0 6px 6px 0; font-size: 13px;
                       color: #085041; }
@@ -290,31 +292,31 @@ foreach (reviewCategoryLabels() as $col => $n) {
         .nearby-icon { font-size: 20px; }
         .nearby-info h4 { font-size: 14px; font-weight: 600;
                           color: #085041; margin-bottom: 2px; }
-        .nearby-info p { font-size: 12px; color: #888; }
-        .details-meta .stars-under { color:#c0623a; letter-spacing:2px; font-size:17px; }
+        .nearby-info p { font-size: 12px; color: #565c55; }
+        .details-meta .stars-under { color:#a3462a; letter-spacing:2px; font-size:17px; }
         .rating-summary h2 { font-size:34px; margin:0; color:#0d3b2e; }
         .rating-bars { display:grid; gap:11px; margin-top:16px; }
         .rating-row { display:grid; grid-template-columns:92px minmax(0,1fr) 28px; align-items:center; gap:10px; font-size:12px; }
-        .rating-row > span { color:#6b6f68; }
+        .rating-row > span { color:#565c55; }
         .rating-row > strong { text-align:right; font-size:12px; }
         .rating-track { height:7px; background:#e8e5dc; border-radius:99px; overflow:hidden; }
-        .rating-track span { display:block; height:100%; background:#c0623a; border-radius:99px; }
+        .rating-track span { display:block; height:100%; background:#a3462a; border-radius:99px; }
         .info-grid { display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-top:22px; align-items:stretch; }
         .info-card { background:#fff; border:1px solid #e4e1d8; border-radius:12px; padding:20px; }
-        .info-card .eyebrow { font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:#c0623a; font-weight:700; }
+        .info-card .eyebrow { font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:#a3462a; font-weight:700; }
         .info-card h2 { font-size:22px; margin:2px 0 8px; color:#0d3b2e; }
         .amenities-grid2 { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px 16px; margin-top:12px; }
         .amenity-item2 { display:flex; align-items:center; gap:10px; min-width:0; padding:8px 0; border-bottom:1px solid #eee; }
         .amenity-icon { width:34px; height:34px; flex:0 0 34px; display:grid; place-items:center; border:1px solid #cfd8d1; border-radius:6px; color:#0d3b2e; font-size:11px; font-weight:700; }
         .amenity-item2 strong { display:block; font-size:13px; }
-        .amenity-item2 small { display:block; color:#888; font-size:11px; }
+        .amenity-item2 small { display:block; color:#565c55; font-size:11px; }
         .res-price { font-size:24px; font-weight:700; color:#0d3b2e; }
         .res-price small { font-size:13px; font-weight:400; color:#666; }
         .res-dates { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:16px; }
-        .res-card label { display:block; font-size:10px; letter-spacing:.1em; font-weight:700; color:#6b6f68; margin-bottom:5px; }
+        .res-card label { display:block; font-size:10px; letter-spacing:.1em; font-weight:700; color:#565c55; margin-bottom:5px; }
         .res-card input, .res-card select { width:100%; }
         .fav-link { display:block; width:100%; text-align:center; margin-top:13px; background:none; border:0; cursor:pointer; font:inherit; font-size:13px; font-weight:700; color:#0d3b2e; }
-        .fav-link:hover { color:#c0623a; }
+        .fav-link:hover { color:#a3462a; }
         @media (max-width: 900px) { .info-grid { grid-template-columns:1fr; } }
         @media (max-width: 768px) {
             .details-grid { grid-template-columns: 1fr; }
@@ -389,7 +391,7 @@ foreach (reviewCategoryLabels() as $col => $n) {
                         Hosted by <?= h($acc['host_name']) ?>
                         <?php if (!empty(verifiedHostIds($pdo, [$acc['host_id']]))) echo hostVerifiedBadge(); ?>
                     </div>
-                    <div style="font-size:12px;color:#888">
+                    <div style="font-size:12px;color:#565c55">
                         <?= h($acc['host_phone'] ?? '') ?>
                     </div>
                 </div>
@@ -472,10 +474,10 @@ foreach (reviewCategoryLabels() as $col => $n) {
             <!-- Nearby Attractions -->
             <?php if (!empty($nearby)): ?>
             <h2 class="section-title">Nearby Attractions</h2>
-            <p style="font-size:12px;color:#68776f;line-height:1.5;margin:0 0 10px">Entry fees are set by the park or site (often the government) and paid at the gate. They are only a guide to what you may pay on the day, and they are never added to your booking.</p>
+            <p style="font-size:12px;color:#4f5f57;line-height:1.5;margin:0 0 10px">Entry fees are set by the park or site (often the government) and paid at the gate. They are only a guide to what you may pay on the day, and they are never added to your booking.</p>
             <?php foreach (array_slice($nearby, 0, 5) as $att): ?>
             <div class="nearby-attraction">
-                <div class="nearby-icon" style="width:8px;height:8px;border-radius:50%;background:#c0623a"></div>
+                <div class="nearby-icon" style="width:8px;height:8px;border-radius:50%;background:#a3462a"></div>
                 <div class="nearby-info">
                     <h4><?= h($att['name']) ?></h4>
                     <p>
@@ -507,7 +509,7 @@ foreach (reviewCategoryLabels() as $col => $n) {
             </h2>
 
             <?php if (empty($reviews)): ?>
-                <p style="color:#888;font-size:14px">
+                <p style="color:#565c55;font-size:14px">
                     No reviews yet — be the first to review after your stay.
                 </p>
             <?php else: ?>
@@ -616,7 +618,7 @@ foreach (reviewCategoryLabels() as $col => $n) {
                     Sign in to Book
                 </a>
                 <p style="text-align:center;font-size:12px;
-                           color:#888;margin-top:8px">
+                           color:#565c55;margin-top:8px">
                     Don't have an account? 
                     <a href="../register.php">Sign up</a>
                 </p>

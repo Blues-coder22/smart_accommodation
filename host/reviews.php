@@ -105,7 +105,7 @@ $stats = $stats->fetch();
                        top:52px; height:calc(100vh - 52px);
                        overflow-y:auto }
         .sidebar-role{ font-size:10px; font-weight:700;
-                       letter-spacing:.08em; color:#1D9E75;
+                       letter-spacing:.08em; color:#126b4e;
                        text-transform:uppercase;
                        padding:0 20px; margin-bottom:12px }
         .sidebar-link{ display:flex; align-items:center; gap:10px;
@@ -116,13 +116,13 @@ $stats = $stats->fetch();
                               background:var(--surface-1) }
         .sidebar-link.active { color:#085041; font-weight:500;
                                background:#E1F5EE;
-                               border-left:3px solid #1D9E75 }
+                               border-left:3px solid #126b4e }
         .badge       { font-size:10px; background:#DC2626;
                        color:#fff; border-radius:10px;
                        padding:1px 6px; margin-left:auto }
         .main        { padding:28px }
         .page-tag    { font-size:11px; font-weight:600;
-                       letter-spacing:.06em; color:#1D9E75;
+                       letter-spacing:.06em; color:#126b4e;
                        text-transform:uppercase; margin-bottom:8px }
         .page-title  { font-size:26px; font-weight:400;
                        margin-bottom:20px }
@@ -132,7 +132,7 @@ $stats = $stats->fetch();
         .stat-card   { background:var(--surface-2);
                        border:1px solid var(--border);
                        border-radius:8px; padding:14px }
-        .stat-card.accent { border-left:3px solid #1D9E75 }
+        .stat-card.accent { border-left:3px solid #126b4e }
         .stat-label  { font-size:10px; font-weight:700;
                        letter-spacing:.06em;
                        color:var(--text-secondary);
@@ -165,7 +165,7 @@ $stats = $stats->fetch();
         .review-text { font-size:14px; color:var(--text-primary);
                        line-height:1.6; margin-bottom:12px }
         .host-reply  { background:var(--surface-1);
-                       border-left:3px solid #1D9E75;
+                       border-left:3px solid #126b4e;
                        padding:12px 14px; border-radius:0 6px 6px 0;
                        font-size:13px; color:var(--text-secondary);
                        line-height:1.5 }
@@ -183,7 +183,7 @@ $stats = $stats->fetch();
                                font-family:inherit;
                                background:var(--surface-2) }
         .reply-form textarea:focus { outline:none;
-                                     border-color:#1D9E75 }
+                                     border-color:#126b4e }
         .reply-actions { display:flex; gap:8px; margin-top:8px }
         .btn-reply   { padding:7px 16px; background:#085041;
                        color:#fff; border:none; border-radius:4px;
@@ -199,7 +199,7 @@ $stats = $stats->fetch();
                        color:var(--text-secondary);
                        border:1px solid var(--border-strong);
                        background:none }
-        .toggle-reply:hover { border-color:#1D9E75; color:#1D9E75 }
+        .toggle-reply:hover { border-color:#126b4e; color:#126b4e }
         .empty-state { text-align:center; padding:48px 20px;
                        color:var(--text-secondary); font-size:14px }
         @media(max-width:900px){

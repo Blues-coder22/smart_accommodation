@@ -90,7 +90,7 @@ $monthly = $pdo->query("
                        top:52px; height:calc(100vh - 52px);
                        overflow-y:auto }
         .sidebar-role{ font-size:10px; font-weight:700;
-                       letter-spacing:.08em; color:#DC2626;
+                       letter-spacing:.08em; color:#b42318;
                        text-transform:uppercase;
                        padding:0 20px; margin-bottom:12px }
         .sidebar-link{ display:flex; align-items:center; gap:10px;
@@ -101,13 +101,13 @@ $monthly = $pdo->query("
                               background:var(--surface-1) }
         .sidebar-link.active { color:#085041; font-weight:500;
                                background:#E1F5EE;
-                               border-left:3px solid #1D9E75 }
+                               border-left:3px solid #126b4e }
         .badge       { font-size:10px; background:#DC2626;
                        color:#fff; border-radius:10px;
                        padding:1px 6px; margin-left:auto }
         .main        { padding:28px; overflow-y:auto }
         .page-date   { font-size:11px; font-weight:600;
-                       letter-spacing:.06em; color:#1D9E75;
+                       letter-spacing:.06em; color:#126b4e;
                        text-transform:uppercase; margin-bottom:6px }
         .page-title  { font-size:26px; font-weight:400;
                        margin-bottom:4px }
@@ -119,8 +119,8 @@ $monthly = $pdo->query("
         .stat-card   { background:var(--surface-2);
                        border:1px solid var(--border);
                        border-radius:8px; padding:16px }
-        .stat-card.accent { border-left:3px solid #1D9E75 }
-        .stat-card.warn { border-left:3px solid #D97706 }
+        .stat-card.accent { border-left:3px solid #126b4e }
+        .stat-card.warn { border-left:3px solid #8f4b00 }
         .stat-card.danger { border-left:3px solid #DC2626 }
         .stat-label  { font-size:10px; font-weight:700;
                        letter-spacing:.06em;
@@ -129,9 +129,9 @@ $monthly = $pdo->query("
         .stat-value  { font-size:24px; font-weight:500;
                        color:var(--text-primary); margin-bottom:3px }
         .stat-note   { font-size:12px; color:var(--text-secondary) }
-        .stat-note.green { color:#1D9E75 }
-        .stat-note.warn  { color:#D97706 }
-        .stat-note.red   { color:#DC2626 }
+        .stat-note.green { color:#126b4e }
+        .stat-note.warn  { color:#8f4b00 }
+        .stat-note.red   { color:#b42318 }
         .content-grid { display:grid;
                         grid-template-columns:1fr 300px;
                         gap:20px; margin-bottom:20px }
@@ -143,7 +143,7 @@ $monthly = $pdo->query("
                        display:flex; justify-content:space-between;
                        align-items:center }
         .card-head h3 { font-size:13px; font-weight:500 }
-        .card-head a  { font-size:12px; color:#1D9E75;
+        .card-head a  { font-size:12px; color:#126b4e;
                         text-decoration:none }
         table        { width:100%; border-collapse:collapse;
                        font-size:13px }
@@ -157,9 +157,9 @@ $monthly = $pdo->query("
         tr:last-child td { border-bottom:none }
         tr:hover td  { background:var(--surface-1) }
         .s-confirmed { color:#0F6E56; font-weight:500 }
-        .s-pending   { color:#D97706; font-weight:500 }
+        .s-pending   { color:#8f4b00; font-weight:500 }
         .s-completed { color:#1A4DB3; font-weight:500 }
-        .s-cancelled { color:#DC2626 }
+        .s-cancelled { color:#b42318 }
         .pending-row { padding:14px 18px;
                        border-bottom:1px solid var(--border);
                        display:flex; justify-content:space-between;
@@ -180,7 +180,7 @@ $monthly = $pdo->query("
                        padding-bottom:8px; margin-bottom:8px }
         .bar-col     { flex:1; display:flex; flex-direction:column;
                        align-items:center; gap:4px; height:100% }
-        .bar         { width:100%; background:#1D9E75;
+        .bar         { width:100%; background:#126b4e;
                        border-radius:3px 3px 0 0; min-height:2px }
         .bar-label   { font-size:10px; color:var(--text-secondary) }
         .needs-attention { background:var(--surface-2);
@@ -198,11 +198,11 @@ $monthly = $pdo->query("
                            gap:10px }
         .count-badge { font-size:12px; font-weight:600;
                        padding:3px 10px; border-radius:3px }
-        .count-red   { background:#FEF2F2; color:#DC2626;
+        .count-red   { background:#FEF2F2; color:#b42318;
                        border:1px solid #FECACA }
-        .count-amber { background:#FFF8E1; color:#9A6A00;
+        .count-amber { background:#FFF8E1; color:#7a5200;
                        border:1px solid #F9D57C }
-        .action-link { font-size:12px; color:#1D9E75;
+        .action-link { font-size:12px; color:#126b4e;
                        text-decoration:none }
         @media(max-width:1000px){
             .dash-wrap { grid-template-columns:1fr }

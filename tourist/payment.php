@@ -2,6 +2,9 @@
 require_once '../includes/auth.php';
 require_once '../includes/functions.php';
 require_once '../includes/db.php';
+require_once '../includes/booking_rules.php';
+require_once '../includes/booking_holds.php';
+expireStaleBookingRequests($pdo);   // releases dates held by unpaid or unanswered requests
 require_once '../includes/email.php';
 require_once '../includes/onsite_experience.php';
 
@@ -27,7 +30,7 @@ $stmt = $pdo->prepare("
            u.email AS host_email,
            (SELECT photo_path FROM accommodation_photos
             WHERE accommodation_id = a.accommodation_id
-            AND is_primary = 1 LIMIT 1) AS primary_photo
+            ORDER BY is_primary DESC, photo_id ASC LIMIT 1) AS primary_photo
     FROM bookings b
     JOIN accommodations a ON a.accommodation_id = b.accommodation_id
     JOIN users u ON u.user_id = a.host_id
@@ -87,15 +90,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->execute([$booking_id, $_SESSION['user_id'], $booking['host_id'], $booking['total_amount'], $method, $reference !== '' ? $reference : null]);
         }
 
-        // The tourist has submitted payment details, but the booking remains pending.
-        // Notify the host about the request; this is not a confirmation email.
-        sendEmail(
-            $booking['host_email'],
-            'New booking request — StayExplore Kenya',
-            '<p>You have a new booking request for <strong>' . h($booking['title'], ENT_QUOTES, 'UTF-8') . '</strong>.</p>' .
-            '<p>Booking reference: #BK' . str_pad((string)$booking_id, 5, '0', STR_PAD_LEFT) . '</p>' .
-            '<p>The request is still pending. Sign in to review the payment details and either confirm or decline the booking.</p>'
-        );
+        // Details submitted, but nothing is confirmed yet: tell the host to check their account, and acknowledge to the guest.
+        try {
+            $mailBooking = ['booking_id' => $booking_id, 'title' => $booking['title'], 'check_in_date' => $booking['check_in_date'],
+                            'check_out_date' => $booking['check_out_date'], 'total_amount' => $booking['total_amount']];
+            sendPaymentSubmittedHostEmail($booking['host_email'], $booking['host_name'], $mailBooking, $method, $reference);
+            sendPaymentConfirmationEmail($_SESSION['email'] ?? '', $_SESSION['full_name'] ?? '', $mailBooking);
+        } catch (Throwable $e) { error_log('Payment emails: ' . $e->getMessage()); }
 
         redirect("confirmation.php?booking_id=$booking_id");
     }
@@ -111,7 +112,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <style>
         .page-wrap   { max-width:900px; margin:0 auto; padding:32px 24px }
         .page-tag    { font-size:11px; font-weight:600; letter-spacing:.06em;
-                       color:#1D9E75; text-transform:uppercase; margin-bottom:8px }
+                       color:#126b4e; text-transform:uppercase; margin-bottom:8px }
         .page-title  { font-size:28px; font-weight:400; margin-bottom:4px }
         .page-sub    { font-size:14px; color:var(--text-secondary);
                        margin-bottom:32px }
@@ -125,9 +126,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                        padding:14px; border:1px solid var(--border);
                        border-radius:6px; cursor:pointer; transition:.15s }
         .method-opt:has(input:checked) {
-                       border-color:#1D9E75;
+                       border-color:#126b4e;
                        background:#F0FAF6 }
-        .method-opt input[type=radio] { margin-top:3px; accent-color:#1D9E75;
+        .method-opt input[type=radio] { margin-top:3px; accent-color:#126b4e;
                                         flex-shrink:0 }
         .method-opt strong { font-size:14px; font-weight:500;
                              display:block; margin-bottom:2px }
@@ -135,10 +136,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .ref-field   { margin-top:16px }
         .notice-box  { background:#FFF8E1; border:1px solid #F9D57C;
                        border-radius:6px; padding:12px 14px; font-size:13px;
-                       color:#9A6A00; margin-top:16px; display:none }
+                       color:#7a5200; margin-top:16px; display:none }
         .confirm-row { display:flex; align-items:flex-start; gap:10px;
                        margin:20px 0 }
-        .confirm-row input { margin-top:2px; accent-color:#1D9E75;
+        .confirm-row input { margin-top:2px; accent-color:#126b4e;
                              width:15px; height:15px; flex-shrink:0 }
         .confirm-row label { font-size:13px; color:var(--text-secondary);
                              line-height:1.5 }
@@ -267,6 +268,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </label>
             </div>
 
+            <p class="small" style="margin:0 0 12px"><?php bookingRulesDialog(); ?> (deadlines, cancelling and refunds)</p>
             <button type="submit" class="pay-btn">
                 Submit payment details &mdash;
                 KES <?= number_format($booking['total_amount']) ?>
@@ -383,9 +385,9 @@ function showHint(input) {
 #payProcessing.show{display:flex}
 .pp-box{background:#fff;border-radius:14px;padding:30px 28px;width:100%;max-width:380px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.25)}
 .pp-box h4{margin:0 0 6px;font-size:18px;color:#0d3b2e}
-.pp-step{font-size:13px;color:#68776f;min-height:20px;margin:0 0 18px}
+.pp-step{font-size:13px;color:#4f5f57;min-height:20px;margin:0 0 18px}
 .pp-track{height:10px;background:#e8e5dc;border-radius:99px;overflow:hidden;position:relative}
-.pp-fill{height:100%;width:0;background:linear-gradient(90deg,#16866b,#c0623a);border-radius:99px;transition:width .35s ease}
+.pp-fill{height:100%;width:0;background:linear-gradient(90deg,#16866b,#a3462a);border-radius:99px;transition:width .35s ease}
 .pp-pct{font-size:12px;font-weight:700;color:#0d3b2e;margin-top:10px}
 </style>
 <div id="payProcessing" role="alertdialog" aria-live="polite" aria-label="Processing payment">

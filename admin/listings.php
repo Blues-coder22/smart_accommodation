@@ -227,7 +227,7 @@ if ($reviewing) {
                        top:52px; height:calc(100vh - 52px);
                        overflow-y:auto }
         .sidebar-role{ font-size:10px; font-weight:700;
-                       letter-spacing:.08em; color:#DC2626;
+                       letter-spacing:.08em; color:#b42318;
                        text-transform:uppercase;
                        padding:0 20px; margin-bottom:12px }
         .sidebar-link{ display:flex; align-items:center; gap:10px;
@@ -238,13 +238,13 @@ if ($reviewing) {
                               background:var(--surface-1) }
         .sidebar-link.active { color:#085041; font-weight:500;
                                background:#E1F5EE;
-                               border-left:3px solid #1D9E75 }
+                               border-left:3px solid #126b4e }
         .badge       { font-size:10px; background:#DC2626;
                        color:#fff; border-radius:10px;
                        padding:1px 6px; margin-left:auto }
         .main        { padding:28px }
         .page-tag    { font-size:11px; font-weight:600;
-                       letter-spacing:.06em; color:#1D9E75;
+                       letter-spacing:.06em; color:#126b4e;
                        text-transform:uppercase; margin-bottom:8px }
         .page-title  { font-size:26px; font-weight:400;
                        margin-bottom:20px }
@@ -257,14 +257,14 @@ if ($reviewing) {
                        display:flex; align-items:center; gap:6px }
         .filter-tab.active { background:#085041; color:#fff;
                              border-color:#085041 }
-        .tab-count   { font-size:10px; opacity:.8 }
+        .tab-count   { font-size:11px }
         .listing-row { background:var(--surface-2);
                        border:1px solid var(--border);
                        border-radius:8px; display:grid;
                        grid-template-columns:100px 1fr auto;
                        gap:16px; align-items:start;
                        padding:16px; margin-bottom:10px }
-        .listing-row.highlight { border-color:#1D9E75;
+        .listing-row.highlight { border-color:#126b4e;
                                  background:#F0FAF6 }
         .listing-thumb { width:100px; height:76px; border-radius:6px;
                          background:#E1F5EE; overflow:hidden;
@@ -288,7 +288,7 @@ if ($reviewing) {
         .status-pill   { display:inline-block; font-size:11px;
                          font-weight:600; padding:3px 9px;
                          border-radius:3px }
-        .s-pending     { background:#FFF8E1; color:#9A6A00;
+        .s-pending     { background:#FFF8E1; color:#7a5200;
                          border:1px solid #F9D57C }
         .s-approved    { background:#E1F5EE; color:#0F6E56;
                          border:1px solid #9FE1CB }
@@ -305,12 +305,12 @@ if ($reviewing) {
                          cursor:pointer; width:100%;
                          text-align:center }
         .btn-reject    { padding:7px 14px; background:none;
-                         color:#DC2626; border:1px solid #FECACA;
+                         color:#b42318; border:1px solid #FECACA;
                          border-radius:4px; font-size:12px;
                          font-weight:500; cursor:pointer;
                          width:100%; text-align:center }
         .btn-suspend   { padding:7px 14px; background:none;
-                         color:#D97706; border:1px solid #F9D57C;
+                         color:#8f4b00; border:1px solid #F9D57C;
                          border-radius:4px; font-size:12px;
                          font-weight:500; cursor:pointer;
                          width:100%; text-align:center }
@@ -565,7 +565,7 @@ if ($reviewing) {
                     $thumb = $pdo->prepare("
                         SELECT photo_path FROM accommodation_photos
                         WHERE accommodation_id = ?
-                        AND is_primary = 1 LIMIT 1
+                        ORDER BY is_primary DESC, photo_id ASC LIMIT 1
                     ");
                     $thumb->execute([$l['accommodation_id']]);
                     $thumb = $thumb->fetchColumn();

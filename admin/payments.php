@@ -106,7 +106,7 @@ $badge = ['confirmed' => ['#e7f3ec', '#1f5a3f', 'Received'], 'pending' => ['#fff
 <link rel="stylesheet" href="../assets/css/style.css">
 <style>
 .pay-table{width:100%;border-collapse:collapse;font-size:13px}
-.pay-table th{text-align:left;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#6b6f68;padding:10px 12px;border-bottom:1px solid #e4e1d8;white-space:nowrap}
+.pay-table th{text-align:left;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#565c55;padding:10px 12px;border-bottom:1px solid #e4e1d8;white-space:nowrap}
 .pay-table td{padding:12px;border-bottom:1px solid #eee;vertical-align:top}
 .pill{display:inline-block;padding:3px 10px;border-radius:99px;font-size:11px;font-weight:700;white-space:nowrap}
 .flag{background:#fff4ef;border:1px solid #e2a58f;color:#8a3b1c;border-radius:8px;padding:6px 10px;font-size:12px;margin-top:6px}
@@ -156,15 +156,15 @@ $badge = ['confirmed' => ['#e7f3ec', '#1f5a3f', 'Received'], 'pending' => ['#fff
         <table class="pay-table">
             <thead><tr><th>Payment</th><th>Guest and host</th><th>Amount</th><th>Status and history</th><th>Admin decision</th></tr></thead>
             <tbody>
-            <?php if (!$rows): ?><tr><td colspan="5" style="text-align:center;color:#888;padding:30px">No payments found.</td></tr><?php endif; ?>
+            <?php if (!$rows): ?><tr><td colspan="5" style="text-align:center;color:#565c55;padding:30px">No payments found.</td></tr><?php endif; ?>
             <?php foreach ($rows as $r): $b = $badge[$r['payment_status']] ?? $badge['pending']; $hist = $history[(int)$r['payment_id']] ?? []; ?>
             <tr>
                 <td>
                     <strong>Booking #<?= (int)$r['booking_id'] ?></strong><br>
                     <?= h($r['title']) ?><br>
-                    <span style="color:#777"><?= date('d M', strtotime($r['check_in_date'])) ?> &ndash; <?= date('d M Y', strtotime($r['check_out_date'])) ?></span><br>
-                    <span style="color:#777"><?= h($r['payment_method'] ?: 'Method not given') ?> &middot; Ref: <strong><?= h($r['payment_reference'] ?: 'none') ?></strong></span><br>
-                    <span style="color:#999;font-size:11px">Submitted <?= date('d M Y, H:i', strtotime($r['payment_date'])) ?></span>
+                    <span style="color:#565c55"><?= date('d M', strtotime($r['check_in_date'])) ?> &ndash; <?= date('d M Y', strtotime($r['check_out_date'])) ?></span><br>
+                    <span style="color:#565c55"><?= h($r['payment_method'] ?: 'Method not given') ?> &middot; Ref: <strong><?= h($r['payment_reference'] ?: 'none') ?></strong></span><br>
+                    <span style="color:#565c55;font-size:11px">Submitted <?= date('d M Y, H:i', strtotime($r['payment_date'])) ?></span>
                 </td>
                 <td>
                     <div style="margin-bottom:8px"><?= personChipHtml($r['t_id'], $r['t_name'], $r['t_photo'], 32, 'Guest') ?></div>
@@ -184,7 +184,7 @@ $badge = ['confirmed' => ['#e7f3ec', '#1f5a3f', 'Received'], 'pending' => ['#fff
                         <?php endforeach; ?>
                         </ul>
                     </details>
-                    <?php else: ?><div class="hist" style="color:#999">No changes recorded yet.</div><?php endif; ?>
+                    <?php else: ?><div class="hist" style="color:#565c55">No changes recorded yet.</div><?php endif; ?>
                 </td>
                 <td>
                     <form method="POST" class="decide" onsubmit="return this.note.value.trim().length >= 5 || (alert('Please write a short reason first.'), false);">

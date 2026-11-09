@@ -172,7 +172,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                       top:52px; height:calc(100vh - 52px);
                       overflow-y:auto }
         .sidebar-role { font-size:10px; font-weight:700;
-                        letter-spacing:.08em; color:#1D9E75;
+                        letter-spacing:.08em; color:#126b4e;
                         text-transform:uppercase;
                         padding:0 20px; margin-bottom:12px }
         .sidebar-link { display:flex; align-items:center; gap:10px;
@@ -183,10 +183,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                               background:var(--surface-1) }
         .sidebar-link.active { color:#085041; font-weight:500;
                                background:#E1F5EE;
-                               border-left:3px solid #1D9E75 }
+                               border-left:3px solid #126b4e }
         .main       { padding:28px; max-width:800px }
         .page-tag   { font-size:11px; font-weight:600;
-                      letter-spacing:.06em; color:#1D9E75;
+                      letter-spacing:.06em; color:#126b4e;
                       text-transform:uppercase; margin-bottom:8px }
         .page-title { font-size:26px; font-weight:400;
                       margin-bottom:4px }
@@ -218,7 +218,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .form-group input:focus,
         .form-group select:focus,
         .form-group textarea:focus { outline:none;
-                                     border-color:#1D9E75 }
+                                     border-color:#126b4e }
         .form-row   { display:grid;
                       grid-template-columns:1fr 1fr;
                       gap:14px }
@@ -229,7 +229,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                          gap:8px; font-size:13px;
                          color:var(--text-primary) }
         .amenity-check input { width:15px; height:15px;
-                               accent-color:#1D9E75;
+                               accent-color:#126b4e;
                                flex-shrink:0 }
         #map        { height:260px; border-radius:6px;
                       border:1px solid var(--border-strong);
@@ -240,7 +240,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         border-radius:6px; padding:24px;
                         text-align:center; cursor:pointer;
                         transition:.15s }
-        .photo-upload:hover { border-color:#1D9E75 }
+        .photo-upload:hover { border-color:#126b4e }
         .photo-upload input { display:none }
         .photo-upload p { font-size:13px;
                           color:var(--text-secondary);
@@ -266,7 +266,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         justify-content:center;
                         margin:0 auto 16px;
                         border:1px solid #9FE1CB }
-        .success-icon svg { width:22px; height:22px; stroke:#1D9E75 }
+        .success-icon svg { width:22px; height:22px; stroke:#126b4e }
     </style>
 </head>
 <body>
@@ -423,7 +423,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     Click on the map to place a pin at your
                     property's exact location.
                     <span id="coordDisplay"
-                          style="color:#1D9E75;margin-left:6px"></span>
+                          style="color:#126b4e;margin-left:6px"></span>
                 </p>
             </div>
 

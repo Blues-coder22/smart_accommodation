@@ -134,7 +134,7 @@ foreach ($chart_values as $i => $value) {
                       top:52px; height:calc(100vh - 52px);
                       overflow-y:auto }
         .sidebar-role { font-size:10px; font-weight:700;
-                        letter-spacing:.08em; color:#1D9E75;
+                        letter-spacing:.08em; color:#126b4e;
                         text-transform:uppercase;
                         padding:0 20px; margin-bottom:12px }
         .sidebar-link { display:flex; align-items:center; gap:10px;
@@ -147,13 +147,13 @@ foreach ($chart_values as $i => $value) {
                               background:var(--surface-1) }
         .sidebar-link.active { color:#085041; font-weight:500;
                                background:#E1F5EE;
-                               border-left:3px solid #1D9E75 }
+                               border-left:3px solid #126b4e }
         .badge      { font-size:10px; background:#DC2626;
                       color:#fff; border-radius:10px;
                       padding:1px 6px; margin-left:auto }
         .main       { padding:28px; overflow-y:auto }
         .page-date  { font-size:11px; font-weight:600;
-                      letter-spacing:.06em; color:#1D9E75;
+                      letter-spacing:.06em; color:#126b4e;
                       text-transform:uppercase; margin-bottom:6px }
         .page-title { font-size:26px; font-weight:400;
                       margin-bottom:4px }
@@ -166,14 +166,14 @@ foreach ($chart_values as $i => $value) {
                       border:1px solid var(--border);
                       border-radius:8px; padding:16px;
                       border-left:3px solid transparent }
-        .stat-card.accent { border-left-color:#1D9E75 }
+        .stat-card.accent { border-left-color:#126b4e }
         .stat-label { font-size:10px; font-weight:700;
                       letter-spacing:.06em; color:var(--text-secondary);
                       text-transform:uppercase; margin-bottom:8px }
         .stat-value { font-size:26px; font-weight:500;
                       color:var(--text-primary); margin-bottom:4px }
-        .stat-note  { font-size:12px; color:#1D9E75 }
-        .stat-note.warn { color:#D97706 }
+        .stat-note  { font-size:12px; color:#126b4e }
+        .stat-note.warn { color:#8f4b00 }
         .content-grid { display:grid;
                         grid-template-columns:1fr 300px;
                         gap:20px }
@@ -185,7 +185,7 @@ foreach ($chart_values as $i => $value) {
                        display:flex; justify-content:space-between;
                        align-items:center }
         .card-header h3 { font-size:13px; font-weight:500 }
-        .card-header a  { font-size:12px; color:#1D9E75;
+        .card-header a  { font-size:12px; color:#126b4e;
                           text-decoration:none }
         table       { width:100%; border-collapse:collapse;
                       font-size:13px }
@@ -201,12 +201,12 @@ foreach ($chart_values as $i => $value) {
         tr:last-child td { border-bottom:none }
         tr:hover td { background:var(--surface-1) }
         .s-confirmed { color:#0F6E56; font-weight:500 }
-        .s-pending   { color:#D97706; font-weight:500 }
+        .s-pending   { color:#8f4b00; font-weight:500 }
         .s-completed { color:#1A4DB3; font-weight:500 }
-        .s-cancelled { color:#DC2626 }
+        .s-cancelled { color:#b42318 }
         .chart-heading { padding:18px 18px 0 }
         .chart-eyebrow { font-size:10px; letter-spacing:.13em;
-                         text-transform:uppercase; color:#BD5D3C;
+                         text-transform:uppercase; color:#a3462a;
                          font-weight:700; margin-bottom:8px }
         .chart-heading h2 { font-family:Georgia,'Times New Roman',serif;
                             font-size:29px; font-weight:500;
@@ -402,7 +402,7 @@ foreach ($chart_values as $i => $value) {
                             <?php endforeach; ?>
                             <?php foreach ($chart_months as $i => $month): ?>
                             <text x="<?= $chart_x_at($i) ?>" y="183"
-                                  text-anchor="middle" fill="#6f746d"
+                                  text-anchor="middle" fill="#565c55"
                                   font-size="11"><?= $month->format('M y') ?></text>
                             <?php endforeach; ?>
                         </svg>

@@ -71,6 +71,7 @@ if (!function_exists('appShellStart')) {
                 [['bookings.php'],                           'Booking tracking',    'admin/bookings.php',    null],
                 [['payments.php'],                           'Payment tracking',    'admin/payments.php',    null],
                 [['reviews.php'],                            'Moderate reviews',    'admin/reviews.php',     'reviews'],
+                [['attraction_reviews.php'],                 'Attraction ratings',  'admin/attraction_reviews.php', null],
                 [['reports.php'],                            'Incident reports',    'admin/reports.php',     'reports'],
                 [['attractions.php', 'osm_attractions.php'], 'Manage attractions',  'admin/attractions.php', null],
                 [['profile.php'],                            'Admin profile',       'admin/profile.php',     null],

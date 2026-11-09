@@ -197,7 +197,7 @@ $counts = $pdo->query("
                        top:52px; height:calc(100vh - 52px);
                        overflow-y:auto }
         .sidebar-role{ font-size:10px; font-weight:700;
-                       letter-spacing:.08em; color:#DC2626;
+                       letter-spacing:.08em; color:#b42318;
                        text-transform:uppercase;
                        padding:0 20px; margin-bottom:12px }
         .sidebar-link{ display:flex; align-items:center; gap:10px;
@@ -208,13 +208,13 @@ $counts = $pdo->query("
                               background:var(--surface-1) }
         .sidebar-link.active { color:#085041; font-weight:500;
                                background:#E1F5EE;
-                               border-left:3px solid #1D9E75 }
+                               border-left:3px solid #126b4e }
         .badge       { font-size:10px; background:#DC2626;
                        color:#fff; border-radius:10px;
                        padding:1px 6px; margin-left:auto }
         .main        { padding:28px }
         .page-tag    { font-size:11px; font-weight:600;
-                       letter-spacing:.06em; color:#1D9E75;
+                       letter-spacing:.06em; color:#126b4e;
                        text-transform:uppercase; margin-bottom:8px }
         .page-title  { font-size:26px; font-weight:400;
                        margin-bottom:4px }
@@ -251,16 +251,16 @@ $counts = $pdo->query("
                          border-radius:6px; padding:12px 14px;
                          margin-bottom:14px }
         .suspicion-box h4 { font-size:12px; font-weight:600;
-                            color:#9A6A00; margin-bottom:8px;
+                            color:#7a5200; margin-bottom:8px;
                             text-transform:uppercase;
                             letter-spacing:.04em }
         .score-row   { display:flex; justify-content:space-between;
                        align-items:center; margin-bottom:4px }
-        .score-label { font-size:12px; color:#9A6A00 }
-        .score-val   { font-size:14px; font-weight:700; color:#9A6A00 }
+        .score-label { font-size:12px; color:#7a5200 }
+        .score-val   { font-size:14px; font-weight:700; color:#7a5200 }
         .score-bar   { height:4px; background:#F9D57C;
                        border-radius:2px; margin-top:6px }
-        .score-fill  { height:100%; background:#D97706;
+        .score-fill  { height:100%; background:#8f4b00;
                        border-radius:2px }
         .consistency { background:var(--surface-1);
                        border:1px solid var(--border);
@@ -282,17 +282,17 @@ $counts = $pdo->query("
                        color:#fff; border:none; border-radius:4px;
                        font-size:12px; font-weight:500; cursor:pointer }
         .btn-remove  { padding:7px 16px; background:none;
-                       color:#D97706; border:1px solid #F9D57C;
+                       color:#8f4b00; border:1px solid #F9D57C;
                        border-radius:4px; font-size:12px;
                        font-weight:500; cursor:pointer }
         .btn-delete  { padding:7px 16px; background:none;
-                       color:#DC2626; border:1px solid #FECACA;
+                       color:#b42318; border:1px solid #FECACA;
                        border-radius:4px; font-size:12px;
                        font-weight:500; cursor:pointer }
         .pub-badge   { display:inline-block; font-size:11px;
                        font-weight:600; padding:3px 9px;
                        border-radius:3px }
-        .b-flagged   { background:#FFF8E1; color:#9A6A00;
+        .b-flagged   { background:#FFF8E1; color:#7a5200;
                        border:1px solid #F9D57C }
         .b-published { background:#E1F5EE; color:#0F6E56;
                        border:1px solid #9FE1CB }
@@ -333,7 +333,7 @@ $counts = $pdo->query("
                class="filter-tab <?= $filter==='flagged'
                    ?'active':'' ?>">
                 Flagged
-                <span style="font-size:10px;opacity:.8">
+                <span style="font-size:11px">
                     (<?= $counts['flagged'] ?>)
                 </span>
             </a>
@@ -341,7 +341,7 @@ $counts = $pdo->query("
                class="filter-tab <?= $filter==='published'
                    ?'active':'' ?>">
                 Published
-                <span style="font-size:10px;opacity:.8">
+                <span style="font-size:11px">
                     (<?= $counts['published'] ?>)
                 </span>
             </a>
@@ -351,7 +351,7 @@ $counts = $pdo->query("
                class="filter-tab <?= $filter==='removed'
                    ?'active':'' ?>">
                 Removed
-                <span style="font-size:10px;opacity:.8">
+                <span style="font-size:11px">
                     (<?= $counts['removed'] ?>)
                 </span>
             </a>
@@ -370,8 +370,8 @@ $counts = $pdo->query("
 
         <?php if ($type === 'host'): ?>
             <div class="filter-tabs">
-                <a href="?type=host&filter=visible" class="filter-tab <?= $filter==='visible' ? 'active' : '' ?>">Visible <span style="font-size:10px;opacity:.8">(<?= $hostCounts['visible'] ?>)</span></a>
-                <a href="?type=host&filter=hidden" class="filter-tab <?= $filter==='hidden' ? 'active' : '' ?>">Hidden <span style="font-size:10px;opacity:.8">(<?= $hostCounts['hidden'] ?>)</span></a>
+                <a href="?type=host&filter=visible" class="filter-tab <?= $filter==='visible' ? 'active' : '' ?>">Visible <span style="font-size:11px">(<?= $hostCounts['visible'] ?>)</span></a>
+                <a href="?type=host&filter=hidden" class="filter-tab <?= $filter==='hidden' ? 'active' : '' ?>">Hidden <span style="font-size:11px">(<?= $hostCounts['hidden'] ?>)</span></a>
                 <a href="?type=host&filter=all" class="filter-tab <?= $filter==='all' ? 'active' : '' ?>">All</a>
             </div>
             <p style="font-size:12px;color:var(--text-secondary);margin:-6px 0 16px">These are ratings hosts gave to guests after a stay. Hiding one removes it from the guest&rsquo;s reputation. The guest and host keep their accounts.</p>
@@ -383,8 +383,8 @@ $counts = $pdo->query("
                 <div class="review-top">
                     <div>
                         <div style="display:flex;gap:28px;flex-wrap:wrap">
-                            <div><div style="font-size:11px;color:#68776f;margin-bottom:3px">Host (wrote this)</div><?= personChipHtml($g['host_uid'], $g['host_name'], $g['host_photo'], 40, 'Host') ?></div>
-                            <div><div style="font-size:11px;color:#68776f;margin-bottom:3px">About the guest</div><?= personChipHtml($g['tourist_uid'], $g['tourist_name'], $g['tourist_photo'], 40, 'Tourist') ?></div>
+                            <div><div style="font-size:11px;color:#4f5f57;margin-bottom:3px">Host (wrote this)</div><?= personChipHtml($g['host_uid'], $g['host_name'], $g['host_photo'], 40, 'Host') ?></div>
+                            <div><div style="font-size:11px;color:#4f5f57;margin-bottom:3px">About the guest</div><?= personChipHtml($g['tourist_uid'], $g['tourist_name'], $g['tourist_photo'], 40, 'Tourist') ?></div>
                         </div>
                         <div class="review-prop" style="margin-top:8px"><?= h($g['property_title']) ?> &middot; <?= date('d M', strtotime($g['check_in_date'])) ?> &ndash; <?= date('d M Y', strtotime($g['check_out_date'])) ?></div>
                     </div>
@@ -397,7 +397,7 @@ $counts = $pdo->query("
                     <?php for ($i = 1; $i <= 5; $i++): ?><span class="star <?= $i <= $g['rating'] ? 'filled' : '' ?>">&#9733;</span><?php endfor; ?>
                     <span style="font-size:12px;color:var(--text-secondary);margin-left:6px"><?= (int)$g['rating'] ?> / 5</span>
                 </div>
-                <div class="review-text"><?= $g['review_text'] !== null && $g['review_text'] !== '' ? nl2br(h($g['review_text'])) : '<em style="color:#888">No written comment.</em>' ?></div>
+                <div class="review-text"><?= $g['review_text'] !== null && $g['review_text'] !== '' ? nl2br(h($g['review_text'])) : '<em style="color:#565c55">No written comment.</em>' ?></div>
                 <div class="review-actions">
                     <form method="POST" style="margin:0">
                         <input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
@@ -438,8 +438,8 @@ $counts = $pdo->query("
                 <div class="review-top">
                     <div>
                         <div style="display:flex;gap:28px;flex-wrap:wrap">
-                            <div><div style="font-size:11px;color:#68776f;margin-bottom:3px">Guest (wrote this)</div><?= personChipHtml($r['tourist_id'], $r['full_tourist_name'], $r['tourist_photo'], 40, 'Tourist') ?></div>
-                            <div><div style="font-size:11px;color:#68776f;margin-bottom:3px">Host of the stay</div><?= personChipHtml($r['host_id'], $r['host_name'], $r['host_photo'], 40, 'Host') ?></div>
+                            <div><div style="font-size:11px;color:#4f5f57;margin-bottom:3px">Guest (wrote this)</div><?= personChipHtml($r['tourist_id'], $r['full_tourist_name'], $r['tourist_photo'], 40, 'Tourist') ?></div>
+                            <div><div style="font-size:11px;color:#4f5f57;margin-bottom:3px">Host of the stay</div><?= personChipHtml($r['host_id'], $r['host_name'], $r['host_photo'], 40, 'Host') ?></div>
                         </div>
                         <div class="review-prop">
                             <?= h(
@@ -484,7 +484,7 @@ $counts = $pdo->query("
                 </div>
 
                 <!-- Risk score (0-100): a guide for what to check first -->
-                <?php $risk = $r['risk']; $rc = ['low' => ['#E1F5EE', '#0F6E56'], 'medium' => ['#FFF3D6', '#9A6A00'], 'high' => ['#FDECEC', '#A12B2B']][$risk['level']]; ?>
+                <?php $risk = $r['risk']; $rc = ['low' => ['#E1F5EE', '#0F6E56'], 'medium' => ['#FFF3D6', '#7a5200'], 'high' => ['#FDECEC', '#A12B2B']][$risk['level']]; ?>
                 <div style="margin:8px 0 4px">
                     <span title="<?= h($risk['reasons'] ? implode("\n", $risk['reasons']) : 'No risk signals found') ?>"
                           style="display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:600;background:<?= $rc[0] ?>;color:<?= $rc[1] ?>">
@@ -505,7 +505,7 @@ $counts = $pdo->query("
                 </div>
 
                 <?php if (!empty($r['host_reply'])): ?>
-                <div style="margin-top:10px;padding:10px 12px;background:#e8f8f3;border-left:3px solid #1D9E75;border-radius:0 6px 6px 0;font-size:13px">
+                <div style="margin-top:10px;padding:10px 12px;background:#e8f8f3;border-left:3px solid #126b4e;border-radius:0 6px 6px 0;font-size:13px">
                     <strong>Host reply</strong> <?= !empty($r['host_reply_hidden']) ? '<span style="color:#a12b2b;font-size:12px">(hidden from public)</span>' : '' ?><br>
                     <?= nl2br(h($r['host_reply'])) ?>
                     <form method="POST" style="margin:8px 0 0">
@@ -535,7 +535,7 @@ $counts = $pdo->query("
                                  ($r['suspicion_score']/8)*100) ?>%">
                         </div>
                     </div>
-                    <div style="font-size:12px;color:#9A6A00;
+                    <div style="font-size:12px;color:#7a5200;
                                 margin-top:8px">
                         <?php
                         $account_age = floor(
@@ -591,14 +591,14 @@ $counts = $pdo->query("
                               style="<?= abs($r['rating']
                                   - $r['prop_avg_rating']) >= 2
                                   && $r['other_prop_reviews'] > 0
-                                  ? 'color:#DC2626' : '' ?>">
+                                  ? 'color:#b42318' : '' ?>">
                             <?= $r['rating'] ?> / 5
                             <?php if (
                                 abs($r['rating']
                                     - $r['prop_avg_rating']) >= 2
                                 && $r['other_prop_reviews'] > 0): ?>
                                 <span style="font-size:11px;
-                                             color:#DC2626">
+                                             color:#b42318">
                                     (<?= $r['rating']
                                         > $r['prop_avg_rating']
                                         ? 'significantly higher'

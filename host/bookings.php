@@ -2,6 +2,8 @@
 require_once '../includes/auth.php';
 require_once '../includes/functions.php';
 require_once '../includes/db.php';
+require_once '../includes/booking_holds.php';
+expireStaleBookingRequests($pdo);   // releases dates held by unpaid or unanswered requests
 require_once '../includes/booking_events.php';
 ensureBookingEventsTable($pdo);
 require_once '../includes/email.php';
@@ -53,39 +55,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 break;
 
             case 'decline':
+                // "Release dates": the host declines a pending request. A short note to the guest is optional.
                 if ($booking['status'] === 'pending') {
-                    $pdo->prepare("UPDATE bookings SET status = 'cancelled' WHERE booking_id = ? AND status = 'pending'")->execute([$booking_id]);
-                    sendEmail($booking['tourist_email'], 'Booking request not accepted — StayExplore Kenya', '<p>Your host could not accept booking #BK' . str_pad((string)$booking_id, 5, '0', STR_PAD_LEFT) . ' for <strong>' . h($booking['title'], ENT_QUOTES, 'UTF-8') . '</strong>. Please choose another property or contact support about any payment details you submitted.</p>');
-                    setFlash('rejected', 'Booking declined. The tourist has been notified.');
+                    $note = mb_substr(trim((string)($_POST['note'] ?? '')), 0, 300);
+                    $up = $pdo->prepare("UPDATE bookings SET status = 'cancelled' WHERE booking_id = ? AND status = 'pending'");
+                    $up->execute([$booking_id]);
+                    if ($up->rowCount()) {
+                        logBookingEvent($pdo, $booking_id, $host_id, 'host_declined', $note !== '' ? $note : 'Host released the dates');
+                        try { sendBookingReleasedEmail($booking['tourist_email'], $booking['tourist_name'], $booking, $note); } catch (Throwable $e) {}
+                        setFlash('rejected', 'Dates released. The tourist has been notified.');
+                    }
                 }
                 break;
 
             case 'cancel':
-                if (in_array($booking['status'],
-                    ['pending', 'confirmed'])) {
-                    $pdo->prepare("
-                        UPDATE bookings SET status = 'cancelled'
-                        WHERE booking_id = ?
-                    ")->execute([$booking_id]);
-
-                    // Notify tourist
-                    sendEmail(
-                        $booking['tourist_email'],
-                        'Booking Cancelled — StayExplore Kenya',
-                        "
-                        <h2>Booking Cancelled</h2>
-                        <p>Dear {$booking['tourist_name']},</p>
-                        <p>Your booking for <strong>
-                           {$booking['title']}</strong> has been
-                           cancelled by the host.</p>
-                        <p>Booking reference:
-                           #BK" . str_pad($booking_id, 5, '0',
-                               STR_PAD_LEFT) . "</p>
-                        <p>Please contact us if you have any questions.
-                        </p>
-                        "
-                    );
-                    setFlash('success', 'Booking cancelled.');
+                // Cancelling is a serious step for the guest, so a written reason is required, it is logged,
+                // the guest is told, and the administrators are alerted when a confirmed booking is cancelled.
+                if (in_array($booking['status'], ['pending', 'confirmed'], true)) {
+                    $reason = mb_substr(trim((string)($_POST['cancel_reason'] ?? '')), 0, 500);
+                    if (mb_strlen($reason) < 5) {
+                        setFlash('error', 'Please give the guest a reason for cancelling (at least 5 characters).');
+                        break;
+                    }
+                    $ps = $pdo->prepare("SELECT payment_status FROM payments WHERE booking_id = ? ORDER BY payment_id DESC LIMIT 1");
+                    $ps->execute([$booking_id]);
+                    $payStatus = (string)($ps->fetchColumn() ?: '');
+                    $up = $pdo->prepare("UPDATE bookings SET status = 'cancelled' WHERE booking_id = ? AND status IN ('pending','confirmed')");
+                    $up->execute([$booking_id]);
+                    if ($up->rowCount()) {
+                        logBookingEvent($pdo, $booking_id, $host_id, 'host_cancelled', $reason);
+                        try {
+                            sendHostCancelledGuestEmail($booking['tourist_email'], $booking['tourist_name'], $booking, $reason, $payStatus);
+                            if ($booking['status'] === 'confirmed') {
+                                foreach (adminEmailAddresses($pdo) as $adminTo) {
+                                    sendHostCancelledAdminEmail($adminTo, $booking, $_SESSION['full_name'] ?? 'Host', $booking['tourist_name'], $reason, $payStatus);
+                                }
+                            }
+                        } catch (Throwable $e) { error_log('Host cancel emails: ' . $e->getMessage()); }
+                        setFlash('success', 'Booking cancelled. The guest has been told your reason' . ($payStatus === 'confirmed' ? ' and reminded to expect a refund from you.' : '.'));
+                    }
                 }
                 break;
 
@@ -238,7 +246,7 @@ $counts = $counts->fetch();
                       top:52px; height:calc(100vh - 52px);
                       overflow-y:auto }
         .sidebar-role { font-size:10px; font-weight:700;
-                        letter-spacing:.08em; color:#1D9E75;
+                        letter-spacing:.08em; color:#126b4e;
                         text-transform:uppercase;
                         padding:0 20px; margin-bottom:12px }
         .sidebar-link { display:flex; align-items:center; gap:10px;
@@ -249,13 +257,13 @@ $counts = $counts->fetch();
                               background:var(--surface-1) }
         .sidebar-link.active { color:#085041; font-weight:500;
                                background:#E1F5EE;
-                               border-left:3px solid #1D9E75 }
+                               border-left:3px solid #126b4e }
         .badge      { font-size:10px; background:#DC2626;
                       color:#fff; border-radius:10px;
                       padding:1px 6px; margin-left:auto }
         .main       { padding:28px }
         .page-tag   { font-size:11px; font-weight:600;
-                      letter-spacing:.06em; color:#1D9E75;
+                      letter-spacing:.06em; color:#126b4e;
                       text-transform:uppercase; margin-bottom:8px }
         .page-title { font-size:26px; font-weight:400;
                       margin-bottom:20px }
@@ -288,7 +296,7 @@ $counts = $counts->fetch();
                         border-radius:3px }
         .s-confirmed  { background:#E1F5EE; color:#0F6E56;
                         border:1px solid #9FE1CB }
-        .s-pending    { background:#FFF8E1; color:#9A6A00;
+        .s-pending    { background:#FFF8E1; color:#7a5200;
                         border:1px solid #F9D57C }
         .s-completed  { background:#F0F4FF; color:#1A4DB3;
                         border:1px solid #B3C5F5 }
@@ -319,11 +327,11 @@ $counts = $counts->fetch();
                       border:1px solid var(--border-strong);
                       background:none;
                       color:var(--text-secondary) }
-        .btn-sm:hover { border-color:#1D9E75; color:#1D9E75 }
-        .btn-sm-danger { border-color:#FECACA; color:#DC2626 }
+        .btn-sm:hover { border-color:#126b4e; color:#126b4e }
+        .btn-sm-danger { border-color:#FECACA; color:#b42318 }
         .btn-sm-danger:hover { background:#FEF2F2 }
         .pay-confirmed { color:#0F6E56; font-weight:500 }
-        .pay-pending   { color:#D97706 }
+        .pay-pending   { color:#8f4b00 }
         .flag-form     { display:flex; gap:6px; margin-top:8px;
                          flex-wrap:wrap }
         .flag-form input { flex:1; padding:6px 10px;
@@ -499,7 +507,8 @@ $counts = $counts->fetch();
                             <input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
                             <input type="hidden" name="booking_id" value="<?= (int)$b['booking_id'] ?>">
                             <input type="hidden" name="action" value="decline">
-                            <button type="submit" class="btn-sm btn-sm-danger" onclick="return confirm('Decline this booking request? The tourist will be notified.')">Decline booking</button>
+                            <input type="hidden" name="note" value="">
+                            <button type="submit" class="btn-sm btn-sm-danger" onclick="var n=prompt('Release these dates? The guest will be emailed. Add a short note for the guest (optional):',''); if(n===null){return false;} this.form.note.value=n; return true;">Release dates</button>
                         </form>
                     <?php endif; ?>
 
@@ -542,10 +551,10 @@ $counts = $counts->fetch();
                                    value="<?= $b['booking_id'] ?>">
                             <input type="hidden" name="action"
                                    value="cancel">
+                            <input type="hidden" name="cancel_reason" value="">
                             <button type="submit"
                                     class="btn-sm btn-sm-danger"
-                                    onclick="return confirm(
-                                        'Cancel this booking? The guest will be notified.')">
+                                    onclick="var r=prompt('Why are you cancelling? The guest and the administrators will see this reason.'); if(!r||r.trim().length<5){alert('Please give a reason of at least 5 characters.');return false;} this.form.cancel_reason.value=r; return true;">
                                 Cancel booking
                             </button>
                         </form>

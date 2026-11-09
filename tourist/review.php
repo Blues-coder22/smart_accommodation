@@ -24,7 +24,7 @@ $stmt = $pdo->prepare("
            a.host_id,
            (SELECT photo_path FROM accommodation_photos
             WHERE accommodation_id = a.accommodation_id
-            AND is_primary = 1 LIMIT 1) AS primary_photo
+            ORDER BY is_primary DESC, photo_id ASC LIMIT 1) AS primary_photo
     FROM bookings b
     JOIN accommodations a ON a.accommodation_id = b.accommodation_id
     WHERE b.booking_id = ?
@@ -168,7 +168,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <style>
         .page-wrap  { max-width:680px; margin:0 auto; padding:32px 24px }
         .page-tag   { font-size:11px; font-weight:600; letter-spacing:.06em;
-                      color:#1D9E75; text-transform:uppercase;
+                      color:#126b4e; text-transform:uppercase;
                       margin-bottom:8px }
         .page-title { font-size:28px; font-weight:400; margin-bottom:4px }
         .page-sub   { font-size:14px; color:var(--text-secondary);
@@ -214,7 +214,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                font-family:inherit;
                                background:var(--surface-2) }
         .form-group textarea:focus { outline:none;
-                                     border-color:#1D9E75 }
+                                     border-color:#126b4e }
         .char-count { font-size:11px; color:var(--text-secondary);
                       text-align:right; margin-top:4px }
         .honesty-note { background:#F0FAF6;
@@ -237,7 +237,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                          align-items:center; justify-content:center;
                          margin:0 auto 16px;
                          border:1px solid #9FE1CB }
-        .success-icon svg { width:22px; height:22px; stroke:#1D9E75 }
+        .success-icon svg { width:22px; height:22px; stroke:#126b4e }
         .success-state h2 { font-size:20px; font-weight:500;
                             margin-bottom:8px }
         .success-state p  { font-size:14px; color:var(--text-secondary);

@@ -30,7 +30,7 @@ $acc_favs = $pdo->prepare("
            COUNT(DISTINCT r.review_id) AS total_reviews,
            (SELECT photo_path FROM accommodation_photos
             WHERE accommodation_id = a.accommodation_id
-            AND is_primary = 1 LIMIT 1) AS primary_photo
+            ORDER BY is_primary DESC, photo_id ASC LIMIT 1) AS primary_photo
     FROM favourites f
     JOIN accommodations a ON a.accommodation_id = f.item_id
     LEFT JOIN reviews r
@@ -69,7 +69,7 @@ $att_favs = $att_favs->fetchAll();
     <style>
         .page-wrap  { max-width:1100px; margin:0 auto; padding:32px 24px }
         .page-tag   { font-size:11px; font-weight:600; letter-spacing:.06em;
-                      color:#1D9E75; text-transform:uppercase;
+                      color:#126b4e; text-transform:uppercase;
                       margin-bottom:8px }
         .page-title { font-size:28px; font-weight:400; margin-bottom:4px }
         .page-sub   { font-size:14px; color:var(--text-secondary);
@@ -98,7 +98,7 @@ $att_favs = $att_favs->fetchAll();
                       justify-content:center; cursor:pointer;
                       font-size:13px; color:var(--text-secondary);
                       z-index:2 }
-        .remove-btn:hover { border-color:#DC2626; color:#DC2626 }
+        .remove-btn:hover { border-color:#DC2626; color:#b42318 }
         .fav-body   { padding:14px }
         .fav-title  { font-size:13px; font-weight:500; margin-bottom:3px }
         .fav-loc    { font-size:12px; color:var(--text-secondary);
@@ -118,7 +118,7 @@ $att_favs = $att_favs->fetchAll();
                       border-radius:4px; font-size:12px; font-weight:500;
                       color:var(--text-secondary); cursor:pointer;
                       text-decoration:none; transition:.15s }
-        .btn-view:hover { border-color:#1D9E75; color:#1D9E75 }
+        .btn-view:hover { border-color:#126b4e; color:#126b4e }
         .btn-view-green { background:#085041; color:#fff;
                           border-color:#085041 }
         .btn-view-green:hover { background:#0a6350; color:#fff }

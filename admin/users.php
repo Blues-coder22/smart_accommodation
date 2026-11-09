@@ -247,7 +247,7 @@ $counts = $pdo->query("
                        top:52px; height:calc(100vh - 52px);
                        overflow-y:auto }
         .sidebar-role{ font-size:10px; font-weight:700;
-                       letter-spacing:.08em; color:#DC2626;
+                       letter-spacing:.08em; color:#b42318;
                        text-transform:uppercase;
                        padding:0 20px; margin-bottom:12px }
         .sidebar-link{ display:flex; align-items:center; gap:10px;
@@ -258,13 +258,13 @@ $counts = $pdo->query("
                               background:var(--surface-1) }
         .sidebar-link.active { color:#085041; font-weight:500;
                                background:#E1F5EE;
-                               border-left:3px solid #1D9E75 }
+                               border-left:3px solid #126b4e }
         .badge       { font-size:10px; background:#DC2626;
                        color:#fff; border-radius:10px;
                        padding:1px 6px; margin-left:auto }
         .main        { padding:28px }
         .page-tag    { font-size:11px; font-weight:600;
-                       letter-spacing:.06em; color:#1D9E75;
+                       letter-spacing:.06em; color:#126b4e;
                        text-transform:uppercase; margin-bottom:8px }
         .page-title  { font-size:26px; font-weight:400;
                        margin-bottom:20px }
@@ -274,7 +274,7 @@ $counts = $pdo->query("
                         border:1px solid var(--border-strong);
                         border-radius:6px; background:var(--surface-2);
                         color:var(--text-primary); min-width:220px }
-        .search-input:focus { outline:none; border-color:#1D9E75 }
+        .search-input:focus { outline:none; border-color:#126b4e }
         .filter-select { padding:8px 12px; font-size:13px;
                          border:1px solid var(--border-strong);
                          border-radius:6px;
@@ -318,20 +318,20 @@ $counts = $pdo->query("
                         border-radius:3px }
         .s-active     { background:#E1F5EE; color:#0F6E56;
                         border:1px solid #9FE1CB }
-        .s-suspended  { background:#FFF8E1; color:#9A6A00;
+        .s-suspended  { background:#FFF8E1; color:#7a5200;
                         border:1px solid #F9D57C }
         .s-banned     { background:#FEF2F2; color:#991B1B;
                         border:1px solid #FECACA }
-        .verified-yes { color:#1D9E75; font-size:12px }
-        .verified-no  { color:#DC2626; font-size:12px }
+        .verified-yes { color:#126b4e; font-size:12px }
+        .verified-no  { color:#b42318; font-size:12px }
         .action-cell  { display:flex; gap:6px; flex-wrap:wrap }
         .btn-sm      { padding:5px 10px; font-size:11px;
                        border-radius:3px; cursor:pointer;
                        font-weight:500; border:1px solid;
                        background:none }
-        .btn-suspend { color:#D97706; border-color:#F9D57C }
+        .btn-suspend { color:#8f4b00; border-color:#F9D57C }
         .btn-suspend:hover { background:#FFF8E1 }
-        .btn-ban     { color:#DC2626; border-color:#FECACA }
+        .btn-ban     { color:#b42318; border-color:#FECACA }
         .btn-ban:hover { background:#FEF2F2 }
         .btn-restore { color:#0F6E56; border-color:#9FE1CB }
         .btn-restore:hover { background:#E1F5EE }
@@ -515,7 +515,7 @@ $counts = $pdo->query("
                                 <?php if ($idState === 'verified'): ?>
                                     <span class="verified-yes">ID verified</span>
                                 <?php elseif ($idState === 'pending'): ?>
-                                    <a href="#verification" style="font-size:12px;color:#D97706">ID review pending</a>
+                                    <a href="#verification" style="font-size:12px;color:#8f4b00">ID review pending</a>
                                 <?php elseif ($idState === 'rejected'): ?>
                                     <span class="verified-no">ID rejected</span>
                                 <?php else: ?>
@@ -540,7 +540,7 @@ $counts = $pdo->query("
                                 </span>
                             <?php endif; ?>
                             <?php if ($u['reports_against'] > 0): ?>
-                            <div style="font-size:11px;color:#DC2626">
+                            <div style="font-size:11px;color:#b42318">
                                 <?= $u['reports_against'] ?>
                                 report<?= $u['reports_against'] != 1
                                            ? 's' : '' ?> against

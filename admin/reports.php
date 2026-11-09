@@ -230,7 +230,7 @@ $counts = $pdo->query("
                        top:52px; height:calc(100vh - 52px);
                        overflow-y:auto }
         .sidebar-role{ font-size:10px; font-weight:700;
-                       letter-spacing:.08em; color:#DC2626;
+                       letter-spacing:.08em; color:#b42318;
                        text-transform:uppercase;
                        padding:0 20px; margin-bottom:12px }
         .sidebar-link{ display:flex; align-items:center; gap:10px;
@@ -241,13 +241,13 @@ $counts = $pdo->query("
                               background:var(--surface-1) }
         .sidebar-link.active { color:#085041; font-weight:500;
                                background:#E1F5EE;
-                               border-left:3px solid #1D9E75 }
+                               border-left:3px solid #126b4e }
         .badge       { font-size:10px; background:#DC2626;
                        color:#fff; border-radius:10px;
                        padding:1px 6px; margin-left:auto }
         .main        { padding:28px }
         .page-tag    { font-size:11px; font-weight:600;
-                       letter-spacing:.06em; color:#1D9E75;
+                       letter-spacing:.06em; color:#126b4e;
                        text-transform:uppercase; margin-bottom:8px }
         .page-title  { font-size:26px; font-weight:400;
                        margin-bottom:4px }
@@ -277,7 +277,7 @@ $counts = $pdo->query("
         .status-pill { display:inline-block; font-size:11px;
                        font-weight:600; padding:3px 9px;
                        border-radius:3px }
-        .s-pending   { background:#FFF8E1; color:#9A6A00;
+        .s-pending   { background:#FFF8E1; color:#7a5200;
                        border:1px solid #F9D57C }
         .s-resolved  { background:#E1F5EE; color:#0F6E56;
                        border:1px solid #9FE1CB }
@@ -330,7 +330,7 @@ $counts = $pdo->query("
                                 background:var(--surface-2);
                                 color:var(--text-primary) }
         .action-note textarea:focus { outline:none;
-                                      border-color:#1D9E75 }
+                                      border-color:#126b4e }
         .btn-resolve { padding:7px 16px; background:#085041;
                        color:#fff; border:none; border-radius:4px;
                        font-size:12px; font-weight:500; cursor:pointer }
@@ -340,11 +340,11 @@ $counts = $pdo->query("
                        border-radius:4px; font-size:12px;
                        font-weight:500; cursor:pointer }
         .btn-suspend { padding:7px 14px; background:none;
-                       color:#D97706; border:1px solid #F9D57C;
+                       color:#8f4b00; border:1px solid #F9D57C;
                        border-radius:4px; font-size:12px;
                        font-weight:500; cursor:pointer }
         .btn-danger  { padding:7px 14px; background:none;
-                       color:#DC2626; border:1px solid #FECACA;
+                       color:#b42318; border:1px solid #FECACA;
                        border-radius:4px; font-size:12px;
                        font-weight:500; cursor:pointer }
         .btn-restore { padding:7px 14px; background:none;
@@ -361,7 +361,7 @@ $counts = $pdo->query("
                          border-radius:6px; padding:12px 14px;
                          margin-bottom:14px }
         .emergency-box h4 { font-size:12px; font-weight:700;
-                            color:#DC2626; margin-bottom:4px }
+                            color:#b42318; margin-bottom:4px }
         .emergency-box p  { font-size:12px; color:#991B1B }
         .empty-state { text-align:center; padding:48px;
                        font-size:14px;
@@ -393,7 +393,7 @@ $counts = $pdo->query("
                class="filter-tab <?= $filter==='pending'
                    ?'active':'' ?>">
                 Pending
-                <span style="font-size:10px;opacity:.8">
+                <span style="font-size:11px">
                     (<?= $counts['pending'] ?>)
                 </span>
             </a>
@@ -401,7 +401,7 @@ $counts = $pdo->query("
                class="filter-tab <?= $filter==='incident'
                    ?'active':'' ?>">
                 Incidents
-                <span style="font-size:10px;opacity:.8">
+                <span style="font-size:11px">
                     (<?= $counts['incidents'] ?>)
                 </span>
             </a>
@@ -409,7 +409,7 @@ $counts = $pdo->query("
                class="filter-tab <?= $filter==='resolved'
                    ?'active':'' ?>">
                 Resolved
-                <span style="font-size:10px;opacity:.8">
+                <span style="font-size:11px">
                     (<?= $counts['resolved'] ?>)
                 </span>
             </a>
@@ -417,7 +417,7 @@ $counts = $pdo->query("
                class="filter-tab <?= $filter==='dismissed'
                    ?'active':'' ?>">
                 Dismissed
-                <span style="font-size:10px;opacity:.8">
+                <span style="font-size:11px">
                     (<?= $counts['dismissed'] ?>)
                 </span>
             </a>

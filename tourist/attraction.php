@@ -5,6 +5,7 @@ require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/attraction_content.php';
 require_once __DIR__ . '/../includes/gallery.php';
 require_once __DIR__ . '/../includes/commons_photos.php';
+require_once __DIR__ . '/../includes/attraction_reviews.php';
 if (session_status() === PHP_SESSION_NONE) session_start();
 
 $id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT) ?: 0;
@@ -52,6 +53,41 @@ if ($hasCoords) {
     $nearby = $nearStmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
+
+// ---- Ratings: only tourists with a completed stay within 50 km can rate; this never touches the Smart score ----
+$ratingNotice = '';
+$myRating = null; $canRate = false; $ratings = []; $ratingSummary = null;
+if ($attraction) {
+    ensureAttractionReviewsTable($pdo);
+    $isTouristUser = isLoggedIn() && hasRole('tourist');
+    if ($isTouristUser) {
+        $canRate = canRateAttraction($pdo, (int)$_SESSION['user_id'], $attraction);
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['rate_attraction'])) {
+            requireCsrf();
+            $stars = (int)($_POST['rating'] ?? 0);
+            if (!$canRate) {
+                $ratingNotice = 'Only guests who completed a stay within ' . ATTRACTION_RATING_RADIUS_KM . ' km of this place can rate it.';
+            } elseif ($stars < 1 || $stars > 5) {
+                $ratingNotice = 'Please choose 1 to 5 stars.';
+            } else {
+                saveAttractionRating($pdo, $id, (int)$_SESSION['user_id'], $stars, $_POST['comment'] ?? '');
+                header('Location: attraction.php?id=' . $id . '&rated=1#ratings');
+                exit;
+            }
+        }
+        $q = $pdo->prepare('SELECT rating, comment FROM attraction_reviews WHERE attraction_id = ? AND tourist_id = ?');
+        $q->execute([$id, $_SESSION['user_id']]);
+        $myRating = $q->fetch(PDO::FETCH_ASSOC) ?: null;
+    }
+    if (isset($_GET['rated'])) $ratingNotice = 'Thank you, your rating is saved.';
+    $ratingSummary = attractionRatingsMap($pdo, [$id])[$id] ?? null;
+    $rq = $pdo->prepare("SELECT r.rating, r.comment, r.created_at, u.full_name FROM attraction_reviews r
+                         JOIN users u ON u.user_id = r.tourist_id WHERE r.attraction_id = ? AND r.is_hidden = 0
+                         ORDER BY r.created_at DESC LIMIT 10");
+    $rq->execute([$id]);
+    $ratings = $rq->fetchAll(PDO::FETCH_ASSOC);
+}
+
 $story = $attraction ? buildAttractionStory($pdo, $attraction, $nearby) : null;
 $title = $attraction['name'] ?? 'Attraction not found';
 
@@ -96,6 +132,7 @@ $monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'O
       <div class="att-badges">
         <?php if ($story['in_season'] === true): ?><span class="att-badge season">In season now</span><?php endif; ?>
         <?php if ($story['best_time'] !== ''): ?><span class="att-badge"><?= h($story['best_time']) ?></span><?php endif; ?>
+        <a class="att-badge" href="#ratings" style="text-decoration:none"><?= h(attractionRatingLabel($ratingSummary)) ?></a>
       </div>
       <div class="att-actions">
         <?php if ($hasCoords): ?><a class="att-btn" href="search.php?type=accommodation&amp;attraction_id=<?= (int)$attraction['attraction_id'] ?>">Find stays nearby</a><?php endif; ?>
@@ -196,6 +233,39 @@ $monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'O
     <div class="att-pack">
       <?php foreach ($story['packing'] as $i => $p): ?><span style="--i:<?= $i ?>"><?= h($p) ?></span><?php endforeach; ?>
     </div>
+  </section>
+
+  <!-- Ratings -->
+  <section class="att-section att-reveal" id="ratings">
+    <h2>Visitor ratings <small><?= h(attractionRatingLabel($ratingSummary)) ?></small></h2>
+    <?php if ($ratingNotice !== ''): ?><p role="status" style="background:#e6f3ec;border-radius:8px;padding:10px 14px"><?= h($ratingNotice) ?></p><?php endif; ?>
+    <?php if ($canRate): ?>
+      <form method="POST" action="#ratings" class="card pad" style="margin:12px 0">
+        <input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken()) ?>">
+        <input type="hidden" name="rate_attraction" value="1">
+        <fieldset style="border:0;padding:0;margin:0 0 10px"><legend><strong><?= $myRating ? 'Your rating (you can change it)' : 'How was your visit?' ?></strong></legend>
+          <?php for ($i = 1; $i <= 5; $i++): ?>
+            <label style="margin-right:12px;white-space:nowrap"><input type="radio" name="rating" value="<?= $i ?>" <?= ($myRating && (int)$myRating['rating'] === $i) ? 'checked' : '' ?> required> <?= $i ?> ★</label>
+          <?php endfor; ?>
+        </fieldset>
+        <label for="attComment">Comment (optional, up to 500 characters)</label>
+        <textarea id="attComment" name="comment" maxlength="500" rows="3" style="width:100%"><?= h($myRating['comment'] ?? '') ?></textarea>
+        <button class="btn" type="submit" style="margin-top:10px"><?= $myRating ? 'Update rating' : 'Submit rating' ?></button>
+      </form>
+    <?php elseif (isLoggedIn() && hasRole('tourist')): ?>
+      <p class="small">Ratings come from guests who completed a stay within <?= (int)ATTRACTION_RATING_RADIUS_KM ?> km of this place, so they come from people who were really in the area.</p>
+    <?php elseif (!isLoggedIn()): ?>
+      <p class="small"><a href="../login.php">Sign in</a> to rate this place after a completed stay nearby.</p>
+    <?php endif; ?>
+    <?php if (!$ratings): ?>
+      <p class="small">No ratings yet.</p>
+    <?php else: foreach ($ratings as $r): ?>
+      <div class="card pad" style="margin:10px 0">
+        <strong><?= h($r['full_name']) ?></strong> <span aria-label="<?= (int)$r['rating'] ?> out of 5 stars"><?= str_repeat('★', (int)$r['rating']) . str_repeat('☆', 5 - (int)$r['rating']) ?></span>
+        <span class="small"> · <?= h(date('j M Y', strtotime($r['created_at']))) ?></span>
+        <?php if (!empty($r['comment'])): ?><p style="margin:6px 0 0"><?= nl2br(h($r['comment'])) ?></p><?php endif; ?>
+      </div>
+    <?php endforeach; endif; ?>
   </section>
 
   <!-- Map -->

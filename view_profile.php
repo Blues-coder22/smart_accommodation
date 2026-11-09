@@ -88,7 +88,7 @@ $backUrl = $back ? $base . ($myRole === 'host' ? '/host/messages.php' : '/messag
     <div>
       <h1><?= h($u['full_name']) ?><?= $verified ? userVerifiedBadge($u['role']) : '' ?></h1>
       <span class="vp-pill"><?= $isHostProfile ? 'Host' : 'Tourist' ?></span>
-      <?php if (!empty($u['created_at'])): ?><div style="font-size:13px;color:#68776f;margin-top:8px">Member since <?= h(date('F Y', strtotime($u['created_at']))) ?></div><?php endif; ?>
+      <?php if (!empty($u['created_at'])): ?><div style="font-size:13px;color:#4f5f57;margin-top:8px">Member since <?= h(date('F Y', strtotime($u['created_at']))) ?></div><?php endif; ?>
     </div>
   </div>
 
@@ -96,8 +96,8 @@ $backUrl = $back ? $base . ($myRole === 'host' ? '/host/messages.php' : '/messag
     <div class="vp-card"><h2>Listings by <?= h(strtok($u['full_name'], ' ')) ?></h2>
       <?php if (!$listings): ?><p style="font-size:14px;color:#666;margin:0">No approved listings yet.</p><?php endif; ?>
       <?php foreach ($listings as $l): ?>
-        <div class="vp-row"><span><a href="<?= h($base) ?>/tourist/details.php?id=<?= (int)$l['accommodation_id'] ?>"><?= h($l['title']) ?></a><br><small style="color:#777"><?= h($l['location_name']) ?></small></span>
-        <span style="text-align:right">KES <?= number_format($l['price_per_night']) ?><br><small style="color:#777"><?= (int)$l['total_reviews'] > 0 ? '★ ' . number_format($l['avg_rating'], 1) . ' (' . (int)$l['total_reviews'] . ')' : 'New' ?></small></span></div>
+        <div class="vp-row"><span><a href="<?= h($base) ?>/tourist/details.php?id=<?= (int)$l['accommodation_id'] ?>"><?= h($l['title']) ?></a><br><small style="color:#565c55"><?= h($l['location_name']) ?></small></span>
+        <span style="text-align:right">KES <?= number_format($l['price_per_night']) ?><br><small style="color:#565c55"><?= (int)$l['total_reviews'] > 0 ? '★ ' . number_format($l['avg_rating'], 1) . ' (' . (int)$l['total_reviews'] . ')' : 'New' ?></small></span></div>
       <?php endforeach; ?>
     </div>
   <?php else: ?>

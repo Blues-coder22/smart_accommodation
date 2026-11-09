@@ -78,7 +78,7 @@ $pstats = $pdo->query("
                        top:52px; height:calc(100vh - 52px);
                        overflow-y:auto }
         .sidebar-role{ font-size:10px; font-weight:700;
-                       letter-spacing:.08em; color:#DC2626;
+                       letter-spacing:.08em; color:#b42318;
                        text-transform:uppercase;
                        padding:0 20px; margin-bottom:12px }
         .sidebar-link{ display:flex; align-items:center; gap:10px;
@@ -89,10 +89,10 @@ $pstats = $pdo->query("
                               background:var(--surface-1) }
         .sidebar-link.active { color:#085041; font-weight:500;
                                background:#E1F5EE;
-                               border-left:3px solid #1D9E75 }
+                               border-left:3px solid #126b4e }
         .main        { padding:28px; max-width:680px }
         .page-tag    { font-size:11px; font-weight:600;
-                       letter-spacing:.06em; color:#1D9E75;
+                       letter-spacing:.06em; color:#126b4e;
                        text-transform:uppercase; margin-bottom:8px }
         .page-title  { font-size:26px; font-weight:400;
                        margin-bottom:20px }
@@ -145,7 +145,7 @@ $pstats = $pdo->query("
                             color:var(--text-primary);
                             background:var(--surface-2) }
         .form-group input:focus { outline:none;
-                                  border-color:#1D9E75 }
+                                  border-color:#126b4e }
         .form-row    { display:grid;
                        grid-template-columns:1fr 1fr; gap:12px }
         .btn-save    { padding:9px 22px; background:#085041;
@@ -215,7 +215,7 @@ $pstats = $pdo->query("
             <div class="stat-chip">
                 <div class="stat-num"
                      style="<?= $pstats['open_reports'] > 0
-                         ? 'color:#DC2626' : '' ?>">
+                         ? 'color:#b42318' : '' ?>">
                     <?= $pstats['open_reports'] ?>
                 </div>
                 <div class="stat-label">Open reports</div>

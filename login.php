@@ -64,7 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <section class="auth-form">
       <div class="auth-box">
         <div class="eyebrow">Welcome back</div>
-        <h1>Continue exploring.</h1>
+        <h1>Sign in to your account.</h1>
         <p class="small">Sign in to manage your trips, saved places or properties.</p>
         <?= showFlash() ?>
 

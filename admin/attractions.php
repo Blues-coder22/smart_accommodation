@@ -186,7 +186,7 @@ if ($pickTitles) [$pickedCommons, $pickedCommonsError] = commonsInfoForTitles($p
                        top:52px; height:calc(100vh - 52px);
                        overflow-y:auto }
         .sidebar-role{ font-size:10px; font-weight:700;
-                       letter-spacing:.08em; color:#DC2626;
+                       letter-spacing:.08em; color:#b42318;
                        text-transform:uppercase;
                        padding:0 20px; margin-bottom:12px }
         .sidebar-link{ display:flex; align-items:center; gap:10px;
@@ -197,13 +197,13 @@ if ($pickTitles) [$pickedCommons, $pickedCommonsError] = commonsInfoForTitles($p
                               background:var(--surface-1) }
         .sidebar-link.active { color:#085041; font-weight:500;
                                background:#E1F5EE;
-                               border-left:3px solid #1D9E75 }
+                               border-left:3px solid #126b4e }
         .main        { padding:28px }
         .page-layout { display:grid;
                        grid-template-columns:1fr 340px;
                        gap:24px; align-items:start }
         .page-tag    { font-size:11px; font-weight:600;
-                       letter-spacing:.06em; color:#1D9E75;
+                       letter-spacing:.06em; color:#126b4e;
                        text-transform:uppercase; margin-bottom:8px }
         .page-title  { font-size:26px; font-weight:400;
                        margin-bottom:4px }
@@ -234,7 +234,7 @@ if ($pickTitles) [$pickedCommons, $pickedCommonsError] = commonsInfoForTitles($p
         .form-group input:focus,
         .form-group select:focus,
         .form-group textarea:focus { outline:none;
-                                     border-color:#1D9E75 }
+                                     border-color:#126b4e }
         .form-row    { display:grid;
                        grid-template-columns:1fr 1fr; gap:10px }
         #map         { height:200px; border-radius:6px;
@@ -271,7 +271,7 @@ if ($pickTitles) [$pickedCommons, $pickedCommonsError] = commonsInfoForTitles($p
                        transition:border-color .15s }
         .att-row:hover { border-color:var(--border-strong) }
         .att-thumb   { width:64px; height:52px; border-radius:4px;
-                       background:#EEEDFE; overflow:hidden;
+                       background:#EEEDFE; color:#4f5f57; overflow:hidden;
                        display:flex; align-items:center;
                        justify-content:center; font-size:20px;
                        flex-shrink:0 }
@@ -286,10 +286,10 @@ if ($pickTitles) [$pickedCommons, $pickedCommonsError] = commonsInfoForTitles($p
                        border:1px solid var(--border-strong);
                        background:none; text-decoration:none;
                        display:inline-block }
-        .btn-edit:hover { border-color:#1D9E75; color:#1D9E75 }
+        .btn-edit:hover { border-color:#126b4e; color:#126b4e }
         .btn-del     { padding:5px 12px; font-size:11px;
                        border-radius:3px; cursor:pointer;
-                       color:#DC2626; border:1px solid #FECACA;
+                       color:#b42318; border:1px solid #FECACA;
                        background:none }
         .btn-del:hover { background:#FEF2F2 }
         .empty-cat   { font-size:13px; color:var(--text-secondary);
@@ -363,7 +363,7 @@ if ($pickTitles) [$pickedCommons, $pickedCommonsError] = commonsInfoForTitles($p
                                     <img src="../uploads/attractions/<?= h($att['photo_path']) ?>"
                                          alt="<?= h($att['name']) ?>">
                                 <?php else: ?>
-                                    <span style="font-size:12px;color:#8a948e">No photo</span>
+                                    <span style="font-size:12px;color:#4f5f57">No photo</span>
                                 <?php endif; ?>
                             </div>
                             <div>
@@ -414,7 +414,7 @@ if ($pickTitles) [$pickedCommons, $pickedCommonsError] = commonsInfoForTitles($p
                         <div class="category-label">Other</div>
                         <?php foreach ($other as $att): ?>
                         <div class="att-row">
-                            <div class="att-thumb"><span style="font-size:12px;color:#8a948e">No photo</span></div>
+                            <div class="att-thumb"><span style="font-size:12px;color:#4f5f57">No photo</span></div>
                             <div>
                                 <div class="att-name">
                                     <?= h($att['name']) ?>
@@ -599,7 +599,7 @@ if ($pickTitles) [$pickedCommons, $pickedCommonsError] = commonsInfoForTitles($p
                             <p class="map-hint">
                                 Click to pin exact location.
                                 <span id="coordDisplay"
-                                      style="color:#1D9E75">
+                                      style="color:#126b4e">
                                     <?php if ($editing): ?>
                                         <?= number_format(
                                             $editing['latitude'], 4) ?>,

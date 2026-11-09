@@ -195,7 +195,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <style>
         .page-wrap   { max-width:760px; margin:0 auto; padding:32px 24px }
         .page-tag    { font-size:11px; font-weight:600; letter-spacing:.06em;
-                       color:#DC2626; text-transform:uppercase;
+                       color:#b42318; text-transform:uppercase;
                        margin-bottom:8px }
         .page-title  { font-size:28px; font-weight:400; margin-bottom:4px }
         .page-sub    { font-size:14px; color:var(--text-secondary);
@@ -223,7 +223,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .form-group input:focus,
         .form-group select:focus,
         .form-group textarea:focus { outline:none;
-                                     border-color:#1D9E75 }
+                                     border-color:#126b4e }
         .file-input  { border:0.5px dashed var(--border-strong);
                        padding:16px; text-align:center;
                        border-radius:6px; cursor:pointer }
@@ -241,16 +241,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         margin-bottom:6px }
         .side-card p  { font-size:13px; color:var(--text-secondary);
                         line-height:1.5 }
-        .side-card.urgent h4 { color:#DC2626 }
+        .side-card.urgent h4 { color:#b42318 }
         .emergency-num { font-size:18px; font-weight:700;
-                         color:#DC2626; margin:6px 0 }
+                         color:#b42318; margin:6px 0 }
         .success-state { text-align:center; padding:40px 20px }
         .success-icon  { width:52px; height:52px;
                          background:#E1F5EE; border-radius:50%;
                          display:flex; align-items:center;
                          justify-content:center; margin:0 auto 16px;
                          border:1px solid #9FE1CB }
-        .success-icon svg { width:22px; height:22px; stroke:#1D9E75 }
+        .success-icon svg { width:22px; height:22px; stroke:#126b4e }
         @media(max-width:768px){
             .report-layout { grid-template-columns:1fr }
         }

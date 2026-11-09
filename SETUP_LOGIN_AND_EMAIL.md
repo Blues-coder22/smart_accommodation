@@ -48,3 +48,22 @@ Codes are stored hashed in the `verify_codes` table (created automatically; `dat
 
 The link still works, and still signs the waiting browser in automatically, whenever the phone CAN reach the site: same Wi-Fi with
 `APP_BASE_URL` set to the computer's address (e.g. `http://192.168.1.20/smart_accommodation`), or once the site is hosted on a real domain.
+
+## Payment emails and fraud protection (v9.11)
+
+**Emails now sent**
+- Guest submits payment details: the HOST gets the amount, method and reference with "check your account, then Mark as paid" (it says clearly this is not proof the money arrived); the GUEST gets an acknowledgement.
+- Host marks a payment received ("Mark as paid" or "Mark verified"): the GUEST is emailed.
+- Host sets a received payment back to awaiting: the GUEST and every ADMIN are emailed with the host's reason.
+- A request expires and its dates are released: the guest (and the host, if they never replied) are emailed.
+
+**Host "Mark unpaid" is now restricted**
+- A written reason (5+ characters) is required; it is saved in the payment history and the booking events.
+- Not possible once the check-in day has arrived or the stay is completed / no-show: from then on only an administrator can change it.
+- Not possible once an administrator has confirmed the payment (as before).
+
+**Dates can no longer be held for free** (`includes/booking_holds.php`, no cron job needed)
+- Pending request with no payment details after 2 hours: cancelled, dates released.
+- Pending request the host has not accepted or declined after 48 hours: cancelled, dates released.
+- A booking the host has CONFIRMED is never cancelled automatically.
+- Change the two numbers at the top of `includes/booking_holds.php` (`BOOKING_NO_PAYMENT_HOLD_HOURS`, `BOOKING_HOST_REPLY_HOURS`) if you want different windows.

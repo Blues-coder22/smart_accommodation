@@ -2,6 +2,7 @@
 require_once '../includes/auth.php';
 require_once '../includes/functions.php';
 require_once '../includes/db.php';
+require_once '../includes/booking_rules.php';
 require_once '../includes/onsite_experience.php';
 
 if (session_status() === PHP_SESSION_NONE) session_start();
@@ -27,7 +28,7 @@ $stmt = $pdo->prepare("
            p.payment_method, p.payment_status,
            (SELECT photo_path FROM accommodation_photos
             WHERE accommodation_id = a.accommodation_id
-            AND is_primary = 1 LIMIT 1) AS primary_photo
+            ORDER BY is_primary DESC, photo_id ASC LIMIT 1) AS primary_photo
     FROM bookings b
     JOIN accommodations a ON a.accommodation_id = b.accommodation_id
     JOIN users u ON u.user_id = a.host_id
@@ -79,7 +80,7 @@ $nearby = getNearbyAttractions(
                         border-radius:50%; display:flex; align-items:center;
                         justify-content:center; margin:0 auto 16px;
                         border:1px solid #9FE1CB }
-        .confirm-icon svg { width:24px; height:24px; stroke:#1D9E75 }
+        .confirm-icon svg { width:24px; height:24px; stroke:#126b4e }
         .confirm-hero h1 { font-size:24px; font-weight:500;
                            color:#085041; margin-bottom:6px }
         .confirm-hero p  { font-size:14px; color:var(--text-secondary) }
@@ -111,7 +112,7 @@ $nearby = getNearbyAttractions(
                           padding:3px 10px; border-radius:3px }
         .status-confirmed { background:#E1F5EE; color:#0F6E56;
                             border:1px solid #9FE1CB }
-        .status-pending { background:#FFF8E1; color:#9A6A00; border:1px solid #F9D57C }
+        .status-pending { background:#FFF8E1; color:#7a5200; border:1px solid #F9D57C }
         .what-next { background:var(--surface-2);
                      border:1px solid var(--border);
                      border-radius:8px; padding:20px;
@@ -123,7 +124,7 @@ $nearby = getNearbyAttractions(
                      font-size:13px }
         .next-item:last-child { border-bottom:none }
         .next-num  { width:22px; height:22px; border-radius:50%;
-                     background:#1D9E75; color:#fff; font-size:11px;
+                     background:#126b4e; color:#fff; font-size:11px;
                      font-weight:600; display:flex; align-items:center;
                      justify-content:center; flex-shrink:0; margin-top:1px }
         .next-text strong { display:block; margin-bottom:2px }
@@ -144,7 +145,7 @@ $nearby = getNearbyAttractions(
         .nearby-name  { font-weight:500 }
         .nearby-meta  { font-size:12px; color:var(--text-secondary);
                         margin-top:2px }
-        .nearby-dist  { font-size:12px; color:#1D9E75; font-weight:500 }
+        .nearby-dist  { font-size:12px; color:#126b4e; font-weight:500 }
         .actions-row  { display:flex; gap:10px; margin-top:24px }
         .actions-row .btn { flex:1; text-align:center; padding:11px;
                             border-radius:6px; font-size:14px;
@@ -171,6 +172,7 @@ $nearby = getNearbyAttractions(
         </div>
         <h1><?= $booking['status'] === 'confirmed' ? 'Your booking is confirmed.' : ($booking['status'] === 'cancelled' ? 'Booking request not accepted.' : 'Your booking request has been sent.') ?></h1>
         <p><?= $booking['status'] === 'confirmed' ? 'Your host has confirmed the booking.' : ($booking['status'] === 'cancelled' ? 'This booking is cancelled or was not accepted by the host.' : 'Your host must review your request and payment details before the booking is confirmed.') ?></p>
+        <p style="margin:10px 0 0"><?php bookingRulesDialog(); ?></p>
         <div class="ref-tag">
             Booking #BK<?= str_pad($booking_id, 5, '0', STR_PAD_LEFT) ?>
         </div>
@@ -331,7 +333,7 @@ $nearby = getNearbyAttractions(
             <h3 style="font-size:14px;font-weight:500;margin-bottom:14px">
                 Attractions near your stay
             </h3>
-            <p style="font-size:12px;color:#68776f;line-height:1.5;margin:0 0 12px">Entry fees are set by the park or site (often the government) and paid at the gate. They are not part of your booking.</p>
+            <p style="font-size:12px;color:#4f5f57;line-height:1.5;margin:0 0 12px">Entry fees are set by the park or site (often the government) and paid at the gate. They are not part of your booking.</p>
             <?php foreach (array_slice($nearby, 0, 5) as $att): ?>
             <div class="nearby-item">
                 <div>
