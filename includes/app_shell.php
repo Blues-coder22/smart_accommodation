@@ -74,6 +74,7 @@ if (!function_exists('appShellStart')) {
                 [['attraction_reviews.php'],                 'Attraction ratings',  'admin/attraction_reviews.php', null],
                 [['reports.php'],                            'Incident reports',    'admin/reports.php',     'reports'],
                 [['attractions.php', 'osm_attractions.php'], 'Manage attractions',  'admin/attractions.php', null],
+                [['photos.php'],                             'Photo safekeeping',   'admin/photos.php',      null],
                 [['profile.php'],                            'Admin profile',       'admin/profile.php',     null],
             ];
             $section = 'Administration';
