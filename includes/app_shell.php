@@ -58,6 +58,7 @@ if (!function_exists('appShellStart')) {
                 [['bookings.php', 'rate_guest.php'],         'Manage bookings',  'host/bookings.php',     'bookings'],
                 [['messages.php'],                           'Messages',         'host/messages.php',     null],
                 [['payments.php'],                           'Payment tracking', 'host/payments.php',     null],
+                [['commission.php'],                         'Commission',       'host/commission.php',   null],
                 [['reviews.php'],                            'Guest reviews',    'host/reviews.php',      'reviews'],
                 [['report.php'],                             'Report incident',  'host/report.php',       null],
                 [['profile.php'],                            'Host profile',     'host/profile.php',      null],
@@ -70,11 +71,11 @@ if (!function_exists('appShellStart')) {
                 [['users.php'],                              'Manage users',        'admin/users.php',       'users'],
                 [['bookings.php'],                           'Booking tracking',    'admin/bookings.php',    null],
                 [['payments.php'],                           'Payment tracking',    'admin/payments.php',    null],
+                [['revenue.php'],                            'Revenue & commission','admin/revenue.php',     null],
                 [['reviews.php'],                            'Moderate reviews',    'admin/reviews.php',     'reviews'],
                 [['attraction_reviews.php'],                 'Attraction ratings',  'admin/attraction_reviews.php', null],
                 [['reports.php'],                            'Incident reports',    'admin/reports.php',     'reports'],
                 [['attractions.php', 'osm_attractions.php'], 'Manage attractions',  'admin/attractions.php', null],
-                [['photos.php'],                             'Photo safekeeping',   'admin/photos.php',      null],
                 [['profile.php'],                            'Admin profile',       'admin/profile.php',     null],
             ];
             $section = 'Administration';

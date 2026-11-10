@@ -59,7 +59,7 @@ ensureOnsiteExperienceColumns($pdo);
 $stmt = $pdo->prepare("
     SELECT b.*,
            a.title, a.location_name, a.price_per_night, a.onsite_experience_name,
-           p.payment_method, p.payment_status,
+           p.payment_id, p.payment_method, p.payment_status,
            (SELECT photo_path FROM accommodation_photos
             WHERE accommodation_id = a.accommodation_id
             ORDER BY is_primary DESC, photo_id ASC LIMIT 1) AS primary_photo,
@@ -271,6 +271,7 @@ $current = $tab === 'completed' ? $completed
                 <?php $bbr = bookingPriceBreakdown($b); if ($bbr['extra'] > 0): ?>
                 <div style="font-size:11px;color:#4f5f57;margin-top:2px">incl. KES <?= number_format($bbr['extra']) ?> host tour/guide</div>
                 <?php endif; ?>
+                <?php if ($bbr['service_fee'] > 0): ?><div style="font-size:11px;color:#4f5f57;margin-top:2px">incl. KES <?= number_format($bbr['service_fee']) ?> service fee</div><?php endif; ?>
                 <div class="booking-ref">
                     #BK<?= str_pad($b['booking_id'], 5, '0', STR_PAD_LEFT) ?>
                 </div>
@@ -298,7 +299,7 @@ $current = $tab === 'completed' ? $completed
                         <?= $badge_label ?>
                     </span>
                     <?php if (!empty($b['payment_status'])): ?>
-                        <div style="font-size:11px;color:var(--text-secondary);margin-top:5px">Payment: <?= h($b['payment_status'] === 'confirmed' ? 'Reviewed' : ucfirst($b['payment_status']), ENT_QUOTES, 'UTF-8') ?></div>
+                        <div style="font-size:11px;color:var(--text-secondary);margin-top:5px">Payment: <?= h($b['payment_status'] === 'confirmed' ? 'Reviewed' : ucfirst($b['payment_status']), ENT_QUOTES, 'UTF-8') ?><?php if ($b['payment_status'] === 'confirmed' && !empty($b['payment_id'])): ?> &middot; <a href="receipt.php?payment_id=<?= (int)$b['payment_id'] ?>" target="_blank" rel="noopener">Receipt</a><?php endif; ?></div>
                     <?php endif; ?>
                 </div>
 

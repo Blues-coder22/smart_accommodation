@@ -2,6 +2,8 @@
 require_once '../includes/auth.php';
 require_once '../includes/functions.php';
 require_once '../includes/db.php';
+require_once '../includes/commission.php';
+ensureCommissionTables($pdo);
 require_once '../includes/payment_audit.php';
 require_once '../includes/review_extras.php';   // person chips (photo + name + profile link)
 
@@ -164,7 +166,12 @@ $badge = ['confirmed' => ['#e7f3ec', '#1f5a3f', 'Received'], 'pending' => ['#fff
                     <?= h($r['title']) ?><br>
                     <span style="color:#565c55"><?= date('d M', strtotime($r['check_in_date'])) ?> &ndash; <?= date('d M Y', strtotime($r['check_out_date'])) ?></span><br>
                     <span style="color:#565c55"><?= h($r['payment_method'] ?: 'Method not given') ?> &middot; Ref: <strong><?= h($r['payment_reference'] ?: 'none') ?></strong></span><br>
-                    <span style="color:#565c55;font-size:11px">Submitted <?= date('d M Y, H:i', strtotime($r['payment_date'])) ?></span>
+                    <span style="color:#565c55;font-size:11px">Submitted <?= date('d M Y, H:i', strtotime($r['payment_date'])) ?></span><br>
+                    <span style="font-size:11px">
+                        <?php if ($r['payment_status'] === 'confirmed'): ?><a href="../tourist/receipt.php?payment_id=<?= (int)$r['payment_id'] ?>" target="_blank" rel="noopener">Receipt</a> &middot; <?php endif; ?>
+                        <?php if (!empty($r['payment_proof'])): ?><a href="../proof.php?type=payment&amp;id=<?= (int)$r['payment_id'] ?>" target="_blank" rel="noopener">Screenshot</a> &middot; <?php endif; ?>
+                        <a href="evidence.php?booking_id=<?= (int)$r['booking_id'] ?>">Evidence pack</a>
+                    </span>
                 </td>
                 <td>
                     <div style="margin-bottom:8px"><?= personChipHtml($r['t_id'], $r['t_name'], $r['t_photo'], 32, 'Guest') ?></div>

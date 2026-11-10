@@ -66,11 +66,12 @@ if (!function_exists('bookingPriceBreakdown')) {
     function bookingPriceBreakdown(array $b) {
         $nights   = max(0, (int)(new DateTime($b['check_in_date']))->diff(new DateTime($b['check_out_date']))->days);
         $stay     = (float)$b['price_per_night'] * $nights;
-        $extra    = max(0.0, round((float)$b['total_amount'] - $stay, 2));
+        $fee      = max(0.0, (float)($b['service_fee'] ?? 0));
+        $extra    = max(0.0, round((float)$b['total_amount'] - $fee - $stay, 2));
         $guests   = max(1, (int)($b['num_guests'] ?? 1));
         $name     = trim((string)($b['onsite_experience_name'] ?? ''));
         if ($name === '') $name = 'Tour / guide offered by your host';
-        return ['nights' => $nights, 'stay' => $stay, 'extra' => $extra, 'extra_name' => $name,
+        return ['nights' => $nights, 'stay' => $stay, 'service_fee' => $fee, 'extra' => $extra, 'extra_name' => $name,
                 'extra_per_guest' => $extra / $guests, 'guests' => $guests];
     }
 }

@@ -95,7 +95,6 @@ if (!function_exists('saveAttractionPhotos')) {
                 $pdo->prepare("DELETE FROM attraction_photos WHERE attraction_id = ? AND photo_path = ?")->execute([$aid, $f]);
             }
         }
-        try { if (function_exists('mediaSelfHeal')) mediaSelfHeal($pdo, true); } catch (Throwable $e) {}   // back up new photos, drop identical ones
         return $errors;
     }
 }

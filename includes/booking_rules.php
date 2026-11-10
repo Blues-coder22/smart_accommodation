@@ -3,6 +3,7 @@
  * Booking and payment rules, shown to guests in a pop-up window (so booking pages stay uncluttered)
  * and summarised in booking emails. Change the numbers here and every page and email follows.
  */
+require_once __DIR__ . '/commission.php';   // SERVICE_FEE_PERCENT
 require_once __DIR__ . '/booking_holds.php';   // BOOKING_NO_PAYMENT_HOLD_HOURS, BOOKING_HOST_REPLY_HOURS
 
 // Free cancellation until this many hours before check-in. Inside the window a refund is up to the host.
@@ -22,6 +23,7 @@ if (!function_exists('bookingRulesList')) {
         $hold = (int)BOOKING_NO_PAYMENT_HOLD_HOURS; $reply = (int)BOOKING_HOST_REPLY_HOURS; $free = (int)BOOKING_FREE_CANCEL_HOURS;
         return [
             'Reserving'            => "Sending a booking request holds your dates for you straight away. The booking is not final until your host accepts it.",
+            'Service fee'          => ((float)SERVICE_FEE_PERCENT > 0 ? "A service fee of " . rtrim(rtrim(number_format((float)SERVICE_FEE_PERCENT, 2), '0'), '.') . "% is added to your total and shown before you reserve. It helps run StayExplore Kenya. You pay it with the booking, to your host, who passes it on." : "No service fee is added to your booking."),
             'Paying'               => "Bank transfer and M-Pesa: send the money to your host and enter the details on the payment page within $hold hours of reserving, or your request is cancelled and the dates are released. Cash: you pay your host in cash when you check in.",
             'Host reply'           => "Your host has $reply hours to accept or decline. If they do not reply, the request is cancelled automatically and you are told by email.",
             'Payment confirmation' => "The site does not take your money. Your host confirms once they have really received it, and you get an email when they do.",

@@ -7,3 +7,6 @@
 !/uploads/*/.gitkeep
 !/uploads/*/.htaccess
 !/uploads/*/index.html
+
+# Private proofs (payment screenshots, commission receipts, ID documents) never go to GitHub
+/private_uploads/*/*

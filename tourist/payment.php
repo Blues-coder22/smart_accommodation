@@ -2,6 +2,8 @@
 require_once '../includes/auth.php';
 require_once '../includes/functions.php';
 require_once '../includes/db.php';
+require_once '../includes/commission.php';
+ensureCommissionTables($pdo);
 require_once '../includes/booking_rules.php';
 require_once '../includes/booking_holds.php';
 expireStaleBookingRequests($pdo);   // releases dates held by unpaid or unanswered requests
@@ -70,6 +72,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'Please confirm the amount and booking details.';
     }
 
+    // Optional screenshot of the payment. Kept private: only this guest, the host and admins can open it.
+    $proofName = null;
+    if (empty($errors)) {
+        $proofName = savePrivateProofImage('payment_proof', 'payment');
+        if ($proofName === false) { $errors[] = 'The screenshot could not be used. Send a JPG, PNG or WebP image up to 5 MB.'; $proofName = null; }
+    }
+
     if (empty($errors)) {
         // Record payment details as pending for host review. Reuse the existing row if the form is resubmitted.
         $existingPayment = $pdo->prepare("SELECT payment_id, payment_status, payment_method, payment_reference FROM payments WHERE booking_id = ? ORDER BY payment_id DESC LIMIT 1");
@@ -80,6 +89,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // change nothing and do not email the host a second time.
         if ($existingRow && ($existingRow['payment_status'] === 'confirmed'
             || ($existingRow['payment_method'] === $method && (string)$existingRow['payment_reference'] === (string)$reference))) {
+            if ($proofName && $existingPaymentId) {
+                $pdo->prepare("UPDATE payments SET payment_proof = ? WHERE payment_id = ? AND tourist_id = ? AND payment_status <> 'confirmed'")->execute([$proofName, $existingPaymentId, $_SESSION['user_id']]);
+            }
             redirect("confirmation.php?booking_id=$booking_id");
         }
         if ($existingPaymentId) {
@@ -88,6 +100,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             $stmt = $pdo->prepare("INSERT INTO payments (booking_id, tourist_id, host_id, amount, payment_method, payment_reference, payment_status, payment_date) VALUES (?, ?, ?, ?, ?, ?, 'pending', NOW())");
             $stmt->execute([$booking_id, $_SESSION['user_id'], $booking['host_id'], $booking['total_amount'], $method, $reference !== '' ? $reference : null]);
+            $existingPaymentId = (int)$pdo->lastInsertId();
+        }
+        if ($proofName && $existingPaymentId) {
+            $pdo->prepare("UPDATE payments SET payment_proof = ? WHERE payment_id = ? AND tourist_id = ?")->execute([$proofName, $existingPaymentId, $_SESSION['user_id']]);
         }
 
         // Details submitted, but nothing is confirmed yet: tell the host to check their account, and acknowledge to the guest.
@@ -95,7 +111,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $mailBooking = ['booking_id' => $booking_id, 'title' => $booking['title'], 'check_in_date' => $booking['check_in_date'],
                             'check_out_date' => $booking['check_out_date'], 'total_amount' => $booking['total_amount']];
             sendPaymentSubmittedHostEmail($booking['host_email'], $booking['host_name'], $mailBooking, $method, $reference);
-            sendPaymentConfirmationEmail($_SESSION['email'] ?? '', $_SESSION['full_name'] ?? '', $mailBooking);
+            sendPaymentConfirmationEmail($_SESSION['email'] ?? '', $_SESSION['full_name'] ?? '', $mailBooking, $method, $reference, $booking['host_name'] ?? '');
         } catch (Throwable $e) { error_log('Payment emails: ' . $e->getMessage()); }
 
         redirect("confirmation.php?booking_id=$booking_id");
@@ -197,7 +213,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
     <?php endif; ?>
 
-    <form method="POST">
+    <form method="POST" enctype="multipart/form-data">
 <input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
     <div class="pay-layout">
 
@@ -255,6 +271,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                            maxlength="40"
                            placeholder="Bank reference or M-Pesa code">
                 </div>
+                <div class="form-group">
+                    <label for="payment_proof">Screenshot or receipt of your payment (optional)</label>
+                    <input type="file" id="payment_proof" name="payment_proof" accept="image/jpeg,image/png,image/webp">
+                    <div class="small">JPG, PNG or WebP, up to 5 MB. Your host can see it when checking your payment.</div>
+                </div>
             </div>
 
             <div class="confirm-row">
@@ -263,6 +284,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <label for="confirmed">
                     I confirm the booking amount of
                     <strong>KES <?= number_format($booking['total_amount']) ?></strong>
+                    <?php if ($br['service_fee'] > 0): ?>(this includes a KES <?= number_format($br['service_fee']) ?> service fee for running StayExplore Kenya)<?php endif; ?>
                     and agree to complete payment to my host
                     by the selected method.
                 </label>

@@ -1,0 +1,27 @@
+/* Commission, revenue, receipts and evidence pages (v9.18) */
+.fin-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:12px;margin:14px 0 22px}
+.fin-card{background:var(--surface-2,#fff);border:1px solid var(--border,#ddd);border-radius:8px;padding:14px 16px}
+.fin-card.accent{border-left:4px solid #126b4e}
+.fin-card.warn{border-left:4px solid #8f4b00}
+.fin-label{font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#565c55}
+.fin-value{font-size:22px;font-weight:600;margin-top:4px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.fin-note{font-size:13px;color:#565c55;margin-top:2px}
+.fin-box{background:var(--surface-2,#fff);border:1px solid var(--border,#ddd);border-radius:8px;padding:16px 20px;margin:0 0 18px}
+.fin-box h2{margin:0 0 10px;font-size:18px}
+.fin-scroll{overflow-x:auto}
+.fin-table{width:100%;border-collapse:collapse;font-size:14px}
+.fin-table th,.fin-table td{padding:9px 10px;border-bottom:1px solid var(--border,#e4ddcf);text-align:left;vertical-align:top}
+.fin-table th{font-size:12px;text-transform:uppercase;letter-spacing:.03em;color:#565c55}
+.fin-table td.num,.fin-table th.num{text-align:right;font-variant-numeric:tabular-nums}
+.fin-pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:600;background:#eef1ee;color:#33403a}
+.fin-pill.accrued{background:#fdebd0;color:#7a4300}.fin-pill.submitted{background:#e0ecf9;color:#1b4a7a}
+.fin-pill.settled,.fin-pill.accepted{background:#dff3e8;color:#0d5a3f}.fin-pill.void,.fin-pill.rejected{background:#f3dede;color:#8a1f1f}
+.fin-pill.pending{background:#fdebd0;color:#7a4300}
+.fin-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.fin-btn{padding:8px 16px;border-radius:6px;border:1px solid #126b4e;background:#126b4e;color:#fff;font:inherit;font-weight:600;cursor:pointer;text-decoration:none;display:inline-block}
+.fin-btn.ghost{background:#fff;color:#126b4e}.fin-btn.danger{background:#fff;color:#b42318;border-color:#b42318}
+.fin-field{display:block;margin:10px 0 4px;font-weight:600}
+.fin-input{width:100%;max-width:420px;padding:9px 10px;border:1px solid #9aa39d;border-radius:6px;font:inherit}
+.fin-warn{background:#fff6dc;border:1px solid #e3c36a;border-radius:6px;padding:8px 12px;font-size:13px;margin:6px 0}
+@media print{.app-sidebar,.side-toggle,.no-print,.site-header,.hp-header,.hp-footer,.skip-link{display:none!important}.fin-box,.fin-card{break-inside:avoid;border-color:#999}body{background:#fff!important}.app{display:block!important}}
+.sr-only{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}

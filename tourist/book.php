@@ -76,7 +76,10 @@ $subtotal     = $nights * $acc['price_per_night'];
 $onsiteName   = trim((string)($acc['onsite_experience_name'] ?? ''));
 $onsitePer    = (float)($acc['onsite_experience_fee'] ?? 0);
 $onsiteFee    = ($onsiteName !== '' && $onsitePer > 0) ? $onsitePer * $guests : 0;
-$total        = $subtotal + $onsiteFee;
+require_once '../includes/commission.php';
+ensureCommissionTables($pdo);
+$serviceFee   = serviceFeeFor($subtotal + $onsiteFee);   // shown before the guest reserves
+$total        = $subtotal + $onsiteFee + $serviceFee;
 
 // Check availability (overlapping bookings and nights the host has blocked)
 if (isStayUnavailable($pdo, $accommodation_id, $check_in, $check_out)) {
@@ -112,9 +115,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt = $pdo->prepare("
                 INSERT INTO bookings
                 (tourist_id, accommodation_id, check_in_date,
-                 check_out_date, num_guests, total_amount,
+                 check_out_date, num_guests, total_amount, service_fee,
                  rules_agreed, status)
-                VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending')
             ");
             $stmt->execute([
                 $_SESSION['user_id'],
@@ -123,6 +126,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $check_out,
                 $guests,
                 $total,
+                $serviceFee,
                 $rules_agreed
             ]);
             $booking_id = $pdo->lastInsertId();
@@ -318,7 +322,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     Your information is encrypted and handled securely.
                 </p>
 
-                <p class="small" style="margin:0 0 12px">Before you send this request, please read the <?php bookingRulesDialog(); ?>.</p>
+                <p class="small" style="margin:0 0 12px">Before you send this request, please read the <?php bookingRulesDialog(); ?></p>
                 <button type="submit" class="submit-btn">
                     Continue to payment
                 </button>
@@ -355,6 +359,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <div class="p-row">
                             <span><?= h($onsiteName) ?> (KES <?= number_format($onsitePer) ?> &times; <?= (int)$guests ?> guest<?= $guests > 1 ? 's' : '' ?>)</span>
                             <span>KES <?= number_format($onsiteFee) ?></span>
+                        </div>
+                        <?php endif; ?>
+                        <?php if ($serviceFee > 0): ?>
+                        <div class="p-row">
+                            <span>Service fee (<?= rtrim(rtrim(number_format((float)SERVICE_FEE_PERCENT, 2), '0'), '.') ?>%)</span>
+                            <span>KES <?= number_format($serviceFee) ?></span>
                         </div>
                         <?php endif; ?>
                         <div class="p-row total">

@@ -195,7 +195,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $pdo->prepare('UPDATE accommodation_photos SET is_primary = 1 WHERE accommodation_id = ? ORDER BY photo_id ASC LIMIT 1')
                 ->execute([$lid]);
         }
-        try { mediaSelfHeal($pdo, true); } catch (Throwable $e) {}   // back up the new photos and drop identical ones straight away
 
         if ($needs_review) {
             setFlash('success',

@@ -268,36 +268,41 @@ function sendNewBookingHostEmail($to, $name, $booking) {
 
 // Sent to the tourist when they submit their payment details (not currently used at checkout:
 // the booking-confirmed email already covers it), kept for completeness.
-function sendPaymentConfirmationEmail($to, $name, $booking) {
+function sendPaymentConfirmationEmail($to, $name, $booking, $method = '', $reference = '', $hostName = '') {
     $ref = '#BK' . str_pad($booking['booking_id'], 5, '0', STR_PAD_LEFT);
+    $amount = 'KES ' . number_format((float)$booking['total_amount'], 2);
     $body = "
-        <h2>Payment details received</h2>
-        <p>Dear $name,</p>
-        <p>We've recorded your payment details for Booking $ref.
-           Your host will confirm once the payment has actually been
-           received, and you'll get a separate email when that happens.</p>
-        <p><strong>Amount:</strong> KES " . number_format($booking['total_amount']) . "</p>
-        <p><strong>Property:</strong> " . h($booking['title']) . "</p>
-        <p><strong>Check-in:</strong> {$booking['check_in_date']}</p>
+        <h2>Payment sent</h2>
+        <p>Dear " . h($name) . ",</p>
+        <p style='font-size:18px'><strong>$amount sent to " . h($hostName !== '' ? $hostName : 'your host') . "</strong> for " . h($booking['title']) . " (booking $ref) on " . date('j M Y \\a\\t H:i') . ".</p>
+        <table border='1' cellpadding='8'>
+            " . ($reference !== '' ? "<tr><td>Reference</td><td>" . h($reference) . "</td></tr>" : "") . "
+            " . ($method !== '' ? "<tr><td>Method</td><td>" . h(paymentMethodLabel($method)) . "</td></tr>" : "") . "
+            <tr><td>Check-in</td><td>" . h($booking['check_in_date']) . "</td></tr>
+            <tr><td>Status</td><td>Waiting for your host to confirm they received it</td></tr>
+        </table>
+        <p>This is not a receipt yet. When your host confirms the money has arrived you will get another email, \"$amount received\", with your receipt.</p>
         " . bookingRulesEmailHtml() . "
         <p>Thank you for using StayExplore Kenya.</p>
     ";
-    return sendEmail($to, 'Payment details received — StayExplore Kenya', $body);
+    return sendEmail($to, $amount . ' sent to ' . ($hostName !== '' ? $hostName : 'your host') . ' — awaiting confirmation', $body);
 }
 
 // Sent to the tourist when the host marks a payment as actually received.
-function sendPaymentVerifiedEmail($to, $name, $booking) {
+function sendPaymentVerifiedEmail($to, $name, $booking, $hostName = '', $reference = '', $paymentId = 0) {
     $ref = '#BK' . str_pad($booking['booking_id'], 5, '0', STR_PAD_LEFT);
+    $amount = 'KES ' . number_format((float)$booking['total_amount'], 2);
+    $link = $paymentId ? "<p><a href='" . h(appAbsoluteUrl('tourist/receipt.php?payment_id=' . (int)$paymentId)) . "'>View or print your receipt</a></p>" : '';
     $body = "
         <h2>Payment confirmed</h2>
-        <p>Dear $name,</p>
-        <p>Your host has confirmed receiving your payment for
-           Booking $ref.</p>
-        <p><strong>Amount:</strong> KES " . number_format($booking['total_amount']) . "</p>
-        <p><strong>Property:</strong> " . h($booking['title']) . "</p>
-        <p>Thank you for using StayExplore Kenya.</p>
+        <p>Dear " . h($name) . ",</p>
+        <p style='font-size:18px'><strong>$amount received</strong> by " . h($hostName !== '' ? $hostName : 'your host') . " for " . h($booking['title']) . " (booking $ref).</p>
+        " . ($reference !== '' ? "<p><strong>Reference:</strong> " . h($reference) . "</p>" : "") . "
+        <p><strong>Confirmed:</strong> " . date('j M Y \\a\\t H:i') . "</p>
+        $link
+        <p>Keep your receipt in case you ever need to show proof of payment. Thank you for using StayExplore Kenya.</p>
     ";
-    return sendEmail($to, 'Payment Confirmed — StayExplore Kenya', $body);
+    return sendEmail($to, $amount . ' received — payment confirmed', $body);
 }
 
 function sendListingApprovedEmail($to, $name, $listing_title) {
@@ -482,5 +487,37 @@ function sendHostCancelledAdminEmail($to, $booking, $hostName, $guestName, $reas
           . "<p><strong>Booking status before:</strong> " . h($booking['status']) . " &nbsp; <strong>Payment:</strong> " . h($paymentStatus !== '' ? $paymentStatus : 'none recorded') . "</p>"
           . "<p><strong>Reason given:</strong> " . nl2br(h($reason)) . "</p>";
     return sendEmail($to, 'Host cancelled a booking — StayExplore Kenya', $body);
+}
+
+// ---- Commission remittances (v9.18) ----
+function sendCommissionRemittanceAdminEmail($to, $hostName, $amount, $reference) {
+    $body = "<h2>A host reported a commission payment</h2><p><strong>Host:</strong> " . h($hostName) . "</p>"
+          . "<p><strong>Amount:</strong> KES " . number_format((float)$amount, 2) . " &nbsp; <strong>Reference:</strong> " . h($reference) . "</p>"
+          . "<p>Please check it against your M-Pesa or bank statement, then accept or reject it under Revenue &amp; commission.</p>";
+    return sendEmail($to, 'Commission payment to review — StayExplore Kenya', $body);
+}
+function sendCommissionDecisionHostEmail($to, $name, $amount, $reference, $accepted, $note = '') {
+    $body = "<h2>Commission payment " . ($accepted ? 'received' : 'not accepted') . "</h2><p>Dear " . h($name) . ",</p>"
+          . "<p>Your commission payment of KES " . number_format((float)$amount, 2) . " (reference " . h($reference) . ") was <strong>" . ($accepted ? 'received. Thank you.' : 'not accepted.') . "</strong></p>"
+          . ($note !== '' ? "<p><strong>Note from the administrator:</strong> " . nl2br(h($note)) . "</p>" : "")
+          . ($accepted ? "" : "<p>The bookings are back on your outstanding list. You can submit the payment again with the correct reference.</p>");
+    return sendEmail($to, 'Commission payment ' . ($accepted ? 'received' : 'not accepted') . ' — StayExplore Kenya', $body);
+}
+
+// To the HOST at the moment they confirm a payment: "KES x received from ...", plus what is owed to the platform.
+function sendPaymentReceivedHostEmail($to, $hostName, $booking, $guestName, $reference, $commission, $serviceFee) {
+    $ref = '#BK' . str_pad($booking['booking_id'], 5, '0', STR_PAD_LEFT);
+    $amount = 'KES ' . number_format((float)$booking['total_amount'], 2);
+    $due = (float)$commission + (float)$serviceFee;
+    $body = "<h2>Payment received</h2><p>Dear " . h($hostName) . ",</p>"
+          . "<p style='font-size:18px'><strong>$amount received from " . h($guestName) . "</strong> for " . h($booking['title']) . " (booking $ref).</p>"
+          . ($reference !== '' ? "<p><strong>Reference:</strong> " . h($reference) . "</p>" : "")
+          . "<table border='1' cellpadding='8'><tr><td>Guest paid you</td><td>$amount</td></tr>"
+          . "<tr><td>Commission (" . rtrim(rtrim(number_format((float)COMMISSION_RATE_PERCENT, 2), '0'), '.') . "% of your price)</td><td>KES " . number_format((float)$commission, 2) . "</td></tr>"
+          . "<tr><td>Guest service fee</td><td>KES " . number_format((float)$serviceFee, 2) . "</td></tr>"
+          . "<tr><td><strong>Due to StayExplore Kenya</strong></td><td><strong>KES " . number_format($due, 2) . "</strong></td></tr>"
+          . "<tr><td>You keep</td><td>KES " . number_format((float)$booking['total_amount'] - $due, 2) . "</td></tr></table>"
+          . "<p>Send the amount due from <strong>Commission</strong> in your host area and report it with the reference. The guest has been told you received their payment.</p>";
+    return sendEmail($to, $amount . ' received from ' . $guestName, $body);
 }
 

@@ -2,6 +2,8 @@
 require_once '../includes/auth.php';
 require_once '../includes/functions.php';
 require_once '../includes/db.php';
+require_once '../includes/commission.php';
+ensureCommissionTables($pdo);
 require_once '../includes/payment_audit.php';
 require_once '../includes/booking_events.php';
 require_once '../includes/booking_holds.php';
@@ -34,10 +36,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'confi
         logPaymentChange($pdo, $paymentId, $host_id, 'host', 'host_confirmed', 'pending', 'confirmed');
         try {
             require_once '../includes/email.php';
-            sendPaymentVerifiedEmail($paymentToVerify['tourist_email'], $paymentToVerify['tourist_name'], [
-                'booking_id' => $paymentToVerify['booking_id'], 'title' => $paymentToVerify['title'],
+            $mailB = ['booking_id' => $paymentToVerify['booking_id'], 'title' => $paymentToVerify['title'],
                 'check_in_date' => $paymentToVerify['check_in_date'], 'check_out_date' => $paymentToVerify['check_out_date'],
-                'total_amount' => $paymentToVerify['amount']]);
+                'total_amount' => $paymentToVerify['amount']];
+            $refTxt = (string)($paymentToVerify['payment_reference'] ?? '');
+            sendPaymentVerifiedEmail($paymentToVerify['tourist_email'], $paymentToVerify['tourist_name'], $mailB, $_SESSION['full_name'] ?? '', $refTxt, (int)$paymentId);
+            [$cm, $fee] = platformDueForBooking($pdo, $paymentToVerify['booking_id'], $paymentToVerify['amount']);
+            sendPaymentReceivedHostEmail($_SESSION['email'] ?? '', $_SESSION['full_name'] ?? 'Host', $mailB, $paymentToVerify['tourist_name'], $refTxt, $cm, $fee);
         } catch (Throwable $e) {}
         setFlash('success', 'Payment marked as verified and the guest was emailed. This does not change the booking status.');
     }
@@ -70,13 +75,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $pdo->prepare("UPDATE payments SET payment_status = 'confirmed' WHERE payment_id = ?")
             ->execute([$payment_id]);
         logPaymentChange($pdo, $payment_id, $host_id, 'host', 'host_confirmed', 'pending', 'confirmed');
-        sendPaymentVerifiedEmail($pay['tourist_email'], $pay['tourist_name'], [
-            'booking_id'     => $pay['booking_id'],
-            'title'          => $pay['title'],
-            'check_in_date'  => $pay['check_in_date'],
-            'check_out_date' => $pay['check_out_date'],
-            'total_amount'   => $pay['amount'],
-        ]);
+        $mailB = ['booking_id' => $pay['booking_id'], 'title' => $pay['title'], 'check_in_date' => $pay['check_in_date'],
+                  'check_out_date' => $pay['check_out_date'], 'total_amount' => $pay['amount']];
+        $refTxt = (string)($pay['payment_reference'] ?? '');
+        try {
+            sendPaymentVerifiedEmail($pay['tourist_email'], $pay['tourist_name'], $mailB, $_SESSION['full_name'] ?? '', $refTxt, (int)$payment_id);
+            [$cm, $fee] = platformDueForBooking($pdo, $pay['booking_id'], $pay['amount']);
+            sendPaymentReceivedHostEmail($_SESSION['email'] ?? '', $_SESSION['full_name'] ?? 'Host', $mailB, $pay['tourist_name'], $refTxt, $cm, $fee);
+        } catch (Throwable $e) { error_log('Payment emails: ' . $e->getMessage()); }
         setFlash('success', 'Payment marked as received.');
     } elseif ($pay && $action === 'mark_unpaid' && $pay['payment_status'] === 'confirmed' && paymentLockedByAdmin($pdo, $payment_id)) {
         setFlash('warning', 'An administrator has confirmed this payment, so it cannot be set back to awaiting. If something is wrong, report it to the administrator.');
@@ -432,6 +438,10 @@ $monthly = $monthly->fetchAll();
                                 <?php if (!empty($p['payment_reference'])): ?>
                                     <div style="font-size:11px">Ref: <?= h($p['payment_reference']) ?></div>
                                 <?php endif; ?>
+                                <div style="font-size:11px;margin:3px 0">
+                                    <?php if ($p['payment_status'] === 'confirmed'): ?><a href="../tourist/receipt.php?payment_id=<?= (int)$p['payment_id'] ?>" target="_blank" rel="noopener">Receipt</a><?php endif; ?>
+                                    <?php if (!empty($p['payment_proof'])): ?><?= $p['payment_status'] === 'confirmed' ? ' &middot; ' : '' ?><a href="../proof.php?type=payment&amp;id=<?= (int)$p['payment_id'] ?>" target="_blank" rel="noopener">Guest's screenshot</a><?php endif; ?>
+                                </div>
                                 <?php if ($p['booking_status'] !== 'cancelled'): ?>
                                 <form method="POST" style="margin:0">
                                     <input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken()) ?>">

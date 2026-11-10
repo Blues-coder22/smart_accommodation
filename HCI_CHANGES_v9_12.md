@@ -57,3 +57,21 @@ Measured with axe-core in Chromium over 40 pages (guest, tourist, host, admin, s
 - Homepage now has a <main> landmark, the skip link, the focus styles and polish.js (it had none of them).
 - Footer column titles are h2 (they were h4 right after the h1), fixing the most common heading-order warning.
 - Still open: some card titles jump from h1 to h3 (14 axe heading-order warnings left); layout unification (button corners, card radius, spacing) was not changed; Lighthouse and a real phone still need to be run by you.
+
+## v9.18: commission (model B), receipts, payment evidence
+Guests still pay hosts directly. The platform records its commission and tracks when it is really received.
+- includes/commission.php: tables commission_ledger and commission_remittances (created automatically), reconcile logic, private file storage, receipt numbers and verification codes. Settings in includes/config.php: COMMISSION_RATE_PERCENT (10), COMMISSION_START_DATE (empty = every confirmed payment), COMMISSION_PAY_INSTRUCTIONS, RECEIPT_SECRET (set a long random text).
+- Commission is EARNED when a host confirms a payment on a booking that is not cancelled. It is only RECEIVED once a host pays it and the admin accepts it, so earned is never reported as received. The rate is saved on each record. If the payment is reversed or the booking cancelled before it is paid, the record becomes void (and returns if the payment is confirmed again); if that happens after it was paid, it is flagged for review.
+- Host: new Commission page (host/commission.php): what is owed, tick the bookings paid, enter the M-Pesa/bank reference, attach a screenshot, send to the admin (admin is emailed).
+- Admin: new Revenue & commission page (admin/revenue.php): totals, per-host balances, host reports to accept or reject (host is emailed), ledger, and "Mark received" for payments made outside the site.
+- Guest payment screenshot (optional) on the payment page; stored in private_uploads/ (denied to direct web access), shown only to the guest, the host and admins through proof.php. Real file type is checked.
+- Printable receipt (tourist/receipt.php) for confirmed payments with receipt number and verification code; links on My bookings, the confirmation page, host and admin payment pages.
+- Printable dispute evidence pack (admin/evidence.php): booking, parties, payments, screenshot, receipt code, who changed what and when, booking history, commission. Opening it is logged.
+- Tested on MariaDB: fake image refused, proof visible to owner/host/admin only, commission 10% of 10,000 = 1,000, host report then admin accept, forged request for another host's commission refused, receipt/evidence access limited, reversal voids or flags.
+- Not included (future work): M-Pesa Daraja, automatic payouts, SMS verification, guest service fee.
+
+## v9.19: service fee and M-Pesa-style payment messages
+- Service fee: SERVICE_FEE_PERCENT in includes/config.php (default 5, 0 turns it off). Added to the guest's total (percent of stay + extras), shown on the booking page before they reserve, stored per booking (bookings.service_fee, created automatically). The guest pays it with the booking, to the host, who passes it on to the platform with the commission. Commission is worked out on the host's price (total minus the fee). The ledger, host Commission page, admin Revenue page, receipt and evidence pack all show commission and service fee separately; the host's remittance covers both. Bookings made before this keep a fee of 0. The rules pop-up explains the fee.
+- Emails now read like M-Pesa messages: guest "KES x sent to HOST - awaiting confirmation"; on confirmation guest "KES x received - payment confirmed" (with a receipt link) and host "KES x received from GUEST" with commission, service fee, amount due to the platform and what the host keeps.
+- SMS verification was NOT added: it needs a paid SMS provider and API key (for example Africa's Talking or Twilio); Daraja is for M-Pesa payments, not SMS. Future enhancement; verification stays by email link or 6-digit code with resend.
+- Tested on MariaDB: 2 nights x KES 8,500 + 5% fee = KES 17,850; commission 10% of 17,000 = 1,700; due 2,550; host keeps 15,300; earlier payment, commission, rules and expiry tests still pass.

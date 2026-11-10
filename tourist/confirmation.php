@@ -25,7 +25,7 @@ $stmt = $pdo->prepare("
            a.latitude, a.longitude,
            u.full_name AS host_name,
            u.phone_number AS host_phone,
-           p.payment_method, p.payment_status,
+           p.payment_id, p.payment_method, p.payment_status,
            (SELECT photo_path FROM accommodation_photos
             WHERE accommodation_id = a.accommodation_id
             ORDER BY is_primary DESC, photo_id ASC LIMIT 1) AS primary_photo
@@ -247,6 +247,7 @@ $nearby = getNearbyAttractions(
                 <span class="detail-label">Booking total</span>
                 <span class="detail-value">
                     KES <?= number_format($booking['total_amount']) ?>
+                    <?php if ($br['service_fee'] > 0): ?><span style="display:block;font-size:11px;font-weight:400">includes KES <?= number_format($br['service_fee']) ?> service fee</span><?php endif; ?>
                 </span>
             </div>
             <?php if ($br['extra'] > 0): ?>
@@ -265,6 +266,7 @@ $nearby = getNearbyAttractions(
                     <span class="payment-status <?= $payStatus === 'confirmed' ? 'status-confirmed' : 'status-pending' ?>">
                         <?= $payStatus === 'confirmed' ? 'Payment received' : ($payStatus === 'pending' ? 'Awaiting host verification' : 'Not submitted') ?>
                     </span>
+                    <?php if ($payStatus === 'confirmed' && !empty($booking['payment_id'])): ?><a href="receipt.php?payment_id=<?= (int)$booking['payment_id'] ?>" target="_blank" rel="noopener" style="margin-left:8px">View or print receipt</a><?php endif; ?>
                 </span>
             </div>
         </div>

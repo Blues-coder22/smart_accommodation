@@ -473,6 +473,7 @@ $counts = $counts->fetch();
                         <div class="label">Amount</div>
                         <div class="value">
                             KES <?= number_format($b['total_amount']) ?>
+                            <?php if (!empty($b['service_fee']) && $b['service_fee'] > 0): ?><div style="font-size:11px;font-weight:400">includes KES <?= number_format($b['service_fee']) ?> service fee for the platform</div><?php endif; ?>
                             <div class="<?= $b['payment_status'] === 'confirmed'
                                 ? 'pay-confirmed' : 'pay-pending' ?>"
                                  style="font-size:11px;font-weight:400">

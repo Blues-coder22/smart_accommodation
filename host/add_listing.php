@@ -101,10 +101,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $errors[] = 'No valid property photos could be saved. Please use JPG, PNG or WebP images under 5MB and try again.';
         }
 
-        if ($uploaded > 0) {
-            try { mediaSelfHeal($pdo, true); } catch (Throwable $e) {}   // back up the new photos and drop identical ones straight away
-        }
-
         // Save amenities only after at least one photo was saved
         if ($uploaded > 0) foreach ($amenities as $amenity) {
             $amenity = sanitize($amenity);
