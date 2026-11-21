@@ -1,5 +1,5 @@
 <?php
-// Printable dispute evidence pack for one booking. Administrators only. Opening it is logged in the booking history.
+// Printable dispute evidence pack for one booking. Admins only. Opening it is logged in the booking history.
 require_once '../includes/auth.php';
 require_once '../includes/functions.php';
 require_once '../includes/db.php';
@@ -12,7 +12,7 @@ requireLogin();
 requireRole('admin');
 ensurePaymentAuditTable($pdo); ensureBookingEventsTable($pdo); ensureCommissionTables($pdo);
 
-$bid = (int)($_GET['booking_id'] ?? 0);
+$bid = bookingIdFromRef($_GET['ref'] ?? '');
 $st = $pdo->prepare("SELECT b.*, a.title, a.location_name, t.full_name AS tourist_name, t.email AS tourist_email, t.phone_number AS tourist_phone,
         hu.user_id AS host_id, hu.full_name AS host_name, hu.email AS host_email, hu.phone_number AS host_phone
     FROM bookings b JOIN accommodations a ON a.accommodation_id = b.accommodation_id JOIN users t ON t.user_id = b.tourist_id JOIN users hu ON hu.user_id = a.host_id
@@ -24,12 +24,12 @@ $aud = $pdo->prepare("SELECT pa.*, u.full_name FROM payment_audit pa LEFT JOIN u
 $aud->execute([$bid]); $audit = $aud->fetchAll(PDO::FETCH_ASSOC);
 $ev = $pdo->prepare("SELECT e.*, u.full_name FROM booking_events e LEFT JOIN users u ON u.user_id = e.actor_id WHERE e.booking_id = ? ORDER BY e.event_id");
 $ev->execute([$bid]); $events = $ev->fetchAll(PDO::FETCH_ASSOC);
-$cm = $pdo->prepare("SELECT * FROM commission_ledger WHERE booking_id = ?"); $cm->execute([$bid]); $comm = $cm->fetch(PDO::FETCH_ASSOC);
+$cm = $pdo->prepare("SELECT * FROM platform_payments WHERE booking_id = ?"); $cm->execute([$bid]); $pp = $cm->fetch(PDO::FETCH_ASSOC);
 logBookingEvent($pdo, $bid, (int)$_SESSION['user_id'], 'evidence_viewed', 'Evidence pack opened by admin');
-$ref = '#BK' . str_pad($bid, 5, '0', STR_PAD_LEFT);
+$ref = bookingLabel($bid);
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" translate="no" class="notranslate">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -58,8 +58,8 @@ $ref = '#BK' . str_pad($bid, 5, '0', STR_PAD_LEFT);
         <?php if (!$pays): ?><p>No payment was recorded for this booking.</p><?php endif; ?>
         <?php foreach ($pays as $p): ?>
             <p><strong><?= h(receiptNumber($p['payment_id'])) ?></strong> · <?= kes($p['amount']) ?> · <?= h(paymentMethodLabel($p['payment_method'])) ?> · reference <strong><?= h($p['payment_reference'] ?: 'none') ?></strong> · status <strong><?= h($p['payment_status']) ?></strong> · entered <?= h($p['payment_date']) ?><br>
-            <?php if ($p['payment_status'] === 'confirmed'): ?>Receipt verification code: <span style="font-family:monospace"><?= h(receiptVerificationCode($p)) ?></span> · <a href="../tourist/receipt.php?payment_id=<?= (int)$p['payment_id'] ?>" target="_blank" rel="noopener">Open receipt</a><?php endif; ?>
-            <?php if (!empty($p['payment_proof'])): ?> · <a href="../proof.php?type=payment&amp;id=<?= (int)$p['payment_id'] ?>" target="_blank" rel="noopener">View the guest's payment screenshot</a> <span class="small">(a screenshot alone is not proof of payment; check the host's statement)</span><?php endif; ?></p>
+            <?php if ($p['payment_status'] === 'confirmed'): ?>Receipt verification code: <span style="font-family:monospace"><?= h(receiptVerificationCode($p)) ?></span> · <a href="../receipt.php?as=admin&amp;pid=<?= h(opaqueId('pay', $p['payment_id'])) ?>" target="_blank" rel="noopener">Open receipt</a><?php endif; ?>
+            <?php if (!empty($p['payment_proof'])): ?> · <a href="../proof.php?as=admin&amp;type=payment&amp;ref=<?= h(opaqueId('pay', $p['payment_id'])) ?>" target="_blank" rel="noopener">View the guest's payment screenshot</a> <span class="small">(a screenshot alone is not proof of payment; check the host's statement)</span><?php endif; ?></p>
         <?php endforeach; ?>
     </div>
 
@@ -77,9 +77,12 @@ $ref = '#BK' . str_pad($bid, 5, '0', STR_PAD_LEFT);
         </tbody></table></div>
     </div>
 
-    <div class="fin-box"><h2>Platform commission</h2>
-        <?php if (!$comm): ?><p>No commission recorded (the payment is not confirmed, or the booking was cancelled).</p>
-        <?php else: ?><p>Commission <?= kes($comm['commission_amount']) ?> at <?= h(rtrim(rtrim(number_format($comm['rate_percent'], 2), '0'), '.')) ?>% + service fee <?= kes($comm['service_fee']) ?> = <strong><?= kes($comm['commission_amount'] + $comm['service_fee']) ?></strong> owed by the host · status <strong><?= h($comm['status']) ?></strong><?= $comm['settle_ref'] ? ' · reference ' . h($comm['settle_ref']) : '' ?></p><?php endif; ?>
+    <div class="fin-box"><h2>Payment to the platform (service fee + commission)</h2>
+        <?php if (!$pp): ?><p>None recorded (older booking, or the guest has not entered it yet).</p>
+        <?php else: ?><p><strong><?= kes($pp['amount']) ?></strong> = service fee <?= kes($pp['service_fee']) ?> + commission <?= kes($pp['commission_amount']) ?> · <?= h($pp['method'] === 'mpesa' ? 'M-Pesa' : 'Bank transfer') ?> · reference <strong><?= h($pp['reference']) ?></strong> · status <strong><?= h($pp['status']) ?></strong>
+            <?= $pp['reviewed_at'] ? ' · checked ' . h($pp['reviewed_at']) : '' ?><?= $pp['review_note'] ? ' · note: ' . h($pp['review_note']) : '' ?><br>
+            <?php if ($pp['status'] === 'confirmed'): ?>Verification code: <span style="font-family:monospace"><?= h(platformReceiptVerificationCode($pp)) ?></span> · <a href="../platform_receipt.php?as=admin&amp;ref=<?= h(opaqueId('plat', $pp['platform_payment_id'])) ?>" target="_blank" rel="noopener">Open receipt</a><?php endif; ?>
+            <?php if ($pp['proof_file']): ?> · <a href="../proof.php?as=admin&amp;type=platform&amp;ref=<?= h(opaqueId('plat', $pp['platform_payment_id'])) ?>" target="_blank" rel="noopener">View the guest's screenshot</a><?php endif; ?></p><?php endif; ?>
     </div>
 </main>
 </body>

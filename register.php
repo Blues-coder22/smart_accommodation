@@ -2,6 +2,7 @@
 require_once 'includes/auth.php';
 require_once 'includes/email.php';
 require_once 'includes/functions.php';
+require_once 'includes/sms.php';
 
 // Redirect if already logged in
 if (isLoggedIn()) {
@@ -20,6 +21,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $confirm   = $_POST['confirm_password'] ?? '';
     $role      = sanitize($_POST['role'] ?? $selectedRole);
     $phone     = sanitize($_POST['phone'] ?? '');
+    $verifyVia = ($_POST['verify_via'] ?? 'email') === 'sms' ? 'sms' : 'email';   // how the person wants to confirm the account
+    $phoneNorm = normalizePhone($phone);
 
     // Validation
     if (empty($full_name)) $errors[] = 'Full name is required';
@@ -32,10 +35,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!in_array($role, ['tourist', 'host']))
         $errors[] = 'Please select a valid role';
 
-    if (empty($errors)) {
-        $result = registerUser($full_name, $email, $password, $role, $phone);
+    if ($phone !== '' && !$phoneNorm) $errors[] = 'Enter a valid phone number, for example 0712 345 678 (other countries: start with + and the country code).';
+    if ($verifyVia === 'sms' && !$phoneNorm) $errors[] = 'To get a code by SMS, enter your phone number.';
 
-        if ($result['success']) {
+    if (empty($errors)) {
+        $result = registerUser($full_name, $email, $password, $role, $phoneNorm ?: $phone);
+
+        if ($result['success'] && $verifyVia === 'sms') {
+            // Text a 6-digit code. The waiting page takes the code and signs the person in.
+            require_once __DIR__ . '/includes/verify_wait.php';
+            startVerifyWait($pdo, (int)$result['user_id'], $email);
+            $_SESSION['verify_wait']['channel'] = 'sms';
+            $sms = sendVerificationSms($pdo, (int)$result['user_id']);
+            if ($sms !== 'sent') { $_SESSION['verify_wait']['unsent'] = true; $_SESSION['verify_wait']['last_sent'] = 0; }
+            if ($sms === 'sent') setFlash('success', 'Account created. We sent a 6-digit code by SMS to ' . maskPhone($phoneNorm) . '.');
+            else { $m = smsResultMessage($sms); setFlash($m[0] === 'success' ? 'warning' : $m[0], 'Your account is ready. ' . $m[1]); }
+            redirect(appBasePath() . '/verify_wait.php');
+        } elseif ($result['success']) {
             // Send verification email
             // No internet: do not even try, so nothing half-sends. The person can press "Send the email again" later.
             $emailSent = emailIsOffline() ? false : sendVerificationEmail($email, $full_name, $result['token']);
@@ -60,7 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Register — StayExplore Kenya</title>
     <link rel="stylesheet" href="assets/css/style.css">
-</head>
+<link rel="stylesheet" href="assets/css/dark.css"><meta name="color-scheme" content="light dark"><script src="assets/js/se-theme.js"></script><script src="assets/js/se-i18n.js"></script></head>
 <body>
 
 <?php include 'includes/header.php'; ?>
@@ -77,7 +93,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <div class="auth-box">
         <div class="eyebrow">Join the journey</div>
         <h1>Create your account.</h1>
-        <p class="small">It only takes a minute. Verify your email to get started.</p>
+        <p class="small">It only takes a minute. Confirm your account by email or by SMS code.</p>
 
         <?php if (!empty($errors)): ?>
             <div class="alert alert-error">
@@ -113,22 +129,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <label for="phone">Phone number</label>
                 <input type="tel" id="phone" name="phone"
                        value="<?= h($_POST['phone'] ?? '') ?>"
-                       autocomplete="tel">
+                       autocomplete="tel" placeholder="0712 345 678">
             </div>
 
+            <fieldset class="field full" style="border:0;padding:0;margin:0">
+                <legend style="font-weight:600;margin-bottom:6px">Confirm my account with</legend>
+                <?php $via = ($_POST['verify_via'] ?? 'email') === 'sms' ? 'sms' : 'email'; ?>
+                <label class="check"><input type="radio" name="verify_via" value="email" <?= $via === 'email' ? 'checked' : '' ?>> <span><strong>Email</strong>: a link and a 6-digit code sent to my email</span></label>
+                <label class="check"><input type="radio" name="verify_via" value="sms" <?= $via === 'sms' ? 'checked' : '' ?>> <span><strong>SMS</strong>: a 6-digit code sent to my phone (needs the phone number above)</span></label>
+            </fieldset>
+
             <div class="field full">
-                <label for="role">Account type</label>
+                <label for="role">I am signing up as</label>
                 <select id="role" name="role" required>
-                    <option value="">Select role</option>
+                    <option value="">Choose one</option>
                     <option value="tourist" 
                         <?= (($_POST['role'] ?? $_GET['role'] ?? '') === 'tourist')
                             ? 'selected' : '' ?>>
-                        Tourist — search, book and review stays
+                        Traveller — find stays, explore places and make bookings
                     </option>
                     <option value="host"
                         <?= (($_POST['role'] ?? $_GET['role'] ?? '') === 'host')
                             ? 'selected' : '' ?>>
-                        Host — list and manage properties
+                        Host — list your property and manage bookings
                     </option>
                 </select>
             </div>

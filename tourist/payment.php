@@ -2,6 +2,8 @@
 require_once '../includes/auth.php';
 require_once '../includes/functions.php';
 require_once '../includes/db.php';
+require_once '../includes/currency.php';
+require_once '../includes/notifications.php';
 require_once '../includes/commission.php';
 ensureCommissionTables($pdo);
 require_once '../includes/booking_rules.php';
@@ -15,7 +17,7 @@ if (session_status() === PHP_SESSION_NONE) session_start();
 requireLogin();
 requireRole('tourist');
 
-$booking_id = (int)($_GET['booking_id'] ?? 0);
+$booking_id = bookingIdFromRef($_GET['ref'] ?? '');
 
 if (!$booking_id) {
     redirect('bookings.php');
@@ -53,6 +55,9 @@ $check_in  = new DateTime($booking['check_in_date']);
 $check_out = new DateTime($booking['check_out_date']);
 $nights    = $check_in->diff($check_out)->days;
 $br        = bookingPriceBreakdown($booking);
+$split     = bookingSplit($booking);                // host_amount -> host, platform -> admin
+$needPlatform = !$split['legacy'] && $split['platform'] > 0;
+$platformInstructions = siteSettingGet('platform_pay_instructions', COMMISSION_PAY_INSTRUCTIONS);
 
 // Handle form submission
 $errors = [];
@@ -72,11 +77,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'Please confirm the amount and booking details.';
     }
 
+    // Second part of the payment: StayExplore Kenya's share (service fee + commission), paid straight to the admin.
+    $pMethod = sanitize($_POST['platform_method'] ?? ''); $pRef = mb_substr(trim((string)($_POST['platform_reference'] ?? '')), 0, 120);
+    if ($needPlatform) {
+        if (!in_array($pMethod, ['mpesa', 'bank_transfer'], true)) $errors[] = 'Please choose how you paid StayExplore Kenya (M-Pesa or bank transfer).';
+        if (mb_strlen($pRef) < 4) $errors[] = 'Please enter the M-Pesa or bank reference for your payment to StayExplore Kenya.';
+    }
+
     // Optional screenshot of the payment. Kept private: only this guest, the host and admins can open it.
     $proofName = null;
     if (empty($errors)) {
         $proofName = savePrivateProofImage('payment_proof', 'payment');
-        if ($proofName === false) { $errors[] = 'The screenshot could not be used. Send a JPG, PNG or WebP image up to 5 MB.'; $proofName = null; }
+        if ($proofName === false) { $errors[] = 'We could not use that screenshot. Please send a JPG, PNG or WebP image up to 5 MB.'; $proofName = null; }
+    }
+
+    $pProof = null;
+    if (empty($errors) && $needPlatform) {
+        $pProof = savePrivateProofImage('platform_proof', 'platform');
+        if ($pProof === false) { $errors[] = 'We could not use that screenshot. Please send a JPG, PNG or WebP image up to 5 MB.'; $pProof = null; }
+    }
+
+    if (empty($errors) && $needPlatform) {
+        $ex = $pdo->prepare('SELECT platform_payment_id, status, method, reference FROM platform_payments WHERE booking_id = ?'); $ex->execute([$booking_id]); $exP = $ex->fetch(PDO::FETCH_ASSOC);
+        $changed = false;
+        if (!$exP) {
+            $pdo->prepare('INSERT INTO platform_payments (booking_id, tourist_id, host_id, amount, service_fee, commission_amount, method, reference, proof_file) VALUES (?,?,?,?,?,?,?,?,?)')
+                ->execute([$booking_id, $_SESSION['user_id'], $booking['host_id'], $split['platform'], $split['service_fee'], $split['commission_upfront'], $pMethod, $pRef, $pProof]);
+            $changed = true;
+        } elseif ($exP['status'] !== 'confirmed' && ($exP['method'] !== $pMethod || (string)$exP['reference'] !== $pRef || $pProof)) {
+            $pdo->prepare("UPDATE platform_payments SET method = ?, reference = ?, proof_file = COALESCE(?, proof_file), status = 'pending', reviewed_at = NULL, reviewed_by = NULL, review_note = NULL WHERE platform_payment_id = ?")
+                ->execute([$pMethod, $pRef, $pProof, $exP['platform_payment_id']]);
+            $changed = true;
+        }
+        if ($changed) {
+            notifyAdmins($pdo, 'Guest payment to check', 'KES ' . number_format($split['platform'], 2) . ' reported for ' . bookingLabel($booking_id) . ' (ref ' . $pRef . '). Compare it with your statement.', 'admin/revenue.php');
+            try { require_once '../includes/booking_holds.php';
+                foreach (adminEmailAddresses($pdo) as $to) sendPlatformPaymentAdminEmail($to, $_SESSION['full_name'] ?? 'A guest', $booking['title'], $booking_id, $split['platform'], $pRef); }
+            catch (Throwable $e) { error_log('Platform payment email: ' . $e->getMessage()); }
+        }
     }
 
     if (empty($errors)) {
@@ -92,14 +130,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($proofName && $existingPaymentId) {
                 $pdo->prepare("UPDATE payments SET payment_proof = ? WHERE payment_id = ? AND tourist_id = ? AND payment_status <> 'confirmed'")->execute([$proofName, $existingPaymentId, $_SESSION['user_id']]);
             }
-            redirect("confirmation.php?booking_id=$booking_id");
+            redirect('confirmation.php?ref=' . urlencode(bookingRef($booking_id)));
         }
         if ($existingPaymentId) {
             $stmt = $pdo->prepare("UPDATE payments SET payment_method = ?, payment_reference = ?, payment_status = 'pending', payment_date = NOW() WHERE payment_id = ? AND booking_id = ?");
             $stmt->execute([$method, $reference !== '' ? $reference : null, $existingPaymentId, $booking_id]);
         } else {
             $stmt = $pdo->prepare("INSERT INTO payments (booking_id, tourist_id, host_id, amount, payment_method, payment_reference, payment_status, payment_date) VALUES (?, ?, ?, ?, ?, ?, 'pending', NOW())");
-            $stmt->execute([$booking_id, $_SESSION['user_id'], $booking['host_id'], $booking['total_amount'], $method, $reference !== '' ? $reference : null]);
+            $stmt->execute([$booking_id, $_SESSION['user_id'], $booking['host_id'], $split['host_amount'], $method, $reference !== '' ? $reference : null]);
             $existingPaymentId = (int)$pdo->lastInsertId();
         }
         if ($proofName && $existingPaymentId) {
@@ -109,12 +147,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Details submitted, but nothing is confirmed yet: tell the host to check their account, and acknowledge to the guest.
         try {
             $mailBooking = ['booking_id' => $booking_id, 'title' => $booking['title'], 'check_in_date' => $booking['check_in_date'],
-                            'check_out_date' => $booking['check_out_date'], 'total_amount' => $booking['total_amount']];
+                            'check_out_date' => $booking['check_out_date'], 'total_amount' => $split['host_amount']];   // the host expects only the host's share
             sendPaymentSubmittedHostEmail($booking['host_email'], $booking['host_name'], $mailBooking, $method, $reference);
-            sendPaymentConfirmationEmail($_SESSION['email'] ?? '', $_SESSION['full_name'] ?? '', $mailBooking, $method, $reference, $booking['host_name'] ?? '');
+            $guestMail = $mailBooking + ['platform_amount' => $needPlatform ? $split['platform'] : 0, 'platform_reference' => $pRef];
+            sendPaymentConfirmationEmail($_SESSION['email'] ?? '', $_SESSION['full_name'] ?? '', $guestMail, $method, $reference, $booking['host_name'] ?? '');
+            notify($pdo, (int)$booking['host_id'], 'Payment details received', 'KES ' . number_format($split['host_amount'], 2) . ' reported for ' . bookingLabel($booking_id) . ' (' . paymentMethodLabel($method) . ($reference !== '' ? ', ref ' . $reference : '') . '). Check your account, then mark it received.', 'host/payments.php');
         } catch (Throwable $e) { error_log('Payment emails: ' . $e->getMessage()); }
 
-        redirect("confirmation.php?booking_id=$booking_id");
+        redirect('confirmation.php?ref=' . urlencode(bookingRef($booking_id)));
     }
 }
 ?>
@@ -190,7 +230,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             .summary-card { position:static }
         }
     </style>
-</head>
+<link rel="stylesheet" href="../assets/css/dark.css"><meta name="color-scheme" content="light dark"><script src="../assets/js/se-theme.js"></script><script src="../assets/js/se-i18n.js"></script></head>
 <body class="tourist-payment">
 
 <?php include '../includes/header.php'; ?>
@@ -219,7 +259,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <!-- Left — Payment Form -->
         <div class="pay-card">
-            <h3>Payment method</h3>
+            <h3><?= $needPlatform ? '1. Pay your host &mdash; KES ' . number_format($split['host_amount']) : 'Payment method' ?></h3>
 
             <div class="method-list">
                 <label class="method-opt">
@@ -278,15 +318,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
             </div>
 
+            <?php if ($needPlatform): ?>
+            <div class="pay-card" style="margin-top:18px;background:#f3f8f5">
+                <h3>2. Pay StayExplore Kenya &mdash; KES <?= number_format($split['platform']) ?></h3>
+                <p class="small"><?= nl2br(h($platformInstructions)) ?></p>
+                <div class="method-list">
+                    <label class="method-opt"><input type="radio" name="platform_method" value="mpesa" required> M-Pesa</label>
+                    <label class="method-opt"><input type="radio" name="platform_method" value="bank_transfer"> Bank transfer</label>
+                </div>
+                <div class="form-group">
+                    <label for="platform_reference">M-Pesa code or bank reference for this payment</label>
+                    <input type="text" id="platform_reference" name="platform_reference" maxlength="120" required placeholder="e.g. QGH7XXXXXX">
+                </div>
+                <div class="form-group">
+                    <label for="platform_proof">Screenshot of this payment (optional)</label>
+                    <input type="file" id="platform_proof" name="platform_proof" accept="image/jpeg,image/png,image/webp">
+                    <div class="small">JPG, PNG or WebP, up to 5 MB. The admin checks it against the money received.</div>
+                </div>
+            </div>
+            <?php endif; ?>
+
             <div class="confirm-row">
                 <input type="checkbox" id="confirmed"
                        name="confirmed" required>
                 <label for="confirmed">
                     I confirm the booking amount of
-                    <strong>KES <?= number_format($booking['total_amount']) ?></strong>
-                    <?php if ($br['service_fee'] > 0): ?>(this includes a KES <?= number_format($br['service_fee']) ?> service fee for running StayExplore Kenya)<?php endif; ?>
-                    and agree to complete payment to my host
-                    by the selected method.
+                    <strong>KES <?= number_format($booking['total_amount']) ?></strong><?php if ($needPlatform): ?> (KES <?= number_format($split['host_amount']) ?> to my host and KES <?= number_format($split['platform']) ?> to StayExplore Kenya)<?php endif; ?>
+                    <?php if ($needPlatform): ?>(this includes a KES <?= number_format($br['service_fee']) ?> service fee) and agree to pay each part directly, as shown above.<?php else: ?>and agree to complete payment to my host
+                    by the selected method.<?php endif; ?>
                 </label>
             </div>
 
@@ -345,12 +404,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <?= $booking['num_guests'] > 1 ? 's' : '' ?>
                         </span>
                     </div>
+                    <?php if ($needPlatform): ?>
+                    <div class="p-row"><span>Stay and extras, paid to your host</span><span>KES <?= number_format($split['host_amount']) ?></span></div>
+                    <div class="p-row"><span>Paid to StayExplore Kenya (incl. KES <?= number_format($split['service_fee']) ?> service fee)</span><span>KES <?= number_format($split['platform']) ?></span></div>
+                    <div class="p-row total"><span>Total you pay</span><span>KES <?= number_format($split['total']) ?><?= approxHtml($split['total']) ?></span></div>
+                    <?php else: ?>
                     <div class="p-row total">
                         <span>Total to pay host</span>
-                        <span>
-                            KES <?= number_format($booking['total_amount']) ?>
-                        </span>
+                        <span>KES <?= number_format($booking['total_amount']) ?></span>
                     </div>
+                    <?php endif; ?>
                     <div class="status-note">
                         Booking status remains pending until
                         your host marks it as received.
@@ -365,7 +428,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <form method="post" action="bookings.php" style="margin-top:14px;text-align:center" onsubmit="return confirm('Cancel this booking? This cannot be undone.');">
             <input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
             <input type="hidden" name="action" value="cancel_booking">
-            <input type="hidden" name="booking_id" value="<?= (int)$booking['booking_id'] ?>">
+            <input type="hidden" name="booking_ref" value="<?= h(bookingRef($booking['booking_id'])) ?>">
             <button type="submit" style="background:none;border:0;color:#b42318;font:inherit;font-size:13px;cursor:pointer;text-decoration:underline">Cancel this booking</button>
         </form>
         <?php endif; ?>

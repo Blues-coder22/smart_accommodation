@@ -1,6 +1,6 @@
 <?php
 /**
- * Rule-based review risk score (0-100) with human-readable reasons. It helps an administrator decide what to
+ * Rule-based review risk score (0-100) with human-readable reasons. It helps an admin decide what to
  * check first. It is a signal, not proof, and nothing is removed automatically.
  * $r is a row from admin/reviews.php (reviews + other_prop_reviews + prop_avg_rating).
  * Returns ['score' => int, 'level' => 'low'|'medium'|'high', 'reasons' => string[]].

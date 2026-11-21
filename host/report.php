@@ -20,7 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     requireCsrf();
     $report_type  = sanitize($_POST['report_type'] ?? '');
     $incident_type= sanitize($_POST['incident_type'] ?? '');
-    $booking_id   = (int)($_POST['booking_id'] ?? 0);
+    $booking_id   = bookingIdFromRef($_POST['booking_ref'] ?? '');
     $description  = sanitize($_POST['description'] ?? '');
     $evidence     = null;
 
@@ -104,8 +104,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                    {$booking['tourist_name']}</p>
                    <p><strong>Property:</strong>
                    {$booking['title']}</p>
-                   <p><strong>Booking:</strong> #BK" .
-                   str_pad($booking_id, 5, '0', STR_PAD_LEFT) .
+                   <p><strong>Booking:</strong> " . bookingLabel($booking_id) .
                    "</p>"
                 : '';
 
@@ -292,7 +291,7 @@ $my_reports = $my_reports->fetchAll();
             .page-layout { grid-template-columns:1fr }
         }
     </style>
-</head>
+<link rel="stylesheet" href="../assets/css/dark.css"><meta name="color-scheme" content="light dark"><script src="../assets/js/se-theme.js"></script><script src="../assets/js/se-i18n.js"></script></head>
 <body>
 
 
@@ -413,14 +412,13 @@ $my_reports = $my_reports->fetchAll();
                         <!-- Related Booking -->
                         <div class="form-group">
                             <label>Related booking (optional)</label>
-                            <select aria-label="Related booking (optional)" name="booking_id">
+                            <select aria-label="Related booking (optional)" name="booking_ref">
                                 <option value="">
                                     Select a booking
                                 </option>
                                 <?php foreach ($bookings as $b): ?>
-                                <option value="<?= $b['booking_id'] ?>">
-                                    #BK<?= str_pad($b['booking_id'],
-                                        5, '0', STR_PAD_LEFT) ?>
+                                <option value="<?= h(bookingRef($b['booking_id'])) ?>">
+                                    <?= h(bookingLabel($b['booking_id'])) ?>
                                     &mdash;
                                     <?= h($b['title']) ?>
                                     &mdash;

@@ -52,7 +52,7 @@ if ($valid && $_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 ?>
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Reset password — StayExplore Kenya</title><link rel="stylesheet" href="assets/css/style.css"><meta name="robots" content="noindex"></head>
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Reset password — StayExplore Kenya</title><link rel="stylesheet" href="assets/css/style.css"><meta name="robots" content="noindex"><link rel="stylesheet" href="assets/css/dark.css"><meta name="color-scheme" content="light dark"><script src="assets/js/se-theme.js"></script><script src="assets/js/se-i18n.js"></script></head>
 <body><?php include __DIR__ . '/includes/header.php'; ?><main class="auth-page"><section class="auth-visual"><div class="auth-copy"><div class="eyebrow">Almost there</div><p class="auth-heading">Choose a new password.</p><p>Use at least 8 characters.</p></div></section><section class="auth-form"><div class="auth-box"><h1>Reset password</h1>
 <?php if (!$valid): ?>
 <div class="alert alert-error"><p>This reset link is invalid, has expired, or has already been used.</p></div>

@@ -25,3 +25,4 @@
 .fin-warn{background:#fff6dc;border:1px solid #e3c36a;border-radius:6px;padding:8px 12px;font-size:13px;margin:6px 0}
 @media print{.app-sidebar,.side-toggle,.no-print,.site-header,.hp-header,.hp-footer,.skip-link{display:none!important}.fin-box,.fin-card{break-inside:avoid;border-color:#999}body{background:#fff!important}.app{display:block!important}}
 .sr-only{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+@media print{.app-top,.app-sidebar,.side-toggle,.se-lang,.se-cur,.se-bell{display:none!important}.app,.app-main{display:block!important;margin:0!important}.app-content{padding:0!important}}

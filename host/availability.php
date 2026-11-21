@@ -243,7 +243,7 @@ $today         = date('Y-m-d');
             .actions-card { position:static }
         }
     </style>
-</head>
+<link rel="stylesheet" href="../assets/css/dark.css"><meta name="color-scheme" content="light dark"><script src="../assets/js/se-theme.js"></script><script src="../assets/js/se-i18n.js"></script></head>
 <body>
 
 
@@ -426,7 +426,7 @@ $today         = date('Y-m-d');
                         <div>
                             <span>Mark as available</span>
                             <small>
-                                Tourists can book these dates
+                                Guests can book these dates
                             </small>
                         </div>
                     </label>

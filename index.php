@@ -34,10 +34,11 @@ try {
     // Subqueries avoid duplicate rows and work with MySQL/MariaDB strict GROUP BY settings.
     $stmt = $pdo->query("SELECT a.*,
         COALESCE((SELECT AVG(r.rating) FROM reviews r WHERE r.accommodation_id=a.accommodation_id AND r.is_published=1),0) AS avg_rating,
+        (SELECT COUNT(*) FROM reviews r2 WHERE r2.accommodation_id=a.accommodation_id AND r2.is_published=1) AS review_count,
         (SELECT COUNT(*) FROM bookings b WHERE b.accommodation_id=a.accommodation_id AND b.status='completed') AS total_bookings,
         (SELECT p.photo_path FROM accommodation_photos p WHERE p.accommodation_id=a.accommodation_id ORDER BY p.is_primary DESC, p.photo_id ASC LIMIT 1) AS primary_photo
         FROM accommodations a WHERE a.status='approved'
-        ORDER BY avg_rating DESC, a.created_at DESC LIMIT 9");
+        ORDER BY ((review_count * avg_rating + 15) / (review_count + 5)) DESC, a.created_at DESC LIMIT 9");
     $featured = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (Exception $e) { $featured = []; }
 try {
@@ -193,7 +194,7 @@ $attrUrl   = $base . '/tourist/search.php?type=attraction';
   <link rel="stylesheet" href="assets/css/home.css">
   <link rel="stylesheet" href="assets/css/a11y.css">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Ccircle cx=%2716%27 cy=%2716%27 r=%2716%27 fill=%27%230d3b2e%27/%3E%3Ctext x=%2716%27 y=%2721%27 font-size=%2713%27 fill=%27white%27 text-anchor=%27middle%27 font-family=%27Georgia%27%3ESE%3C/text%3E%3C/svg%3E">
-</head>
+<link rel="stylesheet" href="assets/css/dark.css"><meta name="color-scheme" content="light dark"><script src="assets/js/se-theme.js"></script><script src="assets/js/se-i18n.js"></script></head>
 <body class="hx">
 
 <header class="hx-header" id="hxHeader">
@@ -212,8 +213,12 @@ $attrUrl   = $base . '/tourist/search.php?type=attraction';
     <?php if (isLoggedIn()): ?>
       <a class="link" href="<?= h($dashUrl) ?>"><?= h($dashLabel) ?></a>
       <a class="nav-avatar" href="<?= h($profileUrl) ?>" title="My profile" aria-label="My profile"><?= avatarHtml($_SESSION['user_id'] ?? 0, $userName, currentUserPhotoName($pdo), 40) ?></a>
-      <a class="hx-btn" href="<?= h($base) ?>/logout.php">Sign out</a>
+      <?php require_once __DIR__ . '/includes/currency.php'; require_once __DIR__ . '/includes/translate.php'; echo languageWidgetHtml() . currencySelectorHtml(h($base)); ?>
+      <?php require_once __DIR__ . '/includes/notifications.php'; $__nc = unreadNotificationCount($GLOBALS['pdo'], (int)($_SESSION['user_id'] ?? 0)); ?>
+    <a class="se-bell" href="<?= h($base) ?>/notifications.php?as=<?= urlencode($_SESSION['role'] ?? '') ?>" aria-label="Notifications<?= $__nc ? ', ' . $__nc . ' unread' : '' ?>" title="Notifications"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg><?php if ($__nc): ?><span class="se-bell-count"><?= $__nc > 99 ? '99+' : $__nc ?></span><?php endif; ?></a>
+      <a class="hx-btn" href="<?= h($base) ?>/logout.php?as=<?= urlencode($_SESSION['role'] ?? '') ?>">Sign out</a>
     <?php else: ?>
+      <?php require_once __DIR__ . '/includes/currency.php'; require_once __DIR__ . '/includes/translate.php'; echo languageWidgetHtml() . currencySelectorHtml(h($base)); ?>
       <a class="link" href="<?= h($base) ?>/login.php">Sign in</a>
       <a class="hx-btn" href="<?= h($base) ?>/register.php">Sign up</a>
     <?php endif; ?>
@@ -221,7 +226,7 @@ $attrUrl   = $base . '/tourist/search.php?type=attraction';
 </header>
 
 <?php if (($_GET['account'] ?? '') === 'closed'): ?>
-  <div class="hx-flash">Your account has been closed. Your historical booking and payment records have been retained. Contact the administrator if you need help.</div>
+  <div class="hx-flash">Your account has been closed. Your historical booking and payment records have been retained. Contact the admin if you need help.</div>
 <?php endif; ?>
 <?php if (($_GET['account'] ?? '') === 'deleted'): ?>
   <div class="hx-flash">Your account has been permanently deleted and your personal details erased.</div>
@@ -304,7 +309,7 @@ $attrUrl   = $base . '/tourist/search.php?type=attraction';
   <?php else: ?>
   <div class="hx-stay" style="max-width:640px"><div class="hx-stay-body">
     <div class="hx-kicker">New listings coming soon</div><h3>No approved stays yet</h3>
-    <p style="color:var(--hx-muted)">When a host adds a property and an administrator approves it, it will appear here and in search results. You can still explore attractions meanwhile.</p>
+    <p style="color:var(--hx-muted)">When a host adds a property and an admin approves it, it will appear here and in search results. You can still explore attractions meanwhile.</p>
     <div style="display:flex;gap:18px;flex-wrap:wrap"><a class="hx-link" href="<?= h($stayUrl) ?>">Browse stays <?= hxIcon('arrow') ?></a><a class="hx-link" href="<?= h($base) ?>/register.php?role=host">Become a host <?= hxIcon('arrow') ?></a></div>
   </div></div>
   <?php endif; ?>

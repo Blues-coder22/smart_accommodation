@@ -3,6 +3,7 @@ require_once '../includes/auth.php';
 require_once '../includes/functions.php';
 require_once '../includes/db.php';
 require_once '../includes/booking_rules.php';
+ensureCommissionTables($pdo);
 require_once '../includes/onsite_experience.php';
 
 if (session_status() === PHP_SESSION_NONE) session_start();
@@ -10,7 +11,7 @@ if (session_status() === PHP_SESSION_NONE) session_start();
 requireLogin();
 requireRole('tourist');
 
-$booking_id = (int)($_GET['booking_id'] ?? 0);
+$booking_id = bookingIdFromRef($_GET['ref'] ?? '');
 
 if (!$booking_id) {
     redirect('bookings.php');
@@ -25,6 +26,7 @@ $stmt = $pdo->prepare("
            a.latitude, a.longitude,
            u.full_name AS host_name,
            u.phone_number AS host_phone,
+           (SELECT pp.platform_payment_id FROM platform_payments pp WHERE pp.booking_id = b.booking_id AND pp.status = 'confirmed' LIMIT 1) AS pp_id,
            p.payment_id, p.payment_method, p.payment_status,
            (SELECT photo_path FROM accommodation_photos
             WHERE accommodation_id = a.accommodation_id
@@ -155,7 +157,7 @@ $nearby = getNearbyAttractions(
         .btn-secondary { background:none; color:var(--text-primary);
                          border:1px solid var(--border-strong) }
     </style>
-</head>
+<link rel="stylesheet" href="../assets/css/dark.css"><meta name="color-scheme" content="light dark"><script src="../assets/js/se-theme.js"></script><script src="../assets/js/se-i18n.js"></script></head>
 <body class="tourist-confirmation">
 
 <?php include '../includes/header.php'; ?>
@@ -174,7 +176,7 @@ $nearby = getNearbyAttractions(
         <p><?= $booking['status'] === 'confirmed' ? 'Your host has confirmed the booking.' : ($booking['status'] === 'cancelled' ? 'This booking is cancelled or was not accepted by the host.' : 'Your host must review your request and payment details before the booking is confirmed.') ?></p>
         <p style="margin:10px 0 0"><?php bookingRulesDialog(); ?></p>
         <div class="ref-tag">
-            Booking #BK<?= str_pad($booking_id, 5, '0', STR_PAD_LEFT) ?>
+            Booking <?= h(bookingLabel($booking_id)) ?>
         </div>
     </div>
 
@@ -266,7 +268,9 @@ $nearby = getNearbyAttractions(
                     <span class="payment-status <?= $payStatus === 'confirmed' ? 'status-confirmed' : 'status-pending' ?>">
                         <?= $payStatus === 'confirmed' ? 'Payment received' : ($payStatus === 'pending' ? 'Awaiting host verification' : 'Not submitted') ?>
                     </span>
-                    <?php if ($payStatus === 'confirmed' && !empty($booking['payment_id'])): ?><a href="receipt.php?payment_id=<?= (int)$booking['payment_id'] ?>" target="_blank" rel="noopener" style="margin-left:8px">View or print receipt</a><?php endif; ?>
+                    <?php if ($payStatus === 'confirmed' && !empty($booking['payment_id'])): ?><a href="../receipt.php?as=tourist&amp;pid=<?= h(opaqueId('pay', $booking['payment_id'])) ?>" target="_blank" rel="noopener" style="margin-left:8px">View or print host receipt</a><?php endif; ?>
+                    <?php if (!empty($booking['pp_id'])): ?><a href="../platform_receipt.php?as=tourist&amp;ref=<?= h(opaqueId('plat', $booking['pp_id'])) ?>" target="_blank" rel="noopener" style="margin-left:8px">View StayExplore receipt</a><?php endif; ?>
+                    <a href="../booking_record.php?as=tourist&amp;ref=<?= h(bookingRef($booking['booking_id'])) ?>" target="_blank" rel="noopener" style="margin-left:8px">Print booking record</a>
                 </span>
             </div>
         </div>
@@ -368,7 +372,7 @@ $nearby = getNearbyAttractions(
         <form method="post" action="bookings.php" style="margin-top:14px;text-align:center" onsubmit="return confirm('Cancel this booking? This cannot be undone.');">
             <input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
             <input type="hidden" name="action" value="cancel_booking">
-            <input type="hidden" name="booking_id" value="<?= (int)$booking['booking_id'] ?>">
+            <input type="hidden" name="booking_ref" value="<?= h(bookingRef($booking['booking_id'])) ?>">
             <button type="submit" style="background:none;border:0;color:#b42318;font:inherit;font-size:13px;cursor:pointer;text-decoration:underline">Cancel this booking</button>
         </form>
         <?php endif; ?>

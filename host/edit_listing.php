@@ -195,6 +195,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $pdo->prepare('UPDATE accommodation_photos SET is_primary = 1 WHERE accommodation_id = ? ORDER BY photo_id ASC LIMIT 1')
                 ->execute([$lid]);
         }
+        try { mediaSelfHeal($pdo, true); } catch (Throwable $e) {}   // back up the new photos and drop identical ones straight away
 
         if ($needs_review) {
             setFlash('success',
@@ -332,7 +333,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                       font-size:14px; font-weight:500; cursor:pointer }
         .submit-btn:hover { background:#0a6350 }
     </style>
-</head>
+<link rel="stylesheet" href="../assets/css/dark.css"><meta name="color-scheme" content="light dark"><script src="../assets/js/se-theme.js"></script><script src="../assets/js/se-i18n.js"></script></head>
 <body>
 
 

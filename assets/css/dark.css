@@ -1,0 +1,628 @@
+/* =========================================================
+   StayExplore Kenya - dark mode (v9.27)
+   Applies only when <html data-theme="dark"> (set by assets/js/se-theme.js).
+   Part 1 swaps the colour variables the site already uses.
+   Part 2 repaints the few places that had a fixed light colour.
+   Part 3 covers colours written directly on elements (style="...").
+   ========================================================= */
+
+/* the toggle button itself (works in light mode too) */
+.se-theme{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;padding:0;border-radius:50%;border:1px solid rgba(127,127,127,.45);background:transparent;color:inherit;cursor:pointer;flex:0 0 auto;min-height:0!important}
+.se-theme:hover{background:rgba(127,127,127,.18);transform:none;box-shadow:none}
+.se-theme-float{position:fixed;left:14px;bottom:14px;z-index:90;width:42px;height:42px;background:#fffdf8;color:#0d3b2e;border-color:#c9bfae;box-shadow:0 4px 14px rgba(0,0,0,.18)}
+.public-nav .se-theme,.hp-header .se-theme{color:inherit}
+.hp-header .se-theme{color:var(--forest)}
+.se-lang-float{position:fixed;left:64px;bottom:14px;z-index:90}
+.se-lang-float select{height:42px;border-radius:21px;padding:0 14px;box-shadow:0 4px 14px rgba(0,0,0,.18)}
+
+html[data-theme="dark"]{
+  color-scheme:dark;
+  --ink:#e8ece9; --text-primary:#e8ece9;
+  --muted:#a3ada7; --text-secondary:#a3ada7;
+  --cream:#0f1512; --surface-1:#0f1512;
+  --paper:#171f1b; --surface-2:#171f1b;
+  --line:#2e3a34; --border:#2e3a34; --border-strong:#44524a;
+  --soft:#222c26;
+  --terracotta:#e9926f;
+  --danger:#ff9f93; --success:#6fcf9f;
+  --shadow:0 12px 30px rgba(0,0,0,.45);
+}
+html[data-theme="dark"] body{background:#0f1512!important;color:#e8ece9}
+html[data-theme="dark"] .se-theme-float{background:#171f1b;color:#f3d9a4;border-color:#44524a}
+html[data-theme="dark"] .hp-header .se-theme{color:#e8ece9}
+
+/* forms */
+html[data-theme="dark"] input,html[data-theme="dark"] select,html[data-theme="dark"] textarea{background-color:#1e2823;color:#e8ece9;border-color:#3a4740}
+html[data-theme="dark"] input::placeholder,html[data-theme="dark"] textarea::placeholder{color:#7d8982}
+html[data-theme="dark"] input:disabled,html[data-theme="dark"] select:disabled,html[data-theme="dark"] textarea:disabled{background-color:#171f1b;color:#7d8982}
+html[data-theme="dark"] option{background:#1e2823;color:#e8ece9}
+html[data-theme="dark"] .hp-search,html[data-theme="dark"] .hp-search input,html[data-theme="dark"] .hp-search select{background-color:#171f1b;color:#e8ece9}
+html[data-theme="dark"] .hp-search input,html[data-theme="dark"] .hp-search select{background-color:transparent}
+
+/* tables, cards, text that used fixed greys */
+html[data-theme="dark"] table th{background:#1e2823!important;color:#b6c4bc!important}
+html[data-theme="dark"] table td{border-color:#2e3a34}
+html[data-theme="dark"] hr{border-color:#2e3a34}
+html[data-theme="dark"] a{color:inherit}
+html[data-theme="dark"] .small,html[data-theme="dark"] small,html[data-theme="dark"] .sub{color:#a3ada7}
+html[data-theme="dark"] .toast{background:#25312b;color:#e8ece9}
+html[data-theme="dark"] .skip-link{background:#e8ece9;color:#0f1512}
+
+/* top bars keep their green; text links inside them stay light */
+html[data-theme="dark"] .public-nav{background:#0b2a21}
+html[data-theme="dark"] .public-nav,html[data-theme="dark"] .public-nav a{color:#fff!important}
+html[data-theme="dark"] .public-nav .role-pill{background:#e8ece9;color:#0b2a21!important}
+html[data-theme="dark"] .public-nav .btn{background:#2f7658;border-color:#2f7658}
+html[data-theme="dark"] .hp-header{border-bottom-color:#2e3a34}
+html[data-theme="dark"] .hp-footer,html[data-theme="dark"] .app-sidebar{background:#0b2a21}
+html[data-theme="dark"] .hp-footer *,html[data-theme="dark"] .app-sidebar a{color:#c4d3ca}
+html[data-theme="dark"] .side-nav a:hover,html[data-theme="dark"] .side-nav a.active{background:#1e2823;color:#8fd3b4!important}
+html[data-theme="dark"] .btn{background:#2f7658;border-color:#2f7658;color:#fff!important}
+html[data-theme="dark"] .btn:hover{background:#3a8967}
+html[data-theme="dark"] .btn-outline{background:transparent;border-color:#5b8f78;color:#8fd3b4!important}
+html[data-theme="dark"] .btn-light{background:#e8ece9;color:#0b2a21!important}
+html[data-theme="dark"] .btn-danger{background:transparent;color:#ff9f93!important;border-color:#8a4a42}
+
+/* photos: slightly softer so they do not glare against the dark page */
+html[data-theme="dark"] img:not([src$=".svg"]),html[data-theme="dark"] .photo{filter:brightness(.9) contrast(1.02)}
+html[data-theme="dark"] .leaflet-tile-pane{filter:brightness(.72) contrast(1.1) saturate(.8)}
+html[data-theme="dark"] .leaflet-container{background:#1a2420}
+
+/* ---------- part 2: generated from the existing stylesheets and the <style> blocks inside pages (tools/gen_dark.py) ---------- */
+html[data-theme="dark"] .btn-outline,
+html[data-theme="dark"] .home-link,
+html[data-theme="dark"] .price,
+html[data-theme="dark"] .tab.active,
+html[data-theme="dark"] .hp-brand,
+html[data-theme="dark"] .hp-section h2,
+html[data-theme="dark"] .mini-stat .number,
+html[data-theme="dark"] .detail-card-heading h2,
+html[data-theme="dark"] .hp-role,
+html[data-theme="dark"] .hp-signout,
+html[data-theme="dark"] .about-stat strong,
+html[data-theme="dark"] .hp-header .nav-toggle,
+html[data-theme="dark"] .hp-actions a:not(.btn),
+html[data-theme="dark"] .hp-actions .nav-signout,
+html[data-theme="dark"] .faq summary,
+html[data-theme="dark"] .notfound h1,
+html[data-theme="dark"] .integrity li.ok,
+html[data-theme="dark"] #mapSuggest .sugg-note a,
+html[data-theme="dark"] .near-km,
+html[data-theme="dark"] .verify-banner a,
+html[data-theme="dark"] .vh,
+html[data-theme="dark"] .vh-line,
+html[data-theme="dark"] .card-price,
+html[data-theme="dark"] .section-title,
+html[data-theme="dark"] .home-date-options summary,
+html[data-theme="dark"] .tourist-search .filters-panel h3,
+html[data-theme="dark"] .tourist-search .acc-card-title,
+html[data-theme="dark"] .tourist-search .att-card-title,
+html[data-theme="dark"] .tourist-search .acc-price,
+html[data-theme="dark"] .tourist-search .att-price,
+html[data-theme="dark"] .tourist-details .details-main h1,
+html[data-theme="dark"] .tourist-details .rating-big,
+html[data-theme="dark"] .tourist-details .section-title,
+html[data-theme="dark"] .tourist-details .nearby-info h4,
+html[data-theme="dark"] .tourist-details .booking-price,
+html[data-theme="dark"] .tourist-details .booking-card .price-total,
+html[data-theme="dark"] .tourist-book .booking-main h3,
+html[data-theme="dark"] .tourist-payment .pay-card h3,
+html[data-theme="dark"] .tourist-confirmation .what-next h3,
+html[data-theme="dark"] .tourist-confirmation .confirm-hero h1,
+html[data-theme="dark"] .tourist-confirmation .nearby-name,
+html[data-theme="dark"] .tourist-review .prop-title,
+html[data-theme="dark"] .tourist-review .success-state h2,
+html[data-theme="dark"] .tourist-bookings .tab-btn.active,
+html[data-theme="dark"] .tourist-bookings .btn-sm-outline,
+html[data-theme="dark"] .dash-wrap .stat-value,
+html[data-theme="dark"] .public-nav .public-brand,
+html[data-theme="dark"] .public-nav .brand-mark,
+html[data-theme="dark"] .public-nav .btn-outline,
+html[data-theme="dark"] .se-nav,
+html[data-theme="dark"] .explainer summary,
+html[data-theme="dark"] .bc-title,
+html[data-theme="dark"] .hx-att-links a,
+html[data-theme="dark"] .att-back,
+html[data-theme="dark"] .att-stat strong,
+html[data-theme="dark"] .att-section>h2,
+html[data-theme="dark"] .att-fact span,
+html[data-theme="dark"] .att-news a,
+html[data-theme="dark"] .public-nav .brand,
+html[data-theme="dark"] .ct .brand,
+html[data-theme="dark"] .page-tag,
+html[data-theme="dark"] .osm-help summary,
+html[data-theme="dark"] .page-date,
+html[data-theme="dark"] .stat-note.green,
+html[data-theme="dark"] .card-head a,
+html[data-theme="dark"] .s-confirmed,
+html[data-theme="dark"] .action-link,
+html[data-theme="dark"] .verified-yes,
+html[data-theme="dark"] .btn-edit:hover,
+html[data-theme="dark"] .stat-num,
+html[data-theme="dark"] .msg-thread .t-time.has-unread,
+html[data-theme="dark"] .bk-rules-link,
+html[data-theme="dark"] .confirm-hero h1,
+html[data-theme="dark"] .nearby-dist,
+html[data-theme="dark"] .pp-box h4,
+html[data-theme="dark"] .pp-pct,
+html[data-theme="dark"] .filters-panel h3,
+html[data-theme="dark"] .acc-card-title,
+html[data-theme="dark"] .acc-price,
+html[data-theme="dark"] .osm-live-results h3,
+html[data-theme="dark"] .osm-live-card strong,
+html[data-theme="dark"] .att-card-title,
+html[data-theme="dark"] .att-price,
+html[data-theme="dark"] .disc-tab.active,
+html[data-theme="dark"] .near-km-tag,
+html[data-theme="dark"] .tab-btn.active,
+html[data-theme="dark"] .fav-price,
+html[data-theme="dark"] .fav-fee,
+html[data-theme="dark"] .btn-view:hover,
+html[data-theme="dark"] .details-main h1,
+html[data-theme="dark"] .rating-big,
+html[data-theme="dark"] .rules-list li::before,
+html[data-theme="dark"] .booking-price,
+html[data-theme="dark"] .review-author,
+html[data-theme="dark"] .nearby-info h4,
+html[data-theme="dark"] .rating-summary h2,
+html[data-theme="dark"] .info-card h2,
+html[data-theme="dark"] .res-price,
+html[data-theme="dark"] .fav-link,
+html[data-theme="dark"] .sidebar-role,
+html[data-theme="dark"] .stat-note,
+html[data-theme="dark"] .card-header a,
+html[data-theme="dark"] .btn-sm:hover,
+html[data-theme="dark"] .pay-confirmed,
+html[data-theme="dark"] .toggle-reply:hover,
+html[data-theme="dark"] .cal-nav a:hover,
+html[data-theme="dark"] .day-cell.today{color:#8fd3b4!important}
+html[data-theme="dark"] .btn-light,
+html[data-theme="dark"] .public-actions .btn:not(.btn-outline),
+html[data-theme="dark"] .att-btn,
+html[data-theme="dark"] .honesty-note{background-color:#171f1b!important;border-color:#34413a!important;color:#8fd3b4!important}
+html[data-theme="dark"] .field label,
+html[data-theme="dark"] .osm-nearby-status,
+html[data-theme="dark"] .bc-dow,
+html[data-theme="dark"] .bc-past,
+html[data-theme="dark"] .bc-legend,
+html[data-theme="dark"] .osm-muted,
+html[data-theme="dark"] .osm-source,
+html[data-theme="dark"] .msg-thread span,
+html[data-theme="dark"] .msg-empty,
+html[data-theme="dark"] .msg-thread .t-time,
+html[data-theme="dark"] .msg-heading .who .sub,
+html[data-theme="dark"] .price-range span,
+html[data-theme="dark"] .results-count,
+html[data-theme="dark"] .acc-rating,
+html[data-theme="dark"] .no-results,
+html[data-theme="dark"] .osm-live-card p,
+html[data-theme="dark"] .osm-attribution,
+html[data-theme="dark"] .details-meta,
+html[data-theme="dark"] .booking-price span,
+html[data-theme="dark"] .res-price small{color:#c4ccc7!important}
+html[data-theme="dark"] .field input,
+html[data-theme="dark"] .field select,
+html[data-theme="dark"] .field textarea,
+html[data-theme="dark"] .kpi,
+html[data-theme="dark"] .hp-header,
+html[data-theme="dark"] .hp-search,
+html[data-theme="dark"] .app-top,
+html[data-theme="dark"] .day,
+html[data-theme="dark"] .map-search-box input,
+html[data-theme="dark"] .map-search select,
+html[data-theme="dark"] #mapSuggest,
+html[data-theme="dark"] .chip,
+html[data-theme="dark"] .msg-list,
+html[data-theme="dark"] .msg-body,
+html[data-theme="dark"] .pay-method,
+html[data-theme="dark"] .tourist-payment .method-opt,
+html[data-theme="dark"] .tourist-review .form-group textarea,
+html[data-theme="dark"] .se-dot.is-active,
+html[data-theme="dark"] .hx-btn.light:hover,
+html[data-theme="dark"] .hx-btn.line:hover,
+html[data-theme="dark"] .hx-dots button.on,
+html[data-theme="dark"] .att-dots i.on,
+html[data-theme="dark"] .nt-item.unread,
+html[data-theme="dark"] .ct,
+html[data-theme="dark"] .osm-have-card,
+html[data-theme="dark"] .cm-box,
+html[data-theme="dark"] .cm-item.on,
+html[data-theme="dark"] .rt-actions button,
+html[data-theme="dark"] .listing-row.highlight,
+html[data-theme="dark"] .btn-suspend:hover,
+html[data-theme="dark"] .btn-ban:hover,
+html[data-theme="dark"] .btn-verify:hover,
+html[data-theme="dark"] .btn-del:hover,
+html[data-theme="dark"] .ph-table,
+html[data-theme="dark"] .msg-stream,
+html[data-theme="dark"] .msg-bubble,
+html[data-theme="dark"] .method-opt:has(input:checked),
+html[data-theme="dark"] .pp-box,
+html[data-theme="dark"] .side-card.urgent,
+html[data-theme="dark"] .host-info,
+html[data-theme="dark"] .review-card,
+html[data-theme="dark"] .no-photos,
+html[data-theme="dark"] .btn-sm-danger:hover,
+html[data-theme="dark"] .avail-opt:has(input:checked){background-color:#171f1b!important}
+html[data-theme="dark"] .notice,
+html[data-theme="dark"] .verify-banner,
+html[data-theme="dark"] .tourist-payment .notice-box,
+html[data-theme="dark"] .suspended-notice,
+html[data-theme="dark"] .count-red,
+html[data-theme="dark"] .s-rejected,
+html[data-theme="dark"] .s-banned,
+html[data-theme="dark"] .flag,
+html[data-theme="dark"] .profile-role,
+html[data-theme="dark"] .s-cancelled{background-color:#171f1b!important;border-color:#34413a!important;color:#f3a88f!important}
+html[data-theme="dark"] .status.success,
+html[data-theme="dark"] .status.info,
+html[data-theme="dark"] .table-wrap th,
+html[data-theme="dark"] .side-nav a:hover,
+html[data-theme="dark"] .side-nav a.active,
+html[data-theme="dark"] .smart-score,
+html[data-theme="dark"] .badge-success,
+html[data-theme="dark"] .badge-info,
+html[data-theme="dark"] .tourist-search .smart-badge,
+html[data-theme="dark"] .tourist-search .category-badge,
+html[data-theme="dark"] .tourist-search [style*="background:#eeedfe"],
+html[data-theme="dark"] .tourist-search [style*="background: #eeedfe"],
+html[data-theme="dark"] .tourist-details .host-reply,
+html[data-theme="dark"] .dash-wrap>.sidebar .sidebar-link:hover,
+html[data-theme="dark"] .dash-wrap>.sidebar .sidebar-link.active,
+html[data-theme="dark"] .dash-wrap .badge,
+html[data-theme="dark"] .dash-wrap th,
+html[data-theme="dark"] .hx-fact,
+html[data-theme="dark"] .fin-pill.settled,
+html[data-theme="dark"] .fin-pill.accepted,
+html[data-theme="dark"] .sidebar-link.active,
+html[data-theme="dark"] .osm-have,
+html[data-theme="dark"] .osm-live-card button,
+html[data-theme="dark"] .day-cell.available{background-color:#1b2b24!important;color:#8fd3b4!important}
+html[data-theme="dark"] .status.warning,
+html[data-theme="dark"] .status.danger,
+html[data-theme="dark"] .badge-warning,
+html[data-theme="dark"] .badge-danger,
+html[data-theme="dark"] .fin-pill.accrued,
+html[data-theme="dark"] .fin-pill.void,
+html[data-theme="dark"] .fin-pill.rejected,
+html[data-theme="dark"] .fin-pill.pending,
+html[data-theme="dark"] .osm-pill{background-color:#2f211c!important;color:#f3a88f!important}
+html[data-theme="dark"] .rating,
+html[data-theme="dark"] .integrity li.warn,
+html[data-theme="dark"] .hx-heart.on,
+html[data-theme="dark"] .hx-chip,
+html[data-theme="dark"] .hx-att-kicker,
+html[data-theme="dark"] .hx-insight span,
+html[data-theme="dark"] .sidebar-role,
+html[data-theme="dark"] .emergency-box h4,
+html[data-theme="dark"] .emergency-box p,
+html[data-theme="dark"] .rt-actions .danger,
+html[data-theme="dark"] .stat-note.warn,
+html[data-theme="dark"] .stat-note.red,
+html[data-theme="dark"] .s-pending,
+html[data-theme="dark"] .s-cancelled,
+html[data-theme="dark"] .verified-no,
+html[data-theme="dark"] .star.filled,
+html[data-theme="dark"] .osm-live-card small,
+html[data-theme="dark"] .disc-eyebrow,
+html[data-theme="dark"] .page-tag,
+html[data-theme="dark"] .side-card.urgent h4,
+html[data-theme="dark"] .emergency-num,
+html[data-theme="dark"] .cat-star.on,
+html[data-theme="dark"] .star-btn.active,
+html[data-theme="dark"] .star-btn:hover,
+html[data-theme="dark"] .star-btn.hovered,
+html[data-theme="dark"] .remove-btn:hover,
+html[data-theme="dark"] .details-meta .stars-under,
+html[data-theme="dark"] .info-card .eyebrow,
+html[data-theme="dark"] .fav-link:hover,
+html[data-theme="dark"] .chart-eyebrow,
+html[data-theme="dark"] .pay-pending,
+html[data-theme="dark"] .emergency{color:#f3a88f!important}
+html[data-theme="dark"] .role-pill,
+html[data-theme="dark"] .bc-day,
+html[data-theme="dark"] .fin-btn.ghost,
+html[data-theme="dark"] .decide button.alt,
+html[data-theme="dark"] .smart-badge,
+html[data-theme="dark"] .host-reply{background-color:#171f1b!important;color:#8fd3b4!important}
+html[data-theme="dark"] .side-section{color:#7bc5a3!important}
+html[data-theme="dark"] .line-chart,
+html[data-theme="dark"] .about-hero,
+html[data-theme="dark"] .day.blocked{background:#1e2823!important}
+html[data-theme="dark"] .image-upload,
+html[data-theme="dark"] .image-upload.photo,
+html[data-theme="dark"] .attention-tile.urgent,
+html[data-theme="dark"] .explainer,
+html[data-theme="dark"] .bc,
+html[data-theme="dark"] .bc-nav,
+html[data-theme="dark"] .bc-key,
+html[data-theme="dark"] .fin-warn,
+html[data-theme="dark"] .nt-item,
+html[data-theme="dark"] .br-sheet,
+html[data-theme="dark"] .rc-sheet,
+html[data-theme="dark"] .rc-void,
+html[data-theme="dark"] .vp-head,
+html[data-theme="dark"] .vp-card,
+html[data-theme="dark"] .vw-box,
+html[data-theme="dark"] .vw-box.bad,
+html[data-theme="dark"] .emergency-box,
+html[data-theme="dark"] .osm-card,
+html[data-theme="dark"] .osm-help,
+html[data-theme="dark"] .suspicion-box,
+html[data-theme="dark"] .msg-layout,
+html[data-theme="dark"] .osm-live-results,
+html[data-theme="dark"] .info-card{background-color:#171f1b!important;border-color:#34413a!important}
+html[data-theme="dark"] .day.available,
+html[data-theme="dark"] #mapSuggest li.on,
+html[data-theme="dark"] #mapSuggest li:hover,
+html[data-theme="dark"] .home-map,
+html[data-theme="dark"] .detail-map,
+html[data-theme="dark"] .pick-map,
+html[data-theme="dark"] .thread.on,
+html[data-theme="dark"] .pay-method.on,
+html[data-theme="dark"] .pay-method:has(input:checked),
+html[data-theme="dark"] .tourist-details .no-photos,
+html[data-theme="dark"] .tourist-book .summary-img,
+html[data-theme="dark"] .tourist-payment .summary-img,
+html[data-theme="dark"] .tourist-confirmation .detail-card-img,
+html[data-theme="dark"] .tourist-review .prop-thumb,
+html[data-theme="dark"] .tourist-payment .method-opt:has(input:checked),
+html[data-theme="dark"] .att-badge.season::before,
+html[data-theme="dark"] .att-fact,
+html[data-theme="dark"] .att-pack span:hover,
+html[data-theme="dark"] .att-stay-photo,
+html[data-theme="dark"] .results-grid .att-card.att-fun .att-media,
+html[data-theme="dark"] .rc-total,
+html[data-theme="dark"] .vc .ok,
+html[data-theme="dark"] .listing-thumb,
+html[data-theme="dark"] .btn-restore:hover,
+html[data-theme="dark"] .msg-thread.active,
+html[data-theme="dark"] .msg-bubble,
+html[data-theme="dark"] .msg-bubble.mine,
+html[data-theme="dark"] .msg-thread:hover,
+html[data-theme="dark"] .msg-heading,
+html[data-theme="dark"] .detail-card-img,
+html[data-theme="dark"] .summary-img,
+html[data-theme="dark"] .booking-thumb,
+html[data-theme="dark"] .prop-thumb,
+html[data-theme="dark"] .fav-img{background-color:#1b2b24!important}
+html[data-theme="dark"] .day.booked,
+html[data-theme="dark"] table tbody tr:hover,
+html[data-theme="dark"] .hx-benefit:hover,
+html[data-theme="dark"] .att-section>h2 small,
+html[data-theme="dark"] .vc .no,
+html[data-theme="dark"] .msg-stream{background-color:#2f211c!important}
+html[data-theme="dark"] .rating-track,
+html[data-theme="dark"] .thread:hover,
+html[data-theme="dark"] .bubble.theirs,
+html[data-theme="dark"] .msg-safe,
+html[data-theme="dark"] .id-photo,
+html[data-theme="dark"] .tourist-details .photo-gallery img,
+html[data-theme="dark"] .tourist-details .photo-gallery,
+html[data-theme="dark"] .se-slider.se-hero,
+html[data-theme="dark"] .se-slider.se-hero .se-slide,
+html[data-theme="dark"] .se-thumb img,
+html[data-theme="dark"] .hx-insight,
+html[data-theme="dark"] .pp-track,
+html[data-theme="dark"] .acc-card img,
+html[data-theme="dark"] .att-card img,
+html[data-theme="dark"] .photo-gallery,
+html[data-theme="dark"] .photo-gallery img{background-color:#2d2818!important}
+html[data-theme="dark"] .amenity-icon,
+html[data-theme="dark"] .public-nav .nav-toggle,
+html[data-theme="dark"] .btn-restore{border-color:#34413a!important;color:#8fd3b4!important}
+html[data-theme="dark"] .form-error,
+html[data-theme="dark"] .att-btn.heart.on{background-color:#2f211c!important;border-color:#34413a!important}
+html[data-theme="dark"] .prose p,
+html[data-theme="dark"] .prose li,
+html[data-theme="dark"] .public-nav .public-brand small,
+html[data-theme="dark"] .public-nav a:not(.btn):not(.nav-avatar),
+html[data-theme="dark"] .public-nav a:not(.btn):not(.nav-avatar):hover,
+html[data-theme="dark"] .explainer .ex-body,
+html[data-theme="dark"] .money-approx,
+html[data-theme="dark"] .att-card-tag,
+html[data-theme="dark"] .fin-label,
+html[data-theme="dark"] .fin-note,
+html[data-theme="dark"] .fin-table th,
+html[data-theme="dark"] .public-nav a:not(.btn),
+html[data-theme="dark"] .public-nav a:not(.btn):hover,
+html[data-theme="dark"] .nt-time,
+html[data-theme="dark"] .br-grid dt,
+html[data-theme="dark"] .rc-grid dt,
+html[data-theme="dark"] .ct .lead,
+html[data-theme="dark"] .ct .fine,
+html[data-theme="dark"] .vw-steps,
+html[data-theme="dark"] .cm-head button,
+html[data-theme="dark"] .cm-sub,
+html[data-theme="dark"] .s-completed,
+html[data-theme="dark"] .hist,
+html[data-theme="dark"] .msg-bubble small,
+html[data-theme="dark"] .bk-rules-dialog,
+html[data-theme="dark"] .bk-rules-dialog dd,
+html[data-theme="dark"] .pp-step,
+html[data-theme="dark"] .filter-group label,
+html[data-theme="dark"] .acc-card-location,
+html[data-theme="dark"] .att-card-location,
+html[data-theme="dark"] .disc-sub,
+html[data-theme="dark"] .disc-tab,
+html[data-theme="dark"] .review-date,
+html[data-theme="dark"] .review-text,
+html[data-theme="dark"] .nearby-info p,
+html[data-theme="dark"] .rating-row > span,
+html[data-theme="dark"] .amenity-item2 small,
+html[data-theme="dark"] .res-card label{color:#e8ece9!important}
+html[data-theme="dark"] .star-btn.active,
+html[data-theme="dark"] .star-btn:hover,
+html[data-theme="dark"] .hx-att-kicker,
+html[data-theme="dark"] .hx-insight span,
+html[data-theme="dark"] .review-stars{color:#f0a58a!important}
+html[data-theme="dark"] .se-pin span,
+html[data-theme="dark"] .se-avatar,
+html[data-theme="dark"] .hx-logo.sm,
+html[data-theme="dark"] .att-badge.season,
+html[data-theme="dark"] .vw-spin,
+html[data-theme="dark"] .report-card.incident,
+html[data-theme="dark"] .osm-grid input,
+html[data-theme="dark"] .osm-grid select,
+html[data-theme="dark"] .osm-result,
+html[data-theme="dark"] .decide input[type=text],
+html[data-theme="dark"] .review-card.flagged,
+html[data-theme="dark"] .msg-compose textarea,
+html[data-theme="dark"] .filter-group input:not([type=checkbox]):not([type=radio]),
+html[data-theme="dark"] .filter-group select,
+html[data-theme="dark"] .sort-select,
+html[data-theme="dark"] #map,
+html[data-theme="dark"] .acc-card,
+html[data-theme="dark"] .acc-card:hover,
+html[data-theme="dark"] .osm-live-card,
+html[data-theme="dark"] .att-card{border-color:#34413a!important}
+html[data-theme="dark"] .alert-error{background-color:#2f211c!important;border-color:#34413a!important;color:#f3a88f!important}
+html[data-theme="dark"] .alert-success,
+html[data-theme="dark"] .tourist-review .honesty-note,
+html[data-theme="dark"] .tourist-bookings .s-confirmed,
+html[data-theme="dark"] .hx-flash,
+html[data-theme="dark"] .s-resolved,
+html[data-theme="dark"] .admin-action-note,
+html[data-theme="dark"] .s-approved,
+html[data-theme="dark"] .s-active,
+html[data-theme="dark"] .b-published,
+html[data-theme="dark"] .success-msg,
+html[data-theme="dark"] .ref-tag,
+html[data-theme="dark"] .status-confirmed,
+html[data-theme="dark"] .near-banner,
+html[data-theme="dark"] .s-confirmed,
+html[data-theme="dark"] .s-reviewed{background-color:#1b2b24!important;border-color:#34413a!important;color:#8fd3b4!important}
+html[data-theme="dark"] .alert-warning,
+html[data-theme="dark"] .tourist-bookings .s-pending,
+html[data-theme="dark"] .s-pending,
+html[data-theme="dark"] .count-amber,
+html[data-theme="dark"] .s-suspended,
+html[data-theme="dark"] .b-flagged,
+html[data-theme="dark"] .status-pending,
+html[data-theme="dark"] .notice-box,
+html[data-theme="dark"] .resubmit-notice{background-color:#171f1b!important;border-color:#34413a!important;color:#e6c36a!important}
+html[data-theme="dark"] .tourist-review .success-icon,
+html[data-theme="dark"] .vw-box.ok,
+html[data-theme="dark"] .confirm-icon,
+html[data-theme="dark"] .success-icon{background-color:#1b2b24!important;border-color:#34413a!important}
+html[data-theme="dark"] .osm-nearby-controls button,
+html[data-theme="dark"] .fin-btn.danger,
+html[data-theme="dark"] .decide button.bad,
+html[data-theme="dark"] .ph-actions button.alt,
+html[data-theme="dark"] .day-cell.unavailable{background-color:#171f1b!important;color:#f3a88f!important}
+html[data-theme="dark"] .public-nav{background-color:#171f1b!important;border-bottom-color:#34413a!important;color:#e8ece9!important}
+html[data-theme="dark"] .hp-footer a,
+html[data-theme="dark"] .hx-footer a,
+html[data-theme="dark"] .hx-copy{color:#a9b3ad!important}
+html[data-theme="dark"] .tourist-search .acc-card img,
+html[data-theme="dark"] .acc-card img,
+html[data-theme="dark"] .se-slider,
+html[data-theme="dark"] .se-thumb,
+html[data-theme="dark"] .hx-stay-photo,
+html[data-theme="dark"] .hx-attr-photo,
+html[data-theme="dark"] .hx-att-feature>img,
+html[data-theme="dark"] .hx-att-card>img,
+html[data-theme="dark"] .score-bar{background-color:#34301d!important}
+html[data-theme="dark"] .bc-day.bc-pending,
+html[data-theme="dark"] .bc-key.bc-pending{background-color:#34301d!important;color:#e6c36a!important}
+html[data-theme="dark"] .bc-day.bc-blocked,
+html[data-theme="dark"] .bc-key.bc-blocked{background:#1e2823!important;color:#c4ccc7!important}
+html[data-theme="dark"] .se-cur select,
+html[data-theme="dark"] .se-lang select,
+html[data-theme="dark"] .cm-item,
+html[data-theme="dark"] .s-suspended,
+html[data-theme="dark"] .help,
+html[data-theme="dark"] .b-removed,
+html[data-theme="dark"] .s-completed,
+html[data-theme="dark"] .s-no-show,
+html[data-theme="dark"] .s-no_show,
+html[data-theme="dark"] .s-resolved{background-color:#171f1b!important;border-color:#34413a!important;color:#e8ece9!important}
+html[data-theme="dark"] .hx-insight,
+html[data-theme="dark"] .att-news{border-left-color:#34413a!important}
+html[data-theme="dark"] .att-month{background-color:#2d2818!important;color:#c4ccc7!important}
+html[data-theme="dark"] .att-dyk-bar{background-color:#3a2620!important}
+html[data-theme="dark"] .fin-pill,
+html[data-theme="dark"] .fin-pill.submitted,
+html[data-theme="dark"] .att-thumb,
+html[data-theme="dark"] .category-badge,
+html[data-theme="dark"] .fav-cat,
+html[data-theme="dark"] .day-cell.booked{background-color:#1e2823!important;color:#e8ece9!important}
+html[data-theme="dark"] .br-sheet h2,
+html[data-theme="dark"] .osm-table th,
+html[data-theme="dark"] .osm-table td,
+html[data-theme="dark"] .cm-head,
+html[data-theme="dark"] .bk-table td,
+html[data-theme="dark"] .pay-table td,
+html[data-theme="dark"] .ph-table td,
+html[data-theme="dark"] .msg-sidebar h2,
+html[data-theme="dark"] .msg-thread,
+html[data-theme="dark"] .msg-heading,
+html[data-theme="dark"] .msg-sidebar,
+html[data-theme="dark"] .disc-tabs,
+html[data-theme="dark"] .nearby-attraction,
+html[data-theme="dark"] .amenity-item2{border-bottom-color:#34413a!important}
+html[data-theme="dark"] .rc-foot{border-top-color:#34413a!important;color:#e8ece9!important}
+html[data-theme="dark"] .vp-row,
+html[data-theme="dark"] .cm-foot,
+html[data-theme="dark"] .msg-compose,
+html[data-theme="dark"] .price-breakdown,
+html[data-theme="dark"] .price-total{border-top-color:#34413a!important}
+html[data-theme="dark"] .btn-suspend,
+html[data-theme="dark"] .btn-danger,
+html[data-theme="dark"] .btn-reject,
+html[data-theme="dark"] .btn-ban,
+html[data-theme="dark"] .btn-del,
+html[data-theme="dark"] .btn-remove,
+html[data-theme="dark"] .btn-delete,
+html[data-theme="dark"] .btn-sm-danger{border-color:#34413a!important;color:#f3a88f!important}
+html[data-theme="dark"] .cm-item img,
+html[data-theme="dark"] .fav-img.att{background-color:#1e2823!important}
+html[data-theme="dark"] .bk-table th,
+html[data-theme="dark"] .pay-table th,
+html[data-theme="dark"] .ph-table th,
+html[data-theme="dark"] .filter-group label.amenity-check,
+html[data-theme="dark"] .rules-list li{border-bottom-color:#34413a!important;color:#e8ece9!important}
+html[data-theme="dark"] .role-tourist,
+html[data-theme="dark"] .profile-role{background-color:#1e2823!important;border-color:#34413a!important;color:#e8ece9!important}
+html[data-theme="dark"] .role-host,
+html[data-theme="dark"] .profile-role{background-color:#2d2818!important;border-color:#34413a!important;color:#f3a88f!important}
+html[data-theme="dark"] .btn-verify{border-color:#34413a!important;color:#e8ece9!important}
+html[data-theme="dark"] .suspicion-box h4,
+html[data-theme="dark"] .score-label,
+html[data-theme="dark"] .score-val{color:#e6c36a!important}
+html[data-theme="dark"] .msg-sidebar{background-color:#171f1b!important;border-right-color:#34413a!important}
+html[data-theme="dark"] .msg-safe{background-color:#171f1b!important;border-top-color:#34413a!important;color:#c4ccc7!important}
+html[data-theme="dark"] .amenity-item{background-color:#171f1b!important;color:#e8ece9!important}
+html[data-theme="dark"] .day-cell.booked-pending{background-color:#2d2818!important;color:#e6c36a!important}
+
+/* ---------- part 3: colours written directly on elements ---------- */
+html[data-theme="dark"] [style*="background:#fff"],html[data-theme="dark"] [style*="background: #fff"],
+html[data-theme="dark"] [style*="background:#fffdf9"],html[data-theme="dark"] [style*="background:#fff9ec"],
+html[data-theme="dark"] [style*="background:#fafcfb"],html[data-theme="dark"] [style*="background:#f4faf6"],
+html[data-theme="dark"] [style*="background:#f3f8f5"],html[data-theme="dark"] [style*="background:#eef6f1"]{background:#171f1b!important}
+html[data-theme="dark"] [style*="background:#e7f3ec"],html[data-theme="dark"] [style*="background:#e6f3ec"],html[data-theme="dark"] [style*="background:#e8f8f3"],
+html[data-theme="dark"] [style*="background:#e2efe8"],html[data-theme="dark"] [style*="background:#dce8df"]{background:#1b2b24!important}
+html[data-theme="dark"] [style*="background:#fdf1ef"],html[data-theme="dark"] [style*="background:#fdecea"]{background:#2f211c!important}
+html[data-theme="dark"] [style*="background:#e8e5dc"]{background:#25312b!important}
+html[data-theme="dark"] [style*="color:#565c55"],html[data-theme="dark"] [style*="color:#4f5f57"],html[data-theme="dark"] [style*="color:#666"],
+html[data-theme="dark"] [style*="color:#555"],html[data-theme="dark"] [style*="color:#8a948e"]{color:#a3ada7!important}
+html[data-theme="dark"] [style*="color:#126b4e"],html[data-theme="dark"] [style*="color:#1f5a3f"]{color:#8fd3b4!important}
+html[data-theme="dark"] [style*="color:#a12b2b"],html[data-theme="dark"] [style*="color:#b42318"],html[data-theme="dark"] [style*="color:#8a2b22"],
+html[data-theme="dark"] [style*="color:#a63a2b"],html[data-theme="dark"] [style*="color:#e74c3c"]{color:#ff9f93!important}
+html[data-theme="dark"] [style*="color:#8f4b00"],html[data-theme="dark"] [style*="color:#7a5b00"],html[data-theme="dark"] [style*="color:#7a4300"]{color:#e6c36a!important}
+html[data-theme="dark"] [style*="border-color:#e3b3ab"],html[data-theme="dark"] [style*="border-color:#d9a69c"]{border-color:#7a4a42!important}
+
+/* printing always uses the light look (receipts, certificates) */
+@media print{
+  html[data-theme="dark"]{color-scheme:light}
+  html[data-theme="dark"] body{background:#fff!important;color:#000!important}
+  html[data-theme="dark"] *{background:transparent!important;color:#000!important;border-color:#999!important;box-shadow:none!important;filter:none!important}
+  html[data-theme="dark"] .se-theme,html[data-theme="dark"] .se-lang{display:none!important}
+}
+
+/* notice shown when a Google language is chosen but there is no internet */
+.se-lang-note{position:fixed;left:50%;transform:translateX(-50%);bottom:70px;z-index:95;max-width:min(560px,92vw);display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:#fffdf8;color:#1d241f;border:1px solid #c9bfae;border-radius:10px;padding:12px 14px;box-shadow:0 8px 24px rgba(0,0,0,.22);font-size:14px}
+html[data-theme="dark"] .se-lang-note{background:#171f1b;color:#e8ece9;border-color:#44524a}
+
+/* visually hidden text for screen readers (was only defined on a few pages) */
+.sr-only{position:absolute!important;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}

@@ -28,7 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $report = $stmt->fetch();
 
     if ($report && in_array($action, ['resolve', 'dismiss', 'suspend_user', 'suspend_listing'], true) && $report['status'] !== 'pending') {
-        setFlash('info', 'This report has already been handled, so nothing was changed and nobody was emailed again.');
+        setFlash('info', 'This report was already handled, so nothing changed and no email was sent again.');
     } elseif ($report) {
         switch ($action) {
             case 'resolve':
@@ -372,7 +372,7 @@ $counts = $pdo->query("
             .report-grid { grid-template-columns:1fr }
         }
     </style>
-</head>
+<link rel="stylesheet" href="../assets/css/dark.css"><meta name="color-scheme" content="light dark"><script src="../assets/js/se-theme.js"></script><script src="../assets/js/se-i18n.js"></script></head>
 <body>
 
 

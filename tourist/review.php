@@ -11,7 +11,7 @@ if (session_status() === PHP_SESSION_NONE) session_start();
 requireLogin();
 requireRole('tourist');
 
-$booking_id = (int)($_GET['booking_id'] ?? 0);
+$booking_id = bookingIdFromRef($_GET['ref'] ?? '');
 
 if (!$booking_id) {
     redirect('bookings.php');
@@ -243,7 +243,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .success-state p  { font-size:14px; color:var(--text-secondary);
                             margin-bottom:20px; line-height:1.6 }
     </style>
-</head>
+<link rel="stylesheet" href="../assets/css/dark.css"><meta name="color-scheme" content="light dark"><script src="../assets/js/se-theme.js"></script><script src="../assets/js/se-i18n.js"></script></head>
 <body class="tourist-review">
 
 <?php include '../includes/header.php'; ?>

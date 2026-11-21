@@ -52,7 +52,7 @@ switch ($filter) {
 if ($search !== '') {
     $where .= " AND (title LIKE :s1 OR t_name LIKE :s2 OR h_name LIKE :s3 OR payment_reference LIKE :s4 OR booking_id = :sid)";
     $params[':s1'] = $params[':s2'] = $params[':s3'] = $params[':s4'] = "%$search%";
-    $params[':sid'] = (int)$search;
+    $params[':sid'] = bookingIdFromRef($search);   // search by the public reference, e.g. BK-K7M2QX9TPA
 }
 $stmt = $pdo->prepare("SELECT * FROM ($base) x WHERE $where ORDER BY booking_id DESC LIMIT 200");
 $stmt->execute($params);
@@ -93,7 +93,7 @@ function payLabel($r) {
 .pill{display:inline-block;padding:3px 10px;border-radius:99px;font-size:11px;font-weight:700;white-space:nowrap}
 .note{border-radius:8px;padding:7px 10px;font-size:12px;margin-top:8px;line-height:1.4}
 </style>
-</head>
+<link rel="stylesheet" href="../assets/css/dark.css"><meta name="color-scheme" content="light dark"><script src="../assets/js/se-theme.js"></script><script src="../assets/js/se-i18n.js"></script></head>
 <body>
 <?php require_once __DIR__ . '/../includes/app_shell.php'; appShellStart(); ?>
         <div class="page-date"><?= strtoupper(date('l, j F')) ?></div>
@@ -128,7 +128,7 @@ function payLabel($r) {
             <?php foreach ($rows as $r): $bb = $bookingBadge[$r['status']] ?? ['#f1efe8', '#565c55', ucfirst($r['status'])]; $pl = payLabel($r); ?>
             <tr>
                 <td>
-                    <strong>#<?= (int)$r['booking_id'] ?></strong> &middot; <a href="../tourist/details.php?id=<?= (int)$r['accommodation_id'] ?>"><?= h($r['title']) ?></a><br>
+                    <strong><?= h(bookingLabel($r['booking_id'])) ?></strong> &middot; <a href="../tourist/details.php?id=<?= (int)$r['accommodation_id'] ?>"><?= h($r['title']) ?></a><br>
                     <span style="color:#565c55"><?= date('d M', strtotime($r['check_in_date'])) ?> &ndash; <?= date('d M Y', strtotime($r['check_out_date'])) ?> &middot; <?= (int)$r['num_guests'] ?> guest<?= $r['num_guests'] == 1 ? '' : 's' ?></span><br>
                     <strong>KES <?= number_format($r['total_amount']) ?></strong>
                     <span style="color:#565c55;font-size:11px">&middot; booked <?= date('d M Y', strtotime($r['created_at'])) ?></span>
@@ -142,7 +142,7 @@ function payLabel($r) {
                     <span class="pill" style="background:<?= $pl[0] ?>;color:<?= $pl[1] ?>"><?= h($pl[2]) ?></span>
                     <?php if ($r['payment_id']): ?>
                         <div style="font-size:12px;color:#565c55;margin-top:6px">KES <?= number_format($r['paid_amount']) ?> &middot; <?= h($r['payment_method'] ?: 'method not given') ?><br>Ref: <?= h($r['payment_reference'] ?: 'none') ?></div>
-                        <a href="payments.php?filter=all&q=<?= (int)$r['booking_id'] ?>" style="font-size:12px">Open in Payment tracking &rarr;</a>
+                        <a href="payments.php?filter=all&q=<?= h(bookingRef($r['booking_id'])) ?>" style="font-size:12px">Open in Payment tracking &rarr;</a>
                     <?php endif; ?>
                     <?php if ($r['flag'] !== ''): $n = $notes[$r['flag']]; ?>
                         <div class="note" style="background:<?= $n[0] ?>;color:<?= $n[1] ?>"><?= h($n[2]) ?><?= !empty($r['early_note']) && $r['flag'] === 'early_completed' ? '<br><strong>Host\'s reason:</strong> ' . h($r['early_note']) : '' ?></div>

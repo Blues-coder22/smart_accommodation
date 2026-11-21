@@ -116,7 +116,7 @@ function closeUserAccount($pdo, $user_id, $password) {
         return ['success' => true];
     } catch (Throwable $e) {
         if ($pdo->inTransaction()) $pdo->rollBack();
-        return ['success' => false, 'errors' => ['The account could not be closed right now. Please try again or contact the administrator.']];
+        return ['success' => false, 'errors' => ['The account could not be closed right now. Please try again or contact the admin.']];
     }
 }
 
@@ -185,7 +185,7 @@ function deleteUserAccount($pdo, $user_id, $password, $typed) {
         $pdo->commit();
     } catch (Throwable $e) {
         if ($pdo->inTransaction()) $pdo->rollBack();
-        return ['success' => false, 'errors' => ['The account could not be deleted right now. Please try again or contact the administrator.']];
+        return ['success' => false, 'errors' => ['The account could not be deleted right now. Please try again or contact the admin.']];
     }
 
     if ($user['role'] === 'host' && !empty($verPhoto)) deleteVerificationPhoto($verPhoto);

@@ -2,7 +2,9 @@
 require_once '../includes/auth.php';
 require_once '../includes/functions.php';
 require_once '../includes/db.php';
+require_once '../includes/notifications.php';
 require_once '../includes/booking_rules.php';
+ensureCommissionTables($pdo);
 require_once '../includes/booking_holds.php';
 expireStaleBookingRequests($pdo);   // releases dates held by unpaid or unanswered requests
 require_once '../includes/onsite_experience.php';
@@ -17,7 +19,7 @@ $tab = sanitize($_GET['tab'] ?? 'upcoming');
 // Tourists may cancel their own pending or confirmed future booking. State changes require POST + CSRF.
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'cancel_booking') {
     requireCsrf();
-    $cancelId = (int)($_POST['booking_id'] ?? 0);
+    $cancelId = bookingIdFromRef($_POST['booking_ref'] ?? '');
     $check = $pdo->prepare("SELECT booking_id, status, check_in_date FROM bookings WHERE booking_id = ? AND tourist_id = ? LIMIT 1");
     $check->execute([$cancelId, (int)$_SESSION['user_id']]);
     $owned = $check->fetch();
@@ -30,8 +32,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'cance
         $upd->execute([$cancelId, (int)$_SESSION['user_id']]);
         if ($upd->rowCount()) {
             $late = isLateCancellation($owned['check_in_date']);
+            notifyUserOfBooking($pdo, $cancelId, 'host', 'Booking cancelled by the guest', bookingLabel($cancelId) . ' was cancelled' . ($late ? ' (late cancellation)' : '') . '. The dates are open again.', 'host/bookings.php');
+            applyCancellationRefund($pdo, $cancelId, 'guest');
             setFlash('success', $late
-                ? 'Your booking has been cancelled and your host has been told. This is closer than ' . BOOKING_FREE_CANCEL_HOURS . ' hours to check-in, so any refund of money you already paid is up to your host.'
+                ? 'Your booking has been cancelled and your host has been told. This is closer than ' . freeCancelHours() . ' hours to check-in, so any refund of money you already paid is up to your host.'
                 : 'Your booking has been cancelled and your host has been told. If you already paid, please agree the refund directly with your host.');
             // Let the host know so the dates are not held for a guest who is no longer coming.
             try {
@@ -44,7 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'cance
                     sendEmail($i['host_email'], 'Booking cancelled by guest — StayExplore Kenya',
                         '<p>' . h($i['guest_name'], ENT_QUOTES, 'UTF-8') . ' has cancelled their booking for <strong>' . h($i['title'], ENT_QUOTES, 'UTF-8') . '</strong> (' .
                         h($i['check_in_date']) . ' to ' . h($i['check_out_date']) . ').</p><p>Those dates are open for other guests again.</p>' .
-                        ($late ? '<p><strong>Late cancellation:</strong> this was within ' . (int)BOOKING_FREE_CANCEL_HOURS . ' hours of check-in, so any refund is at your discretion.</p>' : ''));
+                        ($late ? '<p><strong>Late cancellation:</strong> this was within ' . (int)freeCancelHours() . ' hours of check-in, so any refund is at your discretion.</p>' : ''));
                 }
             } catch (Throwable $e) { /* the booking is cancelled even if the email fails */ }
         } else {
@@ -59,6 +63,10 @@ ensureOnsiteExperienceColumns($pdo);
 $stmt = $pdo->prepare("
     SELECT b.*,
            a.title, a.location_name, a.price_per_night, a.onsite_experience_name,
+           (SELECT pp.platform_payment_id FROM platform_payments pp WHERE pp.booking_id = b.booking_id AND pp.status = 'confirmed' LIMIT 1) AS pp_id,
+           (SELECT pp.refund_due FROM platform_payments pp WHERE pp.booking_id = b.booking_id AND pp.status IN ('confirmed','refunded') LIMIT 1) AS refund_due,
+           (SELECT pp.status FROM platform_payments pp WHERE pp.booking_id = b.booking_id LIMIT 1) AS pp_state,
+           (SELECT pp.refunded_amount FROM platform_payments pp WHERE pp.booking_id = b.booking_id LIMIT 1) AS refunded_amount,
            p.payment_id, p.payment_method, p.payment_status,
            (SELECT photo_path FROM accommodation_photos
             WHERE accommodation_id = a.accommodation_id
@@ -179,7 +187,7 @@ $current = $tab === 'completed' ? $completed
         .empty-state p { font-size:14px; color:var(--text-secondary);
                          margin-bottom:20px }
     </style>
-</head>
+<link rel="stylesheet" href="../assets/css/dark.css"><meta name="color-scheme" content="light dark"><script src="../assets/js/se-theme.js"></script><script src="../assets/js/se-i18n.js"></script></head>
 <body class="tourist-bookings">
 
 <?php include '../includes/header.php'; ?>
@@ -271,9 +279,11 @@ $current = $tab === 'completed' ? $completed
                 <?php $bbr = bookingPriceBreakdown($b); if ($bbr['extra'] > 0): ?>
                 <div style="font-size:11px;color:#4f5f57;margin-top:2px">incl. KES <?= number_format($bbr['extra']) ?> host tour/guide</div>
                 <?php endif; ?>
+                <div style="font-size:11px;margin-top:3px"><a href="../booking_record.php?as=tourist&amp;ref=<?= h(bookingRef($b['booking_id'])) ?>" target="_blank" rel="noopener">Print booking record</a></div>
+                <?php if ($b['status'] === 'cancelled' && $b['refund_due'] !== null && (float)$b['refund_due'] > 0): ?><div style="font-size:12px;color:#7a4300;margin-top:3px"><?= $b['pp_state'] === 'refunded' ? 'Refunded by StayExplore Kenya: KES ' . number_format((float)$b['refunded_amount']) : 'Refund due from StayExplore Kenya: KES ' . number_format((float)$b['refund_due']) ?></div><?php endif; ?>
                 <?php if ($bbr['service_fee'] > 0): ?><div style="font-size:11px;color:#4f5f57;margin-top:2px">incl. KES <?= number_format($bbr['service_fee']) ?> service fee</div><?php endif; ?>
                 <div class="booking-ref">
-                    #BK<?= str_pad($b['booking_id'], 5, '0', STR_PAD_LEFT) ?>
+                    <?= h(bookingLabel($b['booking_id'])) ?>
                 </div>
 
                 <!-- Status badge -->
@@ -299,7 +309,7 @@ $current = $tab === 'completed' ? $completed
                         <?= $badge_label ?>
                     </span>
                     <?php if (!empty($b['payment_status'])): ?>
-                        <div style="font-size:11px;color:var(--text-secondary);margin-top:5px">Payment: <?= h($b['payment_status'] === 'confirmed' ? 'Reviewed' : ucfirst($b['payment_status']), ENT_QUOTES, 'UTF-8') ?><?php if ($b['payment_status'] === 'confirmed' && !empty($b['payment_id'])): ?> &middot; <a href="receipt.php?payment_id=<?= (int)$b['payment_id'] ?>" target="_blank" rel="noopener">Receipt</a><?php endif; ?></div>
+                        <div style="font-size:11px;color:var(--text-secondary);margin-top:5px">Payment: <?= h($b['payment_status'] === 'confirmed' ? 'Reviewed' : ucfirst($b['payment_status']), ENT_QUOTES, 'UTF-8') ?><?php if ($b['payment_status'] === 'confirmed' && !empty($b['payment_id'])): ?> &middot; <a href="../receipt.php?as=tourist&amp;pid=<?= h(opaqueId('pay', $b['payment_id'])) ?>" target="_blank" rel="noopener">Host receipt</a><?php endif; ?><?php if (!empty($b['pp_id'])): ?> &middot; <a href="../platform_receipt.php?as=tourist&amp;ref=<?= h(opaqueId('plat', $b['pp_id'])) ?>" target="_blank" rel="noopener">StayExplore receipt</a><?php endif; ?></div>
                     <?php endif; ?>
                 </div>
 
@@ -307,19 +317,19 @@ $current = $tab === 'completed' ? $completed
                 <div class="row-actions">
                     <?php if ($b['status'] === 'completed'
                               && !$b['has_review']): ?>
-                        <a href="review.php?booking_id=<?= $b['booking_id'] ?>"
+                        <a href="review.php?ref=<?= h(bookingRef($b['booking_id'])) ?>"
                            class="btn-sm btn-sm-primary">
                             Leave review
                         </a>
                     <?php endif; ?>
 
                     <?php if ($b['status'] === 'confirmed' || $b['status'] === 'pending'): ?>
-                        <a href="confirmation.php?booking_id=<?= (int)$b['booking_id'] ?>" class="btn-sm btn-sm-outline">View details</a>
+                        <a href="confirmation.php?ref=<?= h(bookingRef($b['booking_id'])) ?>" class="btn-sm btn-sm-outline">View details</a>
                         <?php if ($b['check_in_date'] > date('Y-m-d')): ?>
-                        <form method="post" style="display:inline" onsubmit="return confirm('<?= isLateCancellation($b['check_in_date']) ? 'Cancel this booking? It is closer than ' . (int)BOOKING_FREE_CANCEL_HOURS . ' hours to check-in, so any refund is up to your host. This cannot be undone.' : 'Cancel this booking? This cannot be undone.' ?>');">
+                        <form method="post" style="display:inline" onsubmit="return confirm('<?= isLateCancellation($b['check_in_date']) ? 'Cancel this booking? It is closer than ' . (int)freeCancelHours() . ' hours to check-in, so any refund is up to your host. This cannot be undone.' : 'Cancel this booking? This cannot be undone.' ?>');">
                             <input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
                             <input type="hidden" name="action" value="cancel_booking">
-                            <input type="hidden" name="booking_id" value="<?= (int)$b['booking_id'] ?>">
+                            <input type="hidden" name="booking_ref" value="<?= h(bookingRef($b['booking_id'])) ?>">
                             <button type="submit" class="btn-sm btn-sm-danger">Cancel booking</button>
                         </form>
                         <?php endif; ?>

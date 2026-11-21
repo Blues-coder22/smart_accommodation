@@ -163,7 +163,7 @@ $listings = $listings->fetchAll();
                           color:var(--text-secondary);
                           margin-bottom:20px }
     </style>
-</head>
+<link rel="stylesheet" href="../assets/css/dark.css"><meta name="color-scheme" content="light dark"><script src="../assets/js/se-theme.js"></script><script src="../assets/js/se-i18n.js"></script></head>
 <body>
 
 
@@ -253,8 +253,8 @@ $listings = $listings->fetchAll();
 
                     $label = [
                         'approved'  => 'Live',
-                        'pending'   => 'Pending approval',
-                        'rejected'  => 'Rejected',
+                        'pending'   => 'Waiting for approval',
+                        'rejected'  => 'Not approved',
                         'suspended' => 'Suspended'
                     ][$l['status']] ?? ucfirst($l['status']);
                     ?>
@@ -268,6 +268,7 @@ $listings = $listings->fetchAll();
                     </a>
 
                     <?php if ($l['status'] === 'approved'): ?>
+                        <a href="../certificate.php?as=host&amp;kind=listing&amp;ref=<?= h(opaqueId('lst', $l['accommodation_id'])) ?>" target="_blank" rel="noopener" class="btn-sm">Certificate</a>
                     <a href="../tourist/details.php?id=<?= $l['accommodation_id'] ?>"
                        target="_blank"
                        class="btn-sm">

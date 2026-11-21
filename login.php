@@ -13,7 +13,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $password = $_POST['password'] ?? '';
 
     if (empty($email) || empty($password)) {
-        $errors[] = 'Email and password are required';
+        $errors[] = 'Please enter your email and password.';
     } else {
         $result = loginUser($email, $password);
 
@@ -33,7 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Right password, email not confirmed yet: wait for the link to be opened (on any device) and sign in automatically.
             require_once 'includes/verify_wait.php';
             startVerifyWait($pdo, (int)$result['user_id'], $result['email']);
-            setFlash('info', 'Please confirm your email first. Open the link we sent, on any device, and this page will sign you in.');
+            setFlash('info', 'Please verify your email first. Open the link we sent you, on any device, and this page will sign you in.');
             redirect(appBasePath() . '/verify_wait.php');
         } else {
             $errors[] = $result['message'];
@@ -48,7 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login — StayExplore Kenya</title>
     <link rel="stylesheet" href="assets/css/style.css">
-</head>
+<link rel="stylesheet" href="assets/css/dark.css"><meta name="color-scheme" content="light dark"><script src="assets/js/se-theme.js"></script><script src="assets/js/se-i18n.js"></script></head>
 <body>
 
 <?php include 'includes/header.php'; ?>
@@ -65,7 +65,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <div class="auth-box">
         <div class="eyebrow">Welcome back</div>
         <h1>Sign in to your account.</h1>
-        <p class="small">Sign in to manage your trips, saved places or properties.</p>
+        <p class="small">Welcome back! Sign in to keep exploring or to manage your property.</p>
         <?= showFlash() ?>
 
         <?php if (isLoggedIn()): ?>

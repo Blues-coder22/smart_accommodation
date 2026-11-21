@@ -2,6 +2,8 @@
 require_once '../includes/auth.php';
 require_once '../includes/functions.php';
 require_once '../includes/db.php';
+require_once '../includes/currency.php';
+require_once '../includes/notifications.php';
 require_once '../includes/booking_rules.php';
 require_once '../includes/booking_holds.php';
 expireStaleBookingRequests($pdo);   // releases dates held by unpaid or unanswered requests
@@ -78,8 +80,21 @@ $onsitePer    = (float)($acc['onsite_experience_fee'] ?? 0);
 $onsiteFee    = ($onsiteName !== '' && $onsitePer > 0) ? $onsitePer * $guests : 0;
 require_once '../includes/commission.php';
 ensureCommissionTables($pdo);
-$serviceFee   = serviceFeeFor($subtotal + $onsiteFee);   // shown before the guest reserves
-$total        = $subtotal + $onsiteFee + $serviceFee;
+$hostPrice    = $subtotal + $onsiteFee;                    // what the host charges (stay + extras)
+$serviceFee   = serviceFeeFor($hostPrice);                 // guest service fee, shown before the guest reserves
+$commBase     = commissionBase() === 'stay_only' ? $subtotal : $hostPrice;   // what the commission is a percentage of (admin setting)
+$commission   = commissionFor($commBase);                  // platform commission
+$commissionRate = commissionRatePercent();
+$commMode     = commissionMode();                          // 'upfront' = guest pays it with the booking; 'invoice' = host pays it after the stay
+$total        = $hostPrice + $serviceFee;                  // what the guest pays in all
+$commissionNow = $commMode === 'invoice' ? 0.0 : $commission;
+$platformShare = $serviceFee + $commissionNow;             // goes to StayExplore Kenya (the admin) at booking time
+$hostShare    = $total - $platformShare;                   // goes to the host
+// A host with overdue commission (invoice mode) cannot take new bookings until it is paid.
+if (hostIsBlockedForCommission($pdo, (int)$acc['host_id'])) {
+    setFlash('error', 'This host is not taking new bookings right now. Please choose another stay.');
+    redirect('search.php?type=accommodation');
+}
 
 // Check availability (overlapping bookings and nights the host has blocked)
 if (isStayUnavailable($pdo, $accommodation_id, $check_in, $check_out)) {
@@ -115,9 +130,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt = $pdo->prepare("
                 INSERT INTO bookings
                 (tourist_id, accommodation_id, check_in_date,
-                 check_out_date, num_guests, total_amount, service_fee,
+                 check_out_date, num_guests, total_amount, service_fee, commission_amount, commission_rate, commission_mode,
                  rules_agreed, status)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending')
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
             ");
             $stmt->execute([
                 $_SESSION['user_id'],
@@ -127,6 +142,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $guests,
                 $total,
                 $serviceFee,
+                $commission,
+                $commissionRate,
+                $commMode,
                 $rules_agreed
             ]);
             $booking_id = $pdo->lastInsertId();
@@ -135,7 +153,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($pdo->inTransaction()) $pdo->rollBack();
             throw $e;
         }
-        redirect("payment.php?booking_id=$booking_id");
+        notifyUserOfBooking($pdo, $booking_id, 'host', 'New booking request', bookingLabel($booking_id) . ': ' . $acc['title'] . ', ' . $check_in . ' to ' . $check_out . '. The guest will now send payment details.', 'host/bookings.php');
+        redirect('payment.php?ref=' . urlencode(bookingRef($booking_id)));
     }
 }
 ?>
@@ -217,7 +236,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             .summary-card { position:static; }
         }
     </style>
-</head>
+<link rel="stylesheet" href="../assets/css/dark.css"><meta name="color-scheme" content="light dark"><script src="../assets/js/se-theme.js"></script><script src="../assets/js/se-i18n.js"></script></head>
 <body class="tourist-book">
 
 <?php include '../includes/header.php'; ?>
@@ -363,14 +382,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <?php endif; ?>
                         <?php if ($serviceFee > 0): ?>
                         <div class="p-row">
-                            <span>Service fee (<?= rtrim(rtrim(number_format((float)SERVICE_FEE_PERCENT, 2), '0'), '.') ?>%)</span>
+                            <span>Service fee (<?= pct(serviceFeePercent()) ?>%)</span>
                             <span>KES <?= number_format($serviceFee) ?></span>
                         </div>
                         <?php endif; ?>
                         <div class="p-row total">
                             <span>Total</span>
-                            <span>KES <?= number_format($total) ?></span>
+                            <span>KES <?= number_format($total) ?><?= approxHtml($total) ?></span>
                         </div>
+                        <?php if ($platformShare > 0): ?>
+                        <div style="margin:12px 0;padding:10px 12px;background:#eef6f1;border-radius:6px;font-size:13px;line-height:1.5">
+                            <strong>How your payment is shared</strong><br>
+                            To your host: <strong>KES <?= number_format($hostShare) ?></strong><br>
+                            To StayExplore Kenya: <strong>KES <?= number_format($platformShare) ?></strong> (includes the service fee)<br>
+                            <span style="color:#4f5f57">You pay each part directly to its owner on the next page.</span>
+                        </div>
+                        <?php endif; ?>
                         <p style="font-size:12px;color:#4f5f57;line-height:1.5;margin-top:10px">
                             <?php if ($onsiteFee > 0): ?>The extra KES <?= number_format($onsiteFee) ?> is for <strong><?= h($onsiteName) ?></strong>, a tour or guide your host offers at the stay (KES <?= number_format($onsitePer) ?> per guest). <?php endif; ?>
                             Entry fees for parks and other attractions nearby are not included. You pay those at the gate when you visit.

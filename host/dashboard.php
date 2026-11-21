@@ -226,7 +226,7 @@ foreach ($chart_values as $i => $value) {
             .content-grid { grid-template-columns:1fr }
         }
     </style>
-</head>
+<link rel="stylesheet" href="../assets/css/dark.css"><meta name="color-scheme" content="light dark"><script src="../assets/js/se-theme.js"></script><script src="../assets/js/se-i18n.js"></script></head>
 <body>
 
 
@@ -241,7 +241,7 @@ foreach ($chart_values as $i => $value) {
         <?php if ($hvStatus !== 'verified'): ?>
         <div style="border:1px solid #F0D8A8;background:#FFF9EC;border-radius:8px;padding:12px 16px;margin-bottom:18px;font-size:13px">
             <?php if ($hvStatus === 'pending'): ?>
-                <strong>Identity verification pending.</strong> Your email is confirmed; an administrator is reviewing your ID.
+                <strong>Identity verification pending.</strong> Your email is confirmed; an admin is reviewing your ID.
             <?php elseif ($hvStatus === 'rejected'): ?>
                 <strong>Your identity verification was not approved.</strong> <?= h($hvState['reason'] ?? '') ?> <a href="profile.php#verification">Resubmit</a>
             <?php else: ?>

@@ -1,0 +1,267 @@
+Main navigation|||Menyu kuu
+Open menu|||Fungua menyu
+Toggle navigation|||Badilisha menyu
+Stays|||Malazi
+Discover|||Gundua
+Attractions|||Vivutio
+How it works|||Jinsi inavyofanya kazi
+About|||Kuhusu
+About Us|||Kuhusu Sisi
+About us|||Kuhusu sisi
+Sign in|||Ingia
+Sign up|||Jisajili
+Sign out|||Toka
+Sign Out|||Toka
+Login|||Ingia
+Register|||Jisajili
+My profile|||Wasifu wangu
+Profile|||Wasifu
+Menu|||Menyu
+Account|||Akaunti
+View website|||Tazama tovuti
+Language|||Lugha
+Currency|||Sarafu
+Notifications|||Arifa
+Messages|||Ujumbe
+My bookings|||Uhifadhi wangu
+My Bookings|||Uhifadhi Wangu
+Favourites|||Vipendwa
+Dashboard|||Dashibodi
+My listings|||Matangazo yangu
+Bookings|||Uhifadhi
+Payments|||Malipo
+Back|||Rudi
+← Back|||← Rudi
+Back to home|||Rudi nyumbani
+Back to sign in|||Rudi kwenye kuingia
+Back to my bookings|||Rudi kwenye uhifadhi wangu
+Back to dashboard|||Rudi kwenye dashibodi
+← Back to bookings|||← Rudi kwenye uhifadhi
+← Back to results|||← Rudi kwenye matokeo
+← Back to attractions|||← Rudi kwenye vivutio
+Close|||Funga
+Got it|||Nimeelewa
+Previous photo|||Picha iliyotangulia
+Next photo|||Picha inayofuata
+Previous image|||Picha iliyotangulia
+Next image|||Picha inayofuata
+Previous stays|||Malazi yaliyotangulia
+Next stays|||Malazi yanayofuata
+Earlier months|||Miezi iliyopita
+Later months|||Miezi ijayo
+StayExplore Kenya|||StayExplore Kenya
+KENYA|||KENYA
+Explore|||Gundua
+Company|||Kampuni
+Contact|||Wasiliana nasi
+List your property|||Tangaza mali yako
+Support|||Msaada
+Help centre|||Kituo cha msaada
+Privacy|||Faragha
+Terms|||Masharti
+Discover Kenya|||Gundua Kenya
+Thoughtfully matching travellers with Kenyan stays and experiences.|||Tunaunganisha wasafiri na malazi na uzoefu wa Kenya kwa uangalifu.
+All rights reserved.|||Haki zote zimehifadhiwa.
+StayExplore Kenya. All rights reserved.|||StayExplore Kenya. Haki zote zimehifadhiwa.
+Skip to main content|||Ruka hadi maudhui makuu
+For local hosts|||Kwa wenyeji wa hapa nchini
+Share your space. Manage your stays.|||Shiriki nafasi yako. Simamia malazi yako.
+StayExplore helps hosts present their accommodation to travellers and manage listing details, availability and booking activity from one place.|||StayExplore huwasaidia wenyeji kuonyesha malazi yao kwa wasafiri na kusimamia maelezo ya tangazo, upatikanaji na uhifadhi mahali pamoja.
+Create a host account|||Fungua akaunti ya mwenyeji
+Register as a host and verify your email before signing in.|||Jisajili kama mwenyeji na uthibitishe barua pepe yako kabla ya kuingia.
+Add your property|||Weka mali yako
+Provide the property name, location, price, amenities, house rules and clear photos.|||Toa jina la mali, eneo, bei, huduma, sheria za nyumba na picha zilizo wazi.
+Wait for review|||Subiri ukaguzi
+An administrator reviews the listing before it becomes visible as an approved accommodation.|||Msimamizi hukagua tangazo kabla halijaonekana kama malazi yaliyoidhinishwa.
+Manage availability|||Simamia upatikanaji
+Keep availability and property details up to date so travellers can make informed booking requests.|||Weka upatikanaji na maelezo ya mali yakiwa ya kisasa ili wasafiri waweze kuomba uhifadhi kwa ufahamu.
+Track bookings and payments|||Fuatilia uhifadhi na malipo
+Use the host dashboard to review bookings and view payment records supported by the system.|||Tumia dashibodi ya mwenyeji kukagua uhifadhi na kuona rekodi za malipo zinazoungwa mkono na mfumo.
+Communicate responsibly|||Wasiliana kwa uwajibikaji
+Follow house rules, respond to booking activity and use the reporting tools when an incident needs attention.|||Fuata sheria za nyumba, jibu maombi ya uhifadhi na tumia zana za kuripoti tukio linapohitaji kushughulikiwa.
+Ready to host?|||Uko tayari kuwa mwenyeji?
+Create a host account to start. If you already have one, sign in to open your host dashboard.|||Fungua akaunti ya mwenyeji ili kuanza. Ikiwa tayari unayo, ingia ili kufungua dashibodi yako ya mwenyeji.
+Create host account|||Fungua akaunti ya mwenyeji
+How Hosting Works|||Jinsi Kuwa Mwenyeji Kunavyofanya Kazi
+Join the journey|||Jiunge na safari
+Create your account|||Fungua akaunti yako
+Create your account.|||Fungua akaunti yako.
+Choose how you use StayExplore. Your account role controls which part of the website you can access.|||Chagua jinsi utakavyotumia StayExplore. Jukumu la akaunti yako huamua sehemu ya tovuti unayoweza kufikia.
+It only takes a minute. Verify your email to get started.|||Inachukua dakika moja tu. Thibitisha barua pepe yako ili kuanza.
+Full name|||Jina kamili
+Email|||Barua pepe
+Email address|||Anwani ya barua pepe
+Phone number|||Namba ya simu
+Account type|||Aina ya akaunti
+Select role|||Chagua jukumu
+Tourist — search, book and review stays|||Mtalii — tafuta, hifadhi na toa maoni kuhusu malazi
+Host — list and manage properties|||Mwenyeji — tangaza na simamia mali
+Tourist|||Mtalii
+Host|||Mwenyeji
+Admin|||Msimamizi
+Password|||Nenosiri
+Confirm Password|||Thibitisha Nenosiri
+Confirm password|||Thibitisha nenosiri
+New password|||Nenosiri jipya
+Confirm new password|||Thibitisha nenosiri jipya
+Current password|||Nenosiri la sasa
+By continuing, you agree to our|||Kwa kuendelea, unakubali
+terms|||masharti
+and|||na
+privacy policy|||sera ya faragha
+Create account|||Fungua akaunti
+Already have an account?|||Una akaunti tayari?
+Full name is required|||Jina kamili linahitajika
+Valid email is required|||Barua pepe halali inahitajika
+Password must be at least 8 characters|||Nenosiri lazima liwe na angalau herufi 8
+Passwords do not match|||Manenosiri hayalingani
+Please select a valid role|||Tafadhali chagua jukumu halali
+Email already registered|||Barua pepe tayari imesajiliwa
+Email and password are required|||Barua pepe na nenosiri vinahitajika
+Invalid email or password|||Barua pepe au nenosiri si sahihi
+Please verify your email before logging in|||Tafadhali thibitisha barua pepe yako kabla ya kuingia
+Your account has been suspended|||Akaunti yako imesimamishwa
+Your account has been banned|||Akaunti yako imepigwa marufuku
+This account has been closed. Please contact support if you need assistance.|||Akaunti hii imefungwa. Tafadhali wasiliana na msaada ikiwa unahitaji usaidizi.
+This account has an invalid role. Please contact the administrator.|||Akaunti hii ina jukumu lisilo halali. Tafadhali wasiliana na msimamizi.
+Too many failed sign-in attempts. For your security, please try again in|||Majaribio mengi ya kuingia yameshindwa. Kwa usalama wako, tafadhali jaribu tena baada ya
+Continue exploring|||Endelea kugundua
+Stay close to what matters.|||Kaa karibu na yale muhimu.
+Sign in to manage bookings, saved places, properties or administration tasks according to your account role.|||Ingia ili kusimamia uhifadhi, maeneo uliyohifadhi, mali au kazi za usimamizi kulingana na jukumu la akaunti yako.
+Welcome back|||Karibu tena
+Sign in to your account.|||Ingia kwenye akaunti yako.
+Sign in to manage your trips, saved places or properties.|||Ingia ili kusimamia safari zako, maeneo uliyohifadhi au mali zako.
+. Sign in below with another account to switch dashboards.|||. Ingia hapa chini kwa akaunti nyingine ili kubadilisha dashibodi.
+New here?|||Mgeni hapa?
+Create an account|||Fungua akaunti
+Forgot your password?|||Umesahau nenosiri lako?
+Resend email verification|||Tuma tena uthibitisho wa barua pepe
+Please confirm your email first. Open the link we sent, on any device, and this page will sign you in.|||Tafadhali thibitisha barua pepe yako kwanza. Fungua kiungo tulichotuma, kwenye kifaa chochote, na ukurasa huu utakuingiza.
+You are signed in. Welcome to StayExplore Kenya.|||Umeingia. Karibu StayExplore Kenya.
+That option has expired. Please sign in with your email and password.|||Chaguo hilo limeisha muda. Tafadhali ingia kwa barua pepe na nenosiri lako.
+Your account has been closed. Your historical booking and payment records have been retained. Contact the administrator if you need help.|||Akaunti yako imefungwa. Rekodi zako za uhifadhi na malipo zimehifadhiwa. Wasiliana na msimamizi ukihitaji msaada.
+Your account has been permanently deleted and your personal details erased.|||Akaunti yako imefutwa kabisa na taarifa zako binafsi zimefutwa.
+Locked out?|||Umefungiwa nje?
+Let's get you back in.|||Tukurudishe ndani.
+We'll email you a secure link to choose a new password.|||Tutakutumia kiungo salama kwa barua pepe ili uchague nenosiri jipya.
+Forgot password|||Umesahau nenosiri
+Enter the email address you registered with.|||Weka anwani ya barua pepe uliyojisajili nayo.
+Send reset link|||Tuma kiungo cha kubadilisha
+Almost there|||Karibu umemaliza
+Choose a new password.|||Chagua nenosiri jipya.
+Use at least 8 characters.|||Tumia angalau herufi 8.
+Reset password|||Weka nenosiri jipya
+Change password|||Badilisha nenosiri
+This reset link is invalid, has expired, or has already been used.|||Kiungo hiki si halali, kimeisha muda, au kimeshatumika.
+Request a new link|||Omba kiungo kipya
+Your new password must be at least 8 characters.|||Nenosiri lako jipya lazima liwe na angalau herufi 8.
+The two passwords do not match.|||Manenosiri mawili hayalingani.
+Your password has been changed. Sign in with your new password.|||Nenosiri lako limebadilishwa. Ingia kwa nenosiri lako jipya.
+Your password could not be changed right now. Please try again.|||Nenosiri lako halikuweza kubadilishwa sasa. Tafadhali jaribu tena.
+One more step|||Hatua moja zaidi
+Confirm your email.|||Thibitisha barua pepe yako.
+We use email confirmation to protect your account.|||Tunatumia uthibitisho wa barua pepe kulinda akaunti yako.
+Resend verification|||Tuma tena uthibitisho
+Enter the email address you used to register.|||Weka anwani ya barua pepe uliyotumia kujisajili.
+Send new verification link|||Tuma kiungo kipya cha uthibitisho
+Email verification help|||Msaada wa uthibitisho wa barua pepe
+Email confirmation|||Uthibitisho wa barua pepe
+Check your inbox.|||Angalia kikasha chako.
+We confirm every new account by email, so we know it's really you.|||Tunathibitisha kila akaunti mpya kwa barua pepe, ili tujue kuwa ni wewe kweli.
+Your verification email|||Barua pepe yako ya uthibitisho
+Resend verification email|||Tuma tena barua pepe ya uthibitisho
+Email verified|||Barua pepe imethibitishwa
+All set|||Umekamilisha
+You're verified.|||Umethibitishwa.
+Thanks for confirming your email.|||Asante kwa kuthibitisha barua pepe yako.
+If you were signing up on another device, go back to it. It will sign you in automatically within a few seconds, no password needed.|||Ikiwa ulikuwa unajisajili kwenye kifaa kingine, rudi huko. Kitakuingiza kiotomatiki ndani ya sekunde chache, bila nenosiri.
+Continue on this device|||Endelea kwenye kifaa hiki
+Sign in with my password instead|||Ingia kwa nenosiri langu badala yake
+Email verified successfully. You can now sign in.|||Barua pepe imethibitishwa. Sasa unaweza kuingia.
+Email verified. Welcome to StayExplore Kenya, you are now signed in.|||Barua pepe imethibitishwa. Karibu StayExplore Kenya, sasa umeingia.
+Invalid or expired verification link|||Kiungo cha uthibitisho si halali au kimeisha muda
+Confirm your email|||Thibitisha barua pepe yako
+Open the link we emailed you on any device. This page notices and signs you in by itself.|||Fungua kiungo tulichokutumia kwa barua pepe kwenye kifaa chochote. Ukurasa huu utagundua na kukuingiza wenyewe.
+Waiting for you to confirm.|||Tunasubiri uthibitishe.
+We haven't been able to email|||Hatujaweza kutuma barua pepe kwa
+yet. When you're back online, press|||bado. Ukirudi mtandaoni, bonyeza
+Send the email again|||Tuma barua pepe tena
+below.|||hapa chini.
+We sent a link to|||Tumetuma kiungo kwa
+. You can open it on your phone or any other device, you do not have to come back to this one first.|||. Unaweza kukifungua kwenye simu yako au kifaa kingine chochote, si lazima urudi kwenye hiki kwanza.
+Waiting for you to open the link…|||Tunasubiri ufungue kiungo…
+Open the email from StayExplore Kenya (check spam too).|||Fungua barua pepe kutoka StayExplore Kenya (angalia pia kwenye barua taka).
+Tap|||Gusa
+Verify Email|||Thibitisha Barua Pepe
+, on any device.|||, kwenye kifaa chochote.
+This page signs you in automatically.|||Ukurasa huu utakuingiza kiotomatiki.
+Phone can't open the link?|||Simu haiwezi kufungua kiungo?
+No problem: type the 6-digit code from the same email here.|||Hakuna shida: andika hapa msimbo wa tarakimu 6 kutoka kwenye barua pepe hiyo hiyo.
+6-digit code|||Msimbo wa tarakimu 6
+Verify|||Thibitisha
+Wrong email? Start again|||Barua pepe si sahihi? Anza upya
+Sign in instead|||Ingia badala yake
+This page has timed out. Press "Send the email again", or sign in.|||Ukurasa huu umeisha muda. Bonyeza "Tuma barua pepe tena", au ingia.
+Please wait|||Tafadhali subiri
+A new email is on its way. Older links no longer work.|||Barua pepe mpya iko njiani. Viungo vya zamani havifanyi kazi tena.
+We couldn't send the email just now. Please try again in a little while.|||Hatukuweza kutuma barua pepe sasa hivi. Tafadhali jaribu tena baadaye kidogo.
+Enter the 6-digit code from the email.|||Weka msimbo wa tarakimu 6 kutoka kwenye barua pepe.
+That code has expired. Press "Send the email again" to get a new one.|||Msimbo huo umeisha muda. Bonyeza "Tuma barua pepe tena" upate mpya.
+Too many wrong tries. Press "Send the email again" to get a new code.|||Majaribio mengi yasiyo sahihi. Bonyeza "Tuma barua pepe tena" upate msimbo mpya.
+That code is not right.|||Msimbo huo si sahihi.
+Verified.|||Imethibitishwa.
+Link not opening on your phone?|||Kiungo hakifunguki kwenye simu yako?
+Type this code on the page where you registered:|||Andika msimbo huu kwenye ukurasa uliojisajili:
+The code works for 30 minutes.|||Msimbo unafanya kazi kwa dakika 30.
+Mark all as read|||Weka zote kuwa zimesomwa
+Nothing yet. Updates about your bookings and payments will appear here, as well as in your email.|||Bado hakuna kitu. Taarifa kuhusu uhifadhi na malipo yako zitaonekana hapa, na pia kwenye barua pepe yako.
+Get in touch|||Wasiliana nasi
+Contact us|||Wasiliana Nasi
+Contact us.|||Wasiliana nasi.
+Questions about a stay, a booking or hosting? Send us a message and we will reply by email.|||Maswali kuhusu malazi, uhifadhi au kuwa mwenyeji? Tutumie ujumbe nasi tutajibu kwa barua pepe.
+Send us a message|||Tutumie ujumbe
+How can we help?|||Tunawezaje kukusaidia?
+Your email app will open so you can send a message directly to the StayExplore support team.|||Programu yako ya barua pepe itafunguka ili utume ujumbe moja kwa moja kwa timu ya msaada ya StayExplore.
+Email support|||Tuma barua pepe kwa msaada
+Nairobi, Kenya|||Nairobi, Kenya
+Looking for quick answers? Visit the|||Unatafuta majibu ya haraka? Tembelea
+Legal|||Kisheria
+Privacy policy.|||Sera ya faragha.
+Privacy Policy|||Sera ya Faragha
+How StayExplore Kenya handles your information.|||Jinsi StayExplore Kenya inavyoshughulikia taarifa zako.
+What we collect|||Tunachokusanya
+Your name, email address and booking details, so we can run your account and reservations.|||Jina lako, anwani ya barua pepe na maelezo ya uhifadhi, ili tuendeshe akaunti na uhifadhi wako.
+How we use it|||Jinsi tunavyoitumia
+To provide bookings, show verified reviews, keep the platform safe and contact you about your trips.|||Kutoa huduma ya uhifadhi, kuonyesha maoni yaliyothibitishwa, kuweka jukwaa salama na kuwasiliana nawe kuhusu safari zako.
+Who can see it|||Nani anaweza kuiona
+Your details are kept securely. A host only sees what they need to look after your booking, and we never sell your information.|||Taarifa zako zinahifadhiwa kwa usalama. Mwenyeji huona tu anachohitaji kuhudumia uhifadhi wako, na hatuuzi taarifa zako kamwe.
+Terms of use|||Masharti ya matumizi
+Terms of use.|||Masharti ya matumizi.
+The basics of using StayExplore Kenya.|||Misingi ya kutumia StayExplore Kenya.
+Accounts|||Akaunti
+Keep your sign-in details private. You are responsible for activity on your account.|||Weka siri taarifa zako za kuingia. Unawajibika kwa shughuli zote kwenye akaunti yako.
+Bookings and hosts|||Uhifadhi na wenyeji
+Hosts must describe listings accurately. Guests agree to follow house rules and cancellation policies.|||Wenyeji lazima waeleze matangazo kwa usahihi. Wageni wanakubali kufuata sheria za nyumba na sera za kughairi.
+Reviews|||Maoni
+Reviews must be honest and come from completed stays. Administrators may remove content that breaks these rules.|||Maoni lazima yawe ya kweli na yatokane na ukaaji uliokamilika. Wasimamizi wanaweza kuondoa maudhui yanayokiuka sheria hizi.
+Help centre.|||Kituo cha msaada.
+Answers to common questions about booking, hosting and your account.|||Majibu ya maswali ya kawaida kuhusu uhifadhi, kuwa mwenyeji na akaunti yako.
+How do I book a stay?|||Nitahifadhije malazi?
+Find a stay, choose your dates, select Reserve and sign in or create a tourist account. Then confirm your details and complete payment.|||Tafuta malazi, chagua tarehe zako, bonyeza Hifadhi kisha ingia au fungua akaunti ya mtalii. Kisha thibitisha maelezo yako na ukamilishe malipo.
+Can I browse without an account?|||Je, naweza kutazama bila akaunti?
+Yes. Stays and attractions are open to everyone. You only need an account to book, save favourites, review or report.|||Ndiyo. Malazi na vivutio viko wazi kwa kila mtu. Unahitaji akaunti tu ili kuhifadhi, kuhifadhi vipendwa, kutoa maoni au kuripoti.
+How do I become a host?|||Nitakuwaje mwenyeji?
+, add your listing and submit it. An administrator reviews it before it is shown to tourists.|||, weka tangazo lako na uliwasilishe. Msimamizi hulikagua kabla halijaonyeshwa kwa watalii.
+Who can leave a review?|||Nani anaweza kutoa maoni?
+Only guests with a completed booking can leave a verified review.|||Wageni wenye uhifadhi uliokamilika pekee ndio wanaweza kutoa maoni yaliyothibitishwa.
+How do I report a problem?|||Nitaripotije tatizo?
+Sign in and use|||Ingia na utumie
+Report an incident|||Ripoti tukio
+. For immediate danger, contact local emergency services first.|||. Kwa hatari ya haraka, wasiliana kwanza na huduma za dharura za eneo lako.
+Help Centre|||Kituo cha Msaada
+Booking Request|||Ombi la Uhifadhi
+Payment|||Malipo
+Report|||Ripoti
+Reports|||Ripoti
+Favourites — StayExplore Kenya|||Vipendwa — StayExplore Kenya
+Notifications|||Arifa

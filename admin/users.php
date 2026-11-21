@@ -2,6 +2,7 @@
 require_once '../includes/auth.php';
 require_once '../includes/functions.php';
 require_once '../includes/db.php';
+require_once '../includes/notifications.php';
 require_once '../includes/email.php';
 
 if (session_status() === PHP_SESSION_NONE) session_start();
@@ -28,21 +29,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $pdo->prepare("UPDATE host_verifications SET status='verified', reason=NULL, decided_at=NOW(), decided_by=? WHERE verification_id=?")
                 ->execute([(int)$_SESSION['user_id'], $vid]);
             purgeVerificationSecrets($pdo, $ver['host_id']);
+            notify($pdo, (int)$ver['host_id'], 'You are verified', 'Your identity was checked. You can print your verification certificate from your profile.', ($ver['user_role'] ?? 'host') === 'tourist' ? 'tourist/profile.php' : 'host/profile.php');
             $isGuest = ($ver['user_role'] ?? 'host') === 'tourist';
             sendEmail($ver['host_email'], $isGuest ? 'You are a verified guest — StayExplore Kenya' : 'You are a verified host — StayExplore Kenya',
                 '<h2>You are verified</h2><p>Dear ' . h($ver['host_name']) . ', your identity has been checked. ' . ($isGuest ? 'A “Verified guest” badge now appears next to your name.' : 'A “Verified host” badge now appears on your listings.') . '</p>');
             setFlash('success', h($ver['host_name']) . ' is now a verified ' . (($ver['user_role'] ?? 'host') === 'tourist' ? 'guest' : 'host') . '. Their ID details were erased.');
         } elseif ($_POST['verification_action'] === 'reject') {
             if ($reasonText === '' || mb_strlen($reasonText, 'UTF-8') > 500) {
-                setFlash('error', 'Give a reason (up to 500 characters) when rejecting, so the host knows what to fix.');
+                setFlash('error', 'Please give a reason (up to 500 characters), so the host knows what to fix.');
             } else {
                 $pdo->prepare("UPDATE host_verifications SET status='rejected', reason=?, decided_at=NOW(), decided_by=? WHERE verification_id=?")
                     ->execute([sanitize($reasonText), (int)$_SESSION['user_id'], $vid]);
                 purgeVerificationSecrets($pdo, $ver['host_id']);
+                notify($pdo, (int)$ver['host_id'], 'Verification not approved', 'Reason: ' . $reasonText . '. Submit your details again from your profile.', ($ver['user_role'] ?? 'host') === 'tourist' ? 'tourist/profile.php' : 'host/profile.php');
                 sendEmail($ver['host_email'], 'Verification not approved — StayExplore Kenya',
                     '<h2>Verification not approved</h2><p>Dear ' . h($ver['host_name']) . ', we could not verify your identity yet.</p><p><strong>Reason:</strong> '
                     . h($reasonText) . '</p><p>Sign in, open your profile and submit your details again.</p>');
-                setFlash('rejected', 'Request rejected. The person has been told why, and their ID details were erased.');
+                setFlash('rejected', 'Request not approved. The person has been told why, and their ID details were deleted.');
             }
         }
         redirect('users.php');
@@ -350,7 +353,7 @@ $counts = $pdo->query("
             .sidebar   { display:none }
         }
     </style>
-</head>
+<link rel="stylesheet" href="../assets/css/dark.css"><meta name="color-scheme" content="light dark"><script src="../assets/js/se-theme.js"></script><script src="../assets/js/se-i18n.js"></script></head>
 <body>
 
 
@@ -373,7 +376,7 @@ $counts = $pdo->query("
         <?php if ($pendingVerifications): ?>
         <div id="verification" style="border:1px solid #F0D8A8;background:#FFF9EC;border-radius:8px;padding:18px;margin-bottom:22px">
             <h2 style="font-size:16px;font-weight:600;margin-bottom:4px">Identity verification requests (<?= count($pendingVerifications) ?>)</h2>
-            <p style="font-size:12px;color:var(--text-secondary);margin-bottom:14px">Compare the details with the ID photo. Only administrators can see the photo, and it is erased as soon as you decide.</p>
+            <p style="font-size:12px;color:var(--text-secondary);margin-bottom:14px">Compare the details with the ID photo. Only admins can see the photo, and it is erased as soon as you decide.</p>
             <?php foreach ($pendingVerifications as $pv): ?>
             <div style="border-top:1px solid #F0D8A8;padding:14px 0">
                 <div style="display:flex;gap:18px;flex-wrap:wrap;font-size:13px;margin-bottom:10px">

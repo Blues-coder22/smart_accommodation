@@ -26,7 +26,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['submit_verification'])) {
         $vr = submitHostVerification($pdo, $user_id, $_POST, $_FILES['id_photo'] ?? null, 'tourist');
         if ($vr['success']) {
-            setFlash('success', 'Your verification request was sent. An administrator will review it and email you the result.');
+            setFlash('success', 'Your verification request was sent. An admin will check it and email you the result.');
             redirect('profile.php#verification');
         }
         $verify_errors = $vr['errors'];
@@ -188,7 +188,7 @@ $tstats = $tstats->fetch();
             .form-row  { grid-template-columns:1fr }
         }
     </style>
-</head>
+<link rel="stylesheet" href="../assets/css/dark.css"><meta name="color-scheme" content="light dark"><script src="../assets/js/se-theme.js"></script><script src="../assets/js/se-i18n.js"></script></head>
 <body>
 
 <?php include '../includes/header.php'; ?>
@@ -338,13 +338,13 @@ $tstats = $tstats->fetch();
 
     <div class="form-card" style="border:1px solid #e6b7b7">
         <h3 style="color:#a12b2b">Close account</h3>
-        <p style="font-size:13px;color:var(--text-secondary)">Closing your account signs you out and prevents future logins. Your booking, payment and review history is retained for record-keeping. If you are a host, approved listings are suspended so they cannot receive new bookings. Contact the administrator if you need to request reactivation.</p>
+        <p style="font-size:13px;color:var(--text-secondary)">Closing your account signs you out, and you will not be able to sign in again. We keep your booking, payment and review history for our records. If you are a host, your approved properties are paused so they cannot get new bookings. Contact the admin if you want your account opened again.</p>
         <?php if (!empty($close_errors)): ?>
             <div class="alert alert-error" style="margin-bottom:14px">
                 <?php foreach ($close_errors as $e): ?><p><?= h($e, ENT_QUOTES, 'UTF-8') ?></p><?php endforeach; ?>
             </div>
         <?php endif; ?>
-        <form method="POST" onsubmit="return confirm('Close your account? You will be signed out and will not be able to log in again unless an administrator reactivates it.');">
+        <form method="POST" onsubmit="return confirm('Close your account? You will be signed out and will not be able to log in again unless an admin reactivates it.');">
             <input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
             <input type="hidden" name="close_account" value="1">
             <div class="form-group">

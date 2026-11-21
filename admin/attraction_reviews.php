@@ -39,7 +39,7 @@ $rows = $pdo->query("SELECT r.*, a.name AS attraction_name, u.full_name, u.email
         .rt-actions button{padding:6px 14px;font-size:13px;border-radius:4px;border:1px solid var(--border-strong,#bbb);background:#fff;cursor:pointer}
         .rt-actions .danger{color:#b91c1c;border-color:#b91c1c}
     </style>
-</head>
+<link rel="stylesheet" href="../assets/css/dark.css"><meta name="color-scheme" content="light dark"><script src="../assets/js/se-theme.js"></script><script src="../assets/js/se-i18n.js"></script></head>
 <body>
 <?php require_once __DIR__ . '/../includes/app_shell.php'; appShellStart(); ?>
         <?= showFlash() ?>

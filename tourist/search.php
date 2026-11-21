@@ -2,9 +2,11 @@
 require_once '../includes/auth.php';
 require_once '../includes/functions.php';
 require_once '../includes/db.php';
+require_once '../includes/currency.php';
 require_once '../includes/booking_holds.php';
 expireStaleBookingRequests($pdo);   // releases dates held by unpaid or unanswered requests
 require_once '../includes/attraction_reviews.php';
+require_once '../includes/attraction_search.php';
 
 if (session_status() === PHP_SESSION_NONE) session_start();
 
@@ -90,14 +92,20 @@ if ($type === 'accommodation') {
     $hasExplicitCentre = isset($_GET['lat'], $_GET['lng']) || isset($_GET['search_lat'], $_GET['search_lng']) || $attraction_id > 0;
     if ($location !== '' && !$hasResolvedSearchCoords && !$attraction_id) {
         // Before geocoding finishes, match the typed text against real approved listings rather than showing unrelated Nairobi results.
-        $textStmt = $pdo->prepare("SELECT a.*,
+        $textParams = [];
+        $textSql = "SELECT a.*,
             COALESCE((SELECT AVG(r.rating) FROM reviews r WHERE r.accommodation_id=a.accommodation_id AND r.is_published=1),0) AS avg_rating,
+            (SELECT COUNT(*) FROM reviews r2 WHERE r2.accommodation_id=a.accommodation_id AND r2.is_published=1) AS review_count,
             (SELECT COUNT(*) FROM bookings b WHERE b.accommodation_id=a.accommodation_id AND b.status='completed') AS total_bookings,
             0 AS distance
-            FROM accommodations a WHERE a.status='approved' AND (a.title LIKE ? OR a.location_name LIKE ? OR a.description LIKE ?)
-            ORDER BY a.created_at DESC LIMIT 50");
+            FROM accommodations a WHERE a.status='approved' AND (a.title LIKE :q1 OR a.location_name LIKE :q2 OR a.description LIKE :q3)";
         $like = '%' . $location . '%';
-        $textStmt->execute([$like, $like, $like]);
+        $textParams[':q1'] = $like; $textParams[':q2'] = $like; $textParams[':q3'] = $like;
+        // Same filters as the map search (price, type, guests, dates, amenities)
+        $textSql .= accommodationFilterSql($filters, $textParams);
+        $textSql .= " ORDER BY a.created_at DESC LIMIT 50";
+        $textStmt = $pdo->prepare($textSql);
+        $textStmt->execute($textParams);
         $accommodations = applyWeightedScoring($textStmt->fetchAll(PDO::FETCH_ASSOC), false);   // no map position yet, so distance is not used
         $distanceMeaningful = false;
     } elseif ($hasExplicitCentre || $location !== '') {
@@ -110,13 +118,13 @@ if ($type === 'accommodation') {
             CASE WHEN a.latitude IS NULL OR a.longitude IS NULL THEN 99999 ELSE
                 " . haversineSql('a.latitude', 'a.longitude', ':lat', ':lng', ':lat2') . " END AS distance,
             COALESCE((SELECT AVG(r.rating) FROM reviews r WHERE r.accommodation_id=a.accommodation_id AND r.is_published=1),0) AS avg_rating,
+            (SELECT COUNT(*) FROM reviews r2 WHERE r2.accommodation_id=a.accommodation_id AND r2.is_published=1) AS review_count,
             (SELECT COUNT(*) FROM bookings b WHERE b.accommodation_id=a.accommodation_id AND b.status='completed') AS total_bookings,
             (SELECT p.photo_path FROM accommodation_photos p WHERE p.accommodation_id=a.accommodation_id ORDER BY p.is_primary DESC, p.photo_id ASC LIMIT 1) AS primary_photo
             FROM accommodations a WHERE a.status='approved'";
         $allParams = [':lat'=>$lat, ':lng'=>$lng, ':lat2'=>$lat];
-        if ($min_price > 0) { $allSql .= ' AND a.price_per_night >= :min_price'; $allParams[':min_price'] = $min_price; }
-        if ($max_price < 999999) { $allSql .= ' AND a.price_per_night <= :max_price'; $allParams[':max_price'] = $max_price; }
-        if ($property_type !== '') { $allSql .= ' AND a.property_type = :property_type'; $allParams[':property_type'] = $property_type; }
+        // Same filters as every other search path
+        $allSql .= accommodationFilterSql($filters, $allParams);
         $allSql .= ' ORDER BY a.created_at DESC LIMIT 100';
         $allStmt = $pdo->prepare($allSql);
         $allStmt->execute($allParams);
@@ -135,7 +143,7 @@ if ($type === 'accommodation') {
             function ($a, $b) { return $b['price_per_night'] <=> $a['price_per_night']; });
     } elseif ($sort === 'rating') {
         usort($accommodations, 
-            function ($a, $b) { return $b['avg_rating'] <=> $a['avg_rating']; });
+            function ($a, $b) { return [$b['avg_rating'], (int)($b['review_count'] ?? 0)] <=> [$a['avg_rating'], (int)($a['review_count'] ?? 0)]; });
     }
     // Default sort = smart_score (already applied in getNearbyAccommodations)
 }
@@ -168,10 +176,10 @@ if ($type === 'attraction') {
         $sql .= " AND a.category = :cat";
         $params[':cat'] = $category;
     }
-    if (!empty($location)) {
-        $sql .= " AND (a.name LIKE :q1 OR a.location_name LIKE :q2)";
-        $params[':q1'] = "%$location%";
-        $params[':q2'] = "%$location%";
+    // v9.30: match name, place, category and description, and common spelling variants (Masai/Maasai Mara)
+    $attTerms = attractionSearchTerms($location);
+    if ($attTerms) {
+        $sql .= " AND " . attractionSearchWhere($attTerms, $params);
     }
     if ($near_stay) {
         $sql .= " HAVING distance_km <= :rad ORDER BY distance_km ASC";
@@ -188,6 +196,19 @@ require_once __DIR__ . '/../includes/gallery.php';
 ensureAttractionPhotosTable($pdo);
 $attExtras = ($type === 'attraction') ? getAttractionExtrasMap($pdo, $attractions) : [];
 $attRatings = ($type === 'attraction') ? attractionRatingsMap($pdo, array_column($attractions, 'attraction_id')) : [];
+if ($type === 'attraction' && $sort !== 'rating' && !$near_stay) {
+    // Default order (v9.30): best text match first, then rating (pulled towards neutral when there are few
+    // reviews), then A to Z. With no search text this is simply best-rated first.
+    $attTermsRank = $attTerms ?? [];
+    usort($attractions, function ($a, $b) use ($attRatings, $attTermsRank) {
+        $ra = attractionRelevance($a, $attTermsRank); $rb = attractionRelevance($b, $attTermsRank);
+        if ($ra != $rb) return $rb <=> $ra;
+        $qa = attractionAdjustedRating($attRatings[(int)$a['attraction_id']] ?? null);
+        $qb = attractionAdjustedRating($attRatings[(int)$b['attraction_id']] ?? null);
+        if ($qa != $qb) return $qb <=> $qa;
+        return strcasecmp((string)$a['name'], (string)$b['name']);
+    });
+}
 if ($type === 'attraction' && $sort === 'rating') {
     // Highest rated first; places with no ratings yet go last (never treated as zero stars).
     usort($attractions, function ($a, $b) use ($attRatings) {
@@ -269,6 +290,7 @@ $property_types = $pdo->query("
                     overflow: hidden; border:1px solid #e7e9e3;
                     box-shadow: 0 3px 12px rgba(0,0,0,0.045);
                     transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease; cursor: pointer; }
+        .acc-card.acc-card-hl { outline: 3px solid #16866b; outline-offset: 2px; }
         .acc-card:hover { transform:translateY(-5px); border-color:#c8d7cc; box-shadow: 0 16px 32px rgba(13,59,46,0.13); }
         .acc-card img { display:block; width: 100%; height: 205px; object-fit: contain; background:#f0eee7; }
         .acc-card-body { padding: 14px; }
@@ -353,7 +375,7 @@ $property_types = $pdo->query("
         .att-media .att-teaser { pointer-events:none; z-index:2; }
         .near-km-tag { color:#0d3b2e; font-weight:700; font-size:12px; margin-bottom:6px; }
     </style>
-</head>
+<link rel="stylesheet" href="../assets/css/dark.css"><meta name="color-scheme" content="light dark"><script src="../assets/js/se-theme.js"></script><script src="../assets/js/se-i18n.js"></script></head>
 <body class="tourist-search">
 
 <?php include '../includes/header.php'; ?>
@@ -579,7 +601,7 @@ $property_types = $pdo->query("
         <details class="explainer" id="how-scores">
             <summary>How are the smart score and distance worked out?</summary>
             <div class="ex-body">
-                <p><strong>Smart score (out of 100).</strong> A quick way to see which stays suit you best. It mixes four things: guest ratings (the biggest part; a stay with no reviews yet is treated as a neutral 3 out of 5), how close the stay is to the place you searched, how good the price is compared with the other results, and how often guests have stayed there. A higher score means a better overall match. It is only a guide, so you always choose.</p>
+                <p><strong>Smart score (out of 100).</strong> A quick way to see which stays suit you best. It mixes four things: guest ratings (the biggest part; a stay with only a few reviews is pulled towards a neutral 3 out of 5, so one 5-star review does not beat many good ones, and a stay with no reviews yet counts as 3 out of 5), how close the stay is to the place you searched, how good the price is compared with the other results, and how often guests have stayed there. A higher score means a better overall match. It is only a guide, so you always choose.</p>
                 <p><strong>Distance.</strong> &ldquo;3.2 km away&rdquo; is the straight-line distance on the map, as a bird would fly it. We work it out from the two map positions with the haversine method, which allows for the curve of the Earth. Roads twist, so the drive is usually a bit longer than this number.</p>
             </div>
         </details>
@@ -608,7 +630,7 @@ $property_types = $pdo->query("
                         $score100 = (int)round(min(1, max(0, (float)$acc['smart_score'])) * 100);
                         $detailsUrl = 'details.php?id=' . (int)$acc['accommodation_id'];
                     ?>
-                    <div class="acc-card" onclick="if(!event.target.closest('a,button'))window.location='<?= h($detailsUrl) ?>'">
+                    <div class="acc-card" data-acc-id="<?= (int)$acc['accommodation_id'] ?>" onclick="if(!event.target.closest('a,button'))window.location='<?= h($detailsUrl) ?>'">
                         <?= slideshowHtml($urls, $acc['title'], 'card') ?>
                         <div class="acc-card-body">
                             <?php if (!empty($acc['created_at']) && strtotime($acc['created_at']) > strtotime('-14 days')): ?><span class="smart-badge" style="background:#a3462a;color:#fff;margin:0 6px 4px 0">New</span><?php endif; ?>
@@ -625,11 +647,11 @@ $property_types = $pdo->query("
                             <div class="acc-card-location">
                                 <?= h($acc['location_name']) ?>
                                 <?php if ($distanceMeaningful && (float)$acc['distance'] < 99999): ?>
-                                &nbsp;&middot;&nbsp; <?= number_format((float)$acc['distance'], 1) ?> km away
+                                &nbsp;&middot;&nbsp; <?= number_format((float)$acc['distance'], 1) ?> km (straight line)
                                 <?php endif; ?>
                             </div>
                             <div class="acc-card-meta">
-                                <div class="acc-price">KES <?= number_format($acc['price_per_night']) ?> <span style="font-size:11px;font-weight:400;color:#666">/night</span></div>
+                                <div class="acc-price"><?= moneyHtml($acc['price_per_night']) ?> <span style="font-size:11px;font-weight:400;color:#666">/night</span></div>
                             </div>
                             <div class="acc-card-actions">
                                 <a href="<?= h($detailsUrl) ?>" class="btn btn-primary">View stay</a>
@@ -726,15 +748,16 @@ const purpleIcon = SEPins.attraction();
 SEPins.legend(map, ['stay', 'attraction', 'place']);
 
 <?php if ($type === 'accommodation'): ?>
-// Plot accommodation pins
+// Plot accommodation pins (kept by id so a result card and its pin can find each other)
+const stayMarkers = {};
 <?php foreach ($accommodations as $acc): ?>
 <?php if ($acc['latitude'] && $acc['longitude']): ?>
-L.marker(
+stayMarkers[<?= (int)$acc['accommodation_id'] ?>] = L.marker(
     [<?= $acc['latitude'] ?>, <?= $acc['longitude'] ?>],
     { icon: greenIcon }
 ).addTo(map).bindPopup(`
     <b><?= h($acc['title']) ?></b><br>
-    KES <?= number_format($acc['price_per_night']) ?>/night<br>
+    <?= moneyHtml($acc['price_per_night']) ?>/night<br>
     ★ <?= number_format($acc['avg_rating'], 1) ?><br>
     <a href="details.php?id=<?= $acc['accommodation_id'] ?>">
         View stay
@@ -742,6 +765,22 @@ L.marker(
 `);
 <?php endif; ?>
 <?php endforeach; ?>
+
+// Clicking a pin highlights its result card; pointing at a card opens its pin (when the map is showing)
+(function () {
+    function highlightCard(id) {
+        document.querySelectorAll('.acc-card-hl').forEach(function (c) { c.classList.remove('acc-card-hl'); });
+        var card = document.querySelector('.acc-card[data-acc-id="' + id + '"]');
+        if (card) { card.classList.add('acc-card-hl'); card.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+    }
+    Object.keys(stayMarkers).forEach(function (id) { stayMarkers[id].on('click', function () { highlightCard(id); }); });
+    document.querySelectorAll('.acc-card[data-acc-id]').forEach(function (card) {
+        card.addEventListener('mouseenter', function () {
+            var m = stayMarkers[card.getAttribute('data-acc-id')], box = document.getElementById('mapBox');
+            if (m && box && !box.hidden) m.openPopup();
+        });
+    });
+})();
 
 <?php if ($selected_attraction): ?>
 // Plot selected attraction pin

@@ -79,7 +79,7 @@ $backUrl = $back ? $base . ($myRole === 'host' ? '/host/messages.php' : '/messag
 .vp-card h2{font-size:17px;margin:0 0 10px}
 .vp-row{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-top:1px solid #eee;font-size:14px}
 .vp-row:first-of-type{border-top:0}
-</style></head><body>
+</style><link rel="stylesheet" href="assets/css/dark.css"><meta name="color-scheme" content="light dark"><script src="assets/js/se-theme.js"></script><script src="assets/js/se-i18n.js"></script></head><body>
 <?php include __DIR__ . '/includes/header.php'; ?>
 <main class="vp">
   <a href="<?= h($backUrl) ?>" style="font-size:14px;color:#666">← Back</a>

@@ -59,6 +59,58 @@ function validDateOrNull($value) {
     return ($d && $d->format('Y-m-d') === $value) ? $value : null;
 }
 
+/**
+ * Shared stay filters (v9.30), so every search path applies the same rules.
+ * Returns SQL starting with " AND ..." for the table alias `a`, and adds its named parameters to $params.
+ * Handles: price range, property type, guests, free for the whole stay, every selected amenity.
+ */
+function accommodationFilterSql(array $filters, array &$params) {
+    $sql = '';
+    if (isset($filters['min_price']) && is_numeric($filters['min_price']) && (float)$filters['min_price'] > 0) {
+        $sql .= " AND a.price_per_night >= :f_min";
+        $params[':f_min'] = (float)$filters['min_price'];
+    }
+    if (isset($filters['max_price']) && is_numeric($filters['max_price']) && (float)$filters['max_price'] > 0 && (float)$filters['max_price'] < 999999) {
+        $sql .= " AND a.price_per_night <= :f_max";
+        $params[':f_max'] = (float)$filters['max_price'];
+    }
+    if (!empty($filters['property_type'])) {
+        $sql .= " AND a.property_type = :f_type";
+        $params[':f_type'] = $filters['property_type'];
+    }
+    // Enough room for the party
+    if (!empty($filters['guests']) && (int)$filters['guests'] > 1) {
+        $sql .= " AND a.max_guests >= :f_guests";
+        $params[':f_guests'] = (int)$filters['guests'];
+    }
+    // Free for the whole stay: no overlapping booking and no night blocked by the host
+    $ci = validDateOrNull($filters['check_in']  ?? '');
+    $co = validDateOrNull($filters['check_out'] ?? '');
+    if ($ci && $co && $co > $ci) {
+        $sql .= " AND NOT EXISTS (
+                    SELECT 1 FROM bookings bk
+                    WHERE bk.accommodation_id = a.accommodation_id
+                    AND bk.status IN ('pending','confirmed')
+                    AND NOT (bk.check_out_date <= :f_ci1 OR bk.check_in_date >= :f_co1))
+                  AND NOT EXISTS (
+                    SELECT 1 FROM availability av
+                    WHERE av.accommodation_id = a.accommodation_id
+                    AND av.is_available = 0
+                    AND av.`date` >= :f_ci2 AND av.`date` < :f_co2)";
+        $params[':f_ci1'] = $ci; $params[':f_co1'] = $co;
+        $params[':f_ci2'] = $ci; $params[':f_co2'] = $co;
+    }
+    // Must offer every selected amenity
+    $amenities = array_values(array_filter((array)($filters['amenities'] ?? []), 'is_string'));
+    foreach ($amenities as $i => $amenity) {
+        $sql .= " AND EXISTS (SELECT 1 FROM amenities am$i
+                              WHERE am$i.accommodation_id = a.accommodation_id
+                              AND am$i.amenity_name = :f_amenity$i)";
+        $params[":f_amenity$i"] = $amenity;
+    }
+    return $sql;
+}
+
 // Haversine formula — get accommodations within radius
 // $filters: min_price, max_price, property_type, guests, check_in, check_out, amenities[]
 function getNearbyAccommodations($lat, $lng, $radius = 10, $filters = []) {
@@ -74,6 +126,9 @@ function getNearbyAccommodations($lat, $lng, $radius = 10, $filters = []) {
         COALESCE((SELECT AVG(r.rating) FROM reviews r
                   WHERE r.accommodation_id = a.accommodation_id
                   AND r.is_published = 1), 0) AS avg_rating,
+        (SELECT COUNT(*) FROM reviews r2
+         WHERE r2.accommodation_id = a.accommodation_id
+         AND r2.is_published = 1) AS review_count,
         (SELECT COUNT(*) FROM bookings b
          WHERE b.accommodation_id = a.accommodation_id
          AND b.status = 'completed') AS total_bookings
@@ -88,51 +143,8 @@ function getNearbyAccommodations($lat, $lng, $radius = 10, $filters = []) {
         ':lat2' => $lat
     ];
 
-    if (!empty($filters['min_price'])) {
-        $sql .= " AND a.price_per_night >= :min_price";
-        $params[':min_price'] = $filters['min_price'];
-    }
-    if (!empty($filters['max_price'])) {
-        $sql .= " AND a.price_per_night <= :max_price";
-        $params[':max_price'] = $filters['max_price'];
-    }
-    if (!empty($filters['property_type'])) {
-        $sql .= " AND a.property_type = :property_type";
-        $params[':property_type'] = $filters['property_type'];
-    }
-
-    // Enough room for the party
-    if (!empty($filters['guests']) && (int)$filters['guests'] > 1) {
-        $sql .= " AND a.max_guests >= :guests";
-        $params[':guests'] = (int)$filters['guests'];
-    }
-
-    // Free for the whole stay: no overlapping booking and no night blocked by the host
-    $ci = validDateOrNull($filters['check_in']  ?? '');
-    $co = validDateOrNull($filters['check_out'] ?? '');
-    if ($ci && $co && $co > $ci) {
-        $sql .= " AND NOT EXISTS (
-                    SELECT 1 FROM bookings bk
-                    WHERE bk.accommodation_id = a.accommodation_id
-                    AND bk.status IN ('pending','confirmed')
-                    AND NOT (bk.check_out_date <= :ci1 OR bk.check_in_date >= :co1))
-                  AND NOT EXISTS (
-                    SELECT 1 FROM availability av
-                    WHERE av.accommodation_id = a.accommodation_id
-                    AND av.is_available = 0
-                    AND av.`date` >= :ci2 AND av.`date` < :co2)";
-        $params[':ci1'] = $ci; $params[':co1'] = $co;
-        $params[':ci2'] = $ci; $params[':co2'] = $co;
-    }
-
-    // Must offer every selected amenity
-    $amenities = array_values(array_filter((array)($filters['amenities'] ?? []), 'is_string'));
-    foreach ($amenities as $i => $amenity) {
-        $sql .= " AND EXISTS (SELECT 1 FROM amenities am$i
-                              WHERE am$i.accommodation_id = a.accommodation_id
-                              AND am$i.amenity_name = :amenity$i)";
-        $params[":amenity$i"] = $amenity;
-    }
+    // Same filters as every other search path
+    $sql .= accommodationFilterSql($filters, $params);
 
     $sql .= " HAVING distance < :radius";
     $params[':radius'] = $radius;
@@ -160,7 +172,16 @@ function applyWeightedScoring($results, $useDistance = null) {
 
     foreach ($results as &$item) {
         // A stay with no reviews yet gets a neutral 3 out of 5 for ranking only, so new listings are not buried below reviewed ones.
-        $rating_score   = ((float)$item['avg_rating'] > 0 ? (float)$item['avg_rating'] : 3.0) / 5;
+        // Confidence-adjusted rating (v9.30): pulled towards a neutral 3.0 until a stay has several reviews, so one
+        // 5-star review no longer beats 100 reviews averaging 4.6. With no reviews it is exactly 3.0, as before.
+        // adjusted = (n * average + 5 * 3.0) / (n + 5). Rows without a review count keep the plain average.
+        $avgR = (float)$item['avg_rating'];
+        if (isset($item['review_count'])) {
+            $n = (int)$item['review_count'];
+            $rating_score = (($n * $avgR + 5 * 3.0) / ($n + 5)) / 5;
+        } else {
+            $rating_score = ($avgR > 0 ? $avgR : 3.0) / 5;
+        }
         $price_score    = 1 - ($item['price_per_night'] / $max_price);
         $popularity     = ($item['total_bookings'] / $max_bookings);
         if ($useDistance) {
@@ -216,7 +237,7 @@ function publishDueReviews($pdo) {
     @touch($stamp);
 
     // A review is revealed once the host has reviewed the guest for the same stay (host_submitted, or a row in
-    // guest_reviews), or 14 days after check-out. Flagged reviews always wait for an administrator.
+    // guest_reviews), or 14 days after check-out. Flagged reviews always wait for an admin.
     $base = "
         UPDATE reviews r
         JOIN bookings b ON b.booking_id = r.booking_id
@@ -369,7 +390,7 @@ function showFlash() {
 // CSRF protection for state-changing form submissions.
 function generateCsrfToken() {
     if (session_status() === PHP_SESSION_NONE) {
-        session_start();
+        function_exists('seBootSession') ? seBootSession() : session_start();
     }
     if (empty($_SESSION['csrf_token']) || !is_string($_SESSION['csrf_token'])) {
         $_SESSION['csrf_token'] = bin2hex(random_bytes(32));

@@ -20,4 +20,13 @@ try {
     http_response_code(503);
     die('We can’t load this page right now. Please try again in a moment.');
 }
+
+require_once __DIR__ . '/opaque_id.php';    // opaque tokens for payment ids
+require_once __DIR__ . '/booking_ref.php';  // public booking references (booking numbers are never shown)
+
+// Photos: restore any missing listing/attraction photo from the database and remove duplicates (see includes/media_store.php).
+try {
+    require_once __DIR__ . '/media_store.php';
+    mediaSelfHeal($pdo);
+} catch (Throwable $e) { error_log('media self-heal: ' . $e->getMessage()); }
 ?>

@@ -9,7 +9,7 @@ requireLogin();
 requireRole('host');
 
 $host_id    = (int)$_SESSION['user_id'];
-$booking_id = (int)($_GET['booking_id'] ?? $_POST['booking_id'] ?? 0);
+$booking_id = bookingIdFromRef($_GET['ref'] ?? $_POST['booking_ref'] ?? '');
 
 // The booking must be a completed stay at one of this host's own listings.
 $stmt = $pdo->prepare("
@@ -46,7 +46,7 @@ if (!$done && $_SERVER['REQUEST_METHOD'] === 'POST') {
             $pdo->prepare("UPDATE reviews SET host_submitted = 1 WHERE booking_id = ?")->execute([$booking_id]);
             $pdo->prepare("UPDATE reviews SET is_published = 1 WHERE booking_id = ? AND tourist_submitted = 1 AND is_flagged = 0")->execute([$booking_id]);
             $pdo->commit();
-            setFlash('success', 'Thank you. Your guest review has been saved. It becomes visible once the guest has reviewed the stay, or 14 days after check-out.');
+            setFlash('success', 'Thank you. Your review of the guest is saved. It will show once the guest has reviewed the stay, or 14 days after check-out.');
             redirect('bookings.php?tab=completed');
         } catch (PDOException $e) {
             if ($pdo->inTransaction()) $pdo->rollBack();
@@ -69,7 +69,7 @@ if (!$done && $_SERVER['REQUEST_METHOD'] === 'POST') {
         .rg-stars label { display:flex; align-items:center; gap:6px; cursor:pointer; font-size:14px }
         .rg-card textarea { width:100%; min-height:110px }
     </style>
-</head>
+<link rel="stylesheet" href="../assets/css/dark.css"><meta name="color-scheme" content="light dark"><script src="../assets/js/se-theme.js"></script><script src="../assets/js/se-i18n.js"></script></head>
 <body>
 <?php require_once __DIR__ . '/../includes/app_shell.php'; appShellStart(); ?>
 <div class="rg-wrap">
@@ -88,7 +88,7 @@ if (!$done && $_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php if ($errors): ?><div class="alert alert-error" style="margin-bottom:14px"><?php foreach ($errors as $e): ?><p><?= h($e) ?></p><?php endforeach; ?></div><?php endif; ?>
         <form method="POST">
             <input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken()) ?>">
-            <input type="hidden" name="booking_id" value="<?= (int)$booking_id ?>">
+            <input type="hidden" name="booking_ref" value="<?= h(bookingRef($booking_id)) ?>">
             <label><strong>How was this guest?</strong></label>
             <div class="rg-stars">
                 <?php foreach ([1 => 'Poor', 2 => 'Fair', 3 => 'Good', 4 => 'Very good', 5 => 'Excellent'] as $n => $label): ?>

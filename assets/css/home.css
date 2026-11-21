@@ -233,3 +233,16 @@ body.hx{margin:0;background:var(--hx-cream);color:var(--hx-ink);font-family:var(
 .hx-stay-photo{position:relative}
 .hx-new{position:absolute;left:12px;top:12px;background:#a3462a;color:#fff;font-size:12px;font-weight:700;letter-spacing:.04em;padding:4px 10px;border-radius:999px;z-index:2}
 .hx-footer h2{font:600 14px var(--hx-sans);color:#fff;margin:0 0 18px;letter-spacing:0}
+
+/* v9.26: notification bell */
+.se-bell{position:relative;display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:50%;color:inherit;margin:0 4px}
+.se-bell:hover{background:rgba(0,0,0,.06)}
+.se-bell-count{position:absolute;top:2px;right:0;min-width:18px;height:18px;padding:0 4px;border-radius:9px;background:#a3462a;color:#fff;font-size:11px;font-weight:700;line-height:18px;text-align:center;font-variant-numeric:tabular-nums}
+
+/* v9.26: currency selector, language picker, converted prices; hide Google's own toolbar */
+.se-cur,.se-lang{display:inline-flex;align-items:center;margin:0 6px}
+.se-cur select,.se-lang select{padding:5px 8px;border:1px solid #c9bfae;border-radius:6px;background:#fff;color:#1f241f;font:inherit;font-size:13px;cursor:pointer}
+.se-lang select{max-width:130px}
+.money{border-bottom:1px dotted currentColor;cursor:help}.money-approx{font-size:.85em;color:#565c55;font-weight:400}
+.goog-te-banner-frame,.skiptranslate>iframe,#goog-gt-tt,.goog-te-balloon-frame{display:none!important}body{top:0!important}
+.goog-text-highlight{background:none!important;box-shadow:none!important}

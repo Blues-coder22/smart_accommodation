@@ -1,0 +1,216 @@
+Host overview|||Muhtasari wa mwenyeji
+Host Dashboard|||Dashibodi ya Mwenyeji
+Identity verification pending.|||Uthibitisho wa utambulisho unasubiri.
+Your identity verification was not approved.|||Uthibitisho wa utambulisho wako haukuidhinishwa.
+Resubmit|||Wasilisha tena
+Your email is confirmed, but your host identity (ID) is not verified yet.|||Barua pepe yako imethibitishwa, lakini utambulisho wako (kitambulisho) kama mwenyeji bado haujathibitishwa.
+Verified hosts get a "Verified host" badge and guests trust them more.|||Wenyeji waliothibitishwa hupata nembo ya "Mwenyeji aliyethibitishwa" na wageni huwaamini zaidi.
+Verify my ID|||Thibitisha kitambulisho changu
+A clear view of what needs attention today.|||Mtazamo wazi wa kinachohitaji kushughulikiwa leo.
+Total bookings|||Jumla ya uhifadhi
+confirmed|||imethibitishwa
+Confirmed|||Imethibitishwa
+Pending|||Inasubiri
+Earnings|||Mapato
+Confirmed payments|||Malipo yaliyothibitishwa
+Rating|||Ukadiriaji
+reviews|||maoni
+Recent activity|||Shughuli za hivi karibuni
+No bookings yet|||Bado hakuna uhifadhi
+Income|||Mapato
+Monthly trend|||Mwelekeo wa kila mwezi
+My Listings|||Matangazo Yangu
+My listings|||Matangazo yangu
++ Add listing|||+ Ongeza tangazo
+No listings yet|||Bado hakuna matangazo
+Add your first property to start receiving bookings.|||Weka mali yako ya kwanza ili uanze kupokea uhifadhi.
+Add your first listing|||Weka tangazo lako la kwanza
+active booking|||uhifadhi unaoendelea
+guests max|||wageni wengi zaidi
+Edit|||Hariri
+View live|||Tazama moja kwa moja
+Delete|||Futa
+Cannot delete a listing with active bookings.|||Huwezi kufuta tangazo lenye uhifadhi unaoendelea.
+Listing deleted successfully.|||Tangazo limefutwa.
+All|||Yote
+bookings found.|||uhifadhi umepatikana.
+Dates|||Tarehe
+Print record|||Chapisha rekodi
+Message tourist|||Tuma ujumbe kwa mtalii
+Rate guest|||Kadiria mgeni
+Confirm booking|||Thibitisha uhifadhi
+Release dates|||Achilia tarehe
+Mark completed|||Weka kuwa imekamilika
+Record no-show|||Rekodi kutokuja
+Flag tourist|||Weka alama kwa mtalii
+Submit flag|||Wasilisha alama
+Cancel|||Ghairi
+The tourist has not submitted payment details yet.|||Mtalii bado hajawasilisha maelezo ya malipo.
+Booking confirmed. The tourist has been notified.|||Uhifadhi umethibitishwa. Mtalii amearifiwa.
+Tourist has been flagged for admin review.|||Mtalii amewekewa alama kwa ukaguzi wa msimamizi.
+Property title|||Kichwa cha mali
+Maximum guests|||Wageni wengi zaidi
+Description|||Maelezo
+Location name|||Jina la eneo
+Rules (one per line)|||Sheria (moja kwa kila mstari)
+Property photo|||Picha ya mali
+Photos|||Picha
+Edit Listing|||Hariri Tangazo
+Edit listing|||Hariri tangazo
+Basic details|||Maelezo ya msingi
+Property location|||Eneo la mali
+Click to move the pin to your exact location.|||Bonyeza ili kusogeza pini hadi eneo lako kamili.
+Existing photos — check the box to delete|||Picha zilizopo — weka tiki kwenye kisanduku ili kufuta
+Main|||Kuu
+Add more photos|||Ongeza picha zaidi
+Click to upload additional photos|||Bonyeza ili kupakia picha za ziada
+Listing not found.|||Tangazo halikupatikana.
+Property title is required.|||Kichwa cha mali kinahitajika.
+Description must be at least 50 characters.|||Maelezo lazima yawe na angalau herufi 50.
+Please enter a valid price.|||Tafadhali weka bei halali.
+Location is required.|||Eneo linahitajika.
+Please pin your property on the map.|||Tafadhali weka pini ya mali yako kwenye ramani.
+Listing updated successfully.|||Tangazo limesasishwa.
+Total earnings|||Jumla ya mapato
+This month|||Mwezi huu
+Awaiting payment|||Inasubiri malipo
+All time|||Wakati wote
+Payment records|||Rekodi za malipo
+No payments found|||Hakuna malipo yaliyopatikana
+Date|||Tarehe
+Action|||Hatua
+Mark verified|||Weka kuwa imethibitishwa
+Mark unpaid|||Weka kuwa haijalipwa
+Monthly breakdown|||Mchanganuo wa kila mwezi
+No earnings data yet|||Bado hakuna taarifa za mapato
+Payment marked as received.|||Malipo yamewekwa kuwa yamepokelewa.
+Report a guest concern or serious incident. All reports are private and reviewed by our team.|||Ripoti wasiwasi kuhusu mgeni au tukio kubwa. Ripoti zote ni za siri na hukaguliwa na timu yetu.
+Submit another report|||Wasilisha ripoti nyingine
+Submit a report|||Wasilisha ripoti
+Guest behaviour concern|||Wasiwasi kuhusu tabia ya mgeni
+Property damage|||Uharibifu wa mali
+Physical threats or violence|||Vitisho au vurugu za kimwili
+Illegal activity on premises|||Shughuli haramu eneoni
+Unauthorized extra guests|||Wageni wa ziada wasioruhusiwa
+Select a booking|||Chagua uhifadhi
+Your recent reports|||Ripoti zako za hivi karibuni
+Contact emergency services first. In Kenya call 999 or 112.|||Wasiliana kwanza na huduma za dharura. Nchini Kenya piga 999 au 112.
+Evidence tips|||Vidokezo vya ushahidi
+Payment statement|||Taarifa ya malipo
+Hosting|||Uenyeji
+From|||Kuanzia
+To|||Hadi
+Show|||Onyesha
+Confirmed received|||Imethibitishwa kupokelewa
+Waiting for you to confirm|||Inasubiri uthibitishe
+Entered|||Imeingizwa
+No payments in this period.|||Hakuna malipo katika kipindi hiki.
+Rate guest|||Kadiria mgeni
+Rate your guest|||Kadiria mgeni wako
+You rated this guest|||Ulimkadiria mgeni huyu
+Guest reviews cannot be edited after they are sent.|||Maoni kuhusu mgeni hayawezi kuhaririwa baada ya kutumwa.
+How was this guest?|||Mgeni huyu alikuwaje?
+Comment (optional)|||Maoni (hiari)
+Submit guest review|||Wasilisha maoni kuhusu mgeni
+Listing submitted for approval|||Tangazo limewasilishwa kwa idhini
+View my listings|||Tazama matangazo yangu
+Add another listing|||Ongeza tangazo jingine
+Add a new listing|||Ongeza tangazo jipya
+Add Listing|||Ongeza Tangazo
+Your listing will be reviewed by our team before going live.|||Tangazo lako litakaguliwa na timu yetu kabla ya kuanza kuonekana.
+Pin your property on the map|||Weka pini ya mali yako kwenye ramani
+Click to upload photos|||Bonyeza ili kupakia picha
+Submit listing for approval|||Wasilisha tangazo kwa idhini
+Please upload at least one photo.|||Tafadhali pakia angalau picha moja.
+Host reply|||Jibu la mwenyeji
+Average rating|||Wastani wa ukadiriaji
+Unanswered|||Hayajajibiwa
+Answered|||Yaliyojibiwa
+All reviews have been answered.|||Maoni yote yamejibiwa.
+No answered reviews yet.|||Bado hakuna maoni yaliyojibiwa.
+No reviews yet. Reviews appear here after guests complete their stays.|||Bado hakuna maoni. Maoni yataonekana hapa wageni watakapomaliza kukaa.
+Your response|||Jibu lako
+Post response|||Chapisha jibu
+Respond to review|||Jibu maoni
+Edit response|||Hariri jibu
+Update response|||Sasisha jibu
+Reply posted successfully.|||Jibu limechapishwa.
+Commission|||Kamisheni
+Commission to the platform|||Kamisheni kwa jukwaa
+Guests pay you|||Wageni wanakulipa
+Your bookings|||Uhifadhi wako
+Guest pays you|||Mgeni anakulipa
+Platform payment|||Malipo ya jukwaa
+No bookings with commission yet.|||Bado hakuna uhifadhi wenye kamisheni.
+Host Profile|||Wasifu wa Mwenyeji
+Live listings|||Matangazo yanayoonekana
+Select dates and mark them as available or unavailable.|||Chagua tarehe na uziweke kuwa zinapatikana au hazipatikani.
+You have no approved listings. Add a listing first to manage availability.|||Huna matangazo yaliyoidhinishwa. Weka tangazo kwanza ili kusimamia upatikanaji.
+Property:|||Mali:
+Today|||Leo
+Booked (confirmed)|||Imehifadhiwa (imethibitishwa)
+Booked (awaiting your confirmation)|||Imehifadhiwa (inasubiri uthibitisho wako)
+Update availability|||Sasisha upatikanaji
+No dates selected|||Hakuna tarehe zilizochaguliwa
+Mark as available|||Weka kuwa inapatikana
+Tourists can book these dates|||Watalii wanaweza kuhifadhi tarehe hizi
+Mark as unavailable|||Weka kuwa haipatikani
+Block these dates from booking|||Zuia tarehe hizi kuhifadhiwa
+Update selected dates|||Sasisha tarehe zilizochaguliwa
+Booked dates cannot be changed. Past dates are locked.|||Tarehe zilizohifadhiwa haziwezi kubadilishwa. Tarehe zilizopita zimefungwa.
+Availability updated successfully.|||Upatikanaji umesasishwa.
+Host overview|||Muhtasari wa mwenyeji
+Manage listings|||Simamia matangazo
+Add listing|||Ongeza tangazo
+Availability|||Upatikanaji
+Manage bookings|||Simamia uhifadhi
+Payment tracking|||Ufuatiliaji wa malipo
+Payment statement|||Taarifa ya malipo
+Guest reviews|||Maoni ya wageni
+Report incident|||Ripoti tukio
+Host profile|||Wasifu wa mwenyeji
+Hosting|||Uenyeji
+Verification|||Uthibitisho
+Welcome|||Karibu
+Yes|||Ndiyo
+No|||Hapana
+Save|||Hifadhi
+Submit|||Wasilisha
+Search|||Tafuta
+Next|||Endelea
+Previous|||Iliyotangulia
+Loading…|||Inapakia…
+Loading...|||Inapakia...
+Please try again.|||Tafadhali jaribu tena.
+Something went wrong. Please try again.|||Hitilafu imetokea. Tafadhali jaribu tena.
+Name|||Jina
+Phone|||Simu
+Message|||Ujumbe
+Price|||Bei
+Total|||Jumla
+Amount|||Kiasi
+Method|||Njia
+Reference|||Rejea
+Reason|||Sababu
+Reason:|||Sababu:
+Open|||Fungua
+View|||Tazama
+Delete|||Futa
+Download|||Pakua
+Print|||Chapisha
+StayExplore|||StayExplore
+support@stayexplore.co.ke|||support@stayexplore.co.ke
+Travellers often have to search for accommodation and attractions separately. StayExplore brings those decisions together so a traveller can start with a stay or an attraction and continue naturally through the journey.|||Wasafiri mara nyingi hulazimika kutafuta malazi na vivutio kando kando. StayExplore huunganisha maamuzi hayo ili msafiri aanze na malazi au kivutio na aendelee kwa urahisi katika safari yake.
+We aim to make discovering Kenya more convenient while giving local hosts an organised way to present properties, manage bookings and connect with travellers.|||Tunalenga kufanya kugundua Kenya kuwe rahisi zaidi huku tukiwapa wenyeji wa hapa njia iliyopangwa ya kuonyesha mali zao, kusimamia uhifadhi na kuwasiliana na wasafiri.
+A number out of 100 that shows how well a stay fits what you searched for. It mixes guest ratings (the biggest part), how close the stay is, how good the price is compared with other results, and how often guests have stayed there. Higher means a better overall match. It is a guide, never a rule, and you always make the final choice.|||Namba kati ya 100 inayoonyesha jinsi malazi yanavyolingana na ulichotafuta. Inachanganya ukadiriaji wa wageni (sehemu kubwa zaidi), ukaribu wa malazi, uzuri wa bei ikilinganishwa na matokeo mengine, na mara ngapi wageni wamekaa hapo. Namba ya juu inamaanisha ulinganifu bora kwa ujumla. Ni mwongozo tu, si sheria, na wewe ndiye unayefanya uamuzi wa mwisho.
+Entry fees shown for parks and sights are only a guide to what you may pay at the gate. They are set by the site owner, often the government, and are never added to your booking. The only extra we can add is a tour guide or attraction that a host offers inside their own property, and it is always shown before you book.|||Ada za kuingia zinazoonyeshwa kwa hifadhi na vivutio ni mwongozo tu wa unachoweza kulipa langoni. Huwekwa na mmiliki wa eneo, mara nyingi serikali, na hazijumuishwi kamwe kwenye uhifadhi wako. Ziada pekee tunayoweza kuongeza ni mwongozo wa watalii au kivutio kinachotolewa na mwenyeji ndani ya mali yake, na kila mara huonyeshwa kabla hujahifadhi.
+New reviews pass a simple checklist that looks for signs of advertising, copied text, bursts of reviews from one person, or ratings far from everyone else's. It only gives an administrator a hint about what to read first. People, not software, decide what is shown.|||Maoni mapya hupitia orodha rahisi ya ukaguzi inayotafuta dalili za matangazo, maandishi yaliyonakiliwa, maoni mengi kwa wakati mmoja kutoka kwa mtu mmoja, au ukadiriaji ulio mbali na wa wengine wote. Inampa msimamizi kidokezo tu cha kipi asome kwanza. Watu, si programu, ndio wanaoamua kinachoonyeshwa.
+The "km away" you see is the straight-line distance between two places, as a bird would fly. It is worked out from their map positions using the haversine method, which allows for the Earth being round. Roads bend, so a drive is usually longer than the number shown.|||"km kutoka hapa" unayoona ni umbali wa mstari ulionyooka kati ya maeneo mawili, kama ndege angeruka. Hukokotolewa kutoka nafasi zao kwenye ramani kwa njia ya haversine, ambayo huzingatia umbo la duara la Dunia. Barabara hupinda, hivyo safari ya gari kwa kawaida ni ndefu kuliko namba inayoonyeshwa.
+You are currently signed in as|||Kwa sasa umeingia kama
+Submitted|||Imewasilishwa
+. Guests see a "Verified host" badge on your listings. For your privacy your ID number and photo were erased once an administrator checked them.|||. Wageni wanaona nembo ya "Mwenyeji aliyethibitishwa" kwenye matangazo yako. Kwa faragha yako, namba na picha ya kitambulisho chako vilifutwa baada ya msimamizi kuvikagua.
+. An administrator will review it and email you the result.|||. Msimamizi atalikagua na kukutumia matokeo kwa barua pepe.
+Verification helps protect guests and hosts. An administrator checks your ID, then your listings show a "Verified host" badge. Only administrators can see your ID photo, and it is erased as soon as they decide.|||Uthibitisho husaidia kulinda wageni na wenyeji. Msimamizi hukagua kitambulisho chako, kisha matangazo yako huonyesha nembo ya "Mwenyeji aliyethibitishwa". Ni wasimamizi pekee wanaoweza kuona picha ya kitambulisho chako, na hufutwa mara tu wanapofanya uamuzi.
+JPG, PNG or WebP, up to 4MB. Make sure all four corners and the text are readable.|||JPG, PNG au WebP, hadi 4MB. Hakikisha pembe zote nne na maandishi yanasomeka.
+. Hosts see a "Verified guest" badge next to your name, which can help your booking requests get accepted. For your privacy your ID number and photo were erased once an administrator checked them.|||. Wenyeji wanaona nembo ya "Mgeni aliyethibitishwa" karibu na jina lako, inayoweza kusaidia maombi yako ya uhifadhi kukubaliwa. Kwa faragha yako, namba na picha ya kitambulisho chako vilifutwa baada ya msimamizi kuvikagua.
+Verification is optional and helps protect guests and hosts. An administrator checks your ID, then a "Verified guest" badge appears next to your name. Only administrators can see your ID photo, and it is erased as soon as they decide.|||Uthibitisho ni hiari na husaidia kulinda wageni na wenyeji. Msimamizi hukagua kitambulisho chako, kisha nembo ya "Mgeni aliyethibitishwa" huonekana karibu na jina lako. Ni wasimamizi pekee wanaoweza kuona picha ya kitambulisho chako, na hufutwa mara tu wanapofanya uamuzi.

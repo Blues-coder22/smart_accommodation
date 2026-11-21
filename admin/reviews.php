@@ -306,7 +306,7 @@ $counts = $pdo->query("
             .sidebar   { display:none }
         }
     </style>
-</head>
+<link rel="stylesheet" href="../assets/css/dark.css"><meta name="color-scheme" content="light dark"><script src="../assets/js/se-theme.js"></script><script src="../assets/js/se-i18n.js"></script></head>
 <body>
 
 
@@ -315,7 +315,7 @@ $counts = $pdo->query("
         <?= showFlash() ?>
 
         <div class="page-tag">Admin</div>
-        <h1 class="page-title">Review moderation</h1>
+        <h1 class="page-title">Manage reviews</h1>
         <p class="page-sub">
             Focused tools for fair and traceable decisions.
         </p>
@@ -362,7 +362,7 @@ $counts = $pdo->query("
             <div class="ex-body">
                 <p>Every new review is looked at by a simple checklist, a bit like a shop assistant glancing at a banknote. Nothing is decided by a computer on its own. The checklist adds points when something looks unusual, and a higher total means &ldquo;take a closer look first&rdquo;.</p>
                 <p><strong>What adds points:</strong> a host reported the review or its author; it contains a link, email address or phone number (often advertising); the same words appear in another review; the same person posted several reviews within minutes; it is very short or all in capital letters; the rating is very different from what other guests gave the same place.</p>
-                <p><strong>What the number means:</strong> under 30 is low (looks normal), 30 to 59 is medium (worth a glance), 60 and above is high (check before it appears). A high number is a hint, not proof. A real guest can trigger it, so read the review and use your judgement. Reviews are only hidden or removed when an administrator decides.</p>
+                <p><strong>What the number means:</strong> under 30 is low (looks normal), 30 to 59 is medium (worth a glance), 60 and above is high (check before it appears). A high number is a hint, not proof. A real guest can trigger it, so read the review and use your judgement. Reviews are only hidden or removed when an admin decides.</p>
             </div>
         </details>
         <p style="font-size:12px;color:var(--text-secondary);margin:-6px 0 16px"><strong>Risk score (0&ndash;100).</strong> A rule-based guide to what you should check first: host reports, links or phone numbers, identical text, several reviews in minutes, very short or all-capitals text, and a rating far from the listing's average. It is a signal, not proof, and nothing is removed automatically.</p>

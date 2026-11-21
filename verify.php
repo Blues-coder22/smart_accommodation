@@ -34,15 +34,15 @@ if ($result['success']) {
         ?>
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Email verified — StayExplore Kenya</title><link rel="stylesheet" href="assets/css/style.css"></head>
+<title>Email verified — StayExplore Kenya</title><link rel="stylesheet" href="assets/css/style.css"><link rel="stylesheet" href="assets/css/dark.css"><meta name="color-scheme" content="light dark"><script src="assets/js/se-theme.js"></script><script src="assets/js/se-i18n.js"></script></head>
 <body>
 <?php include __DIR__ . '/includes/header.php'; ?>
 <main class="auth-page">
-  <section class="auth-visual"><div class="auth-copy"><div class="eyebrow" style="color:#efb59e">All set</div><p class="auth-heading">You&rsquo;re verified.</p><p>Thanks for confirming your email.</p></div></section>
+  <section class="auth-visual"><div class="auth-copy"><div class="eyebrow" style="color:#efb59e">All set</div><p class="auth-heading">Your email is verified.</p><p>Thank you for verifying your email.</p></div></section>
   <section class="auth-form"><div class="auth-box" style="text-align:center">
     <div style="width:64px;height:64px;border-radius:50%;background:#e7f3ec;color:#1f5a3f;display:grid;place-items:center;margin:0 auto 14px;font-size:30px">&#10003;</div>
     <h1 style="margin-bottom:8px">Email verified<?= $firstName !== '' ? ', ' . h($firstName) : '' ?>.</h1>
-    <p class="small" style="line-height:1.6">If you were signing up on another device, go back to it. It will sign you in automatically within a few seconds, no password needed.</p>
+    <p class="small" style="line-height:1.6">If you were signing up on another device, go back to it. It will sign you in on its own within a few seconds, with no password.</p>
     <form method="POST" action="verify_continue.php" style="margin-top:22px">
       <input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
       <button type="submit" class="btn" style="width:100%">Continue on this device</button>

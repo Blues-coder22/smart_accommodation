@@ -7,7 +7,7 @@ requireLogin();
 requireRole('admin');
 
 // Keep the import queue separate from approved attractions. The latter table is
-// only populated when an administrator approves a candidate.
+// only populated when an admin approves a candidate.
 $pdo->exec("CREATE TABLE IF NOT EXISTS osm_attraction_imports (
     import_id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
     osm_type VARCHAR(12) NOT NULL,
@@ -90,7 +90,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $errors[] = 'That pending import was not found. Refresh the page and try again.';
         } elseif ($action === 'reject') {
             $pdo->prepare("UPDATE osm_attraction_imports SET status='rejected', reviewed_at=NOW() WHERE import_id=?")->execute([$id]);
-            $notice = 'Place rejected. It will not appear in tourist recommendations.';
+            $notice = 'Place not approved. It will not appear in suggestions for travellers.';
         } else {
             // Avoid duplicate records if a similar attraction was already entered manually.
             $dupe = $pdo->prepare("SELECT attraction_id FROM attractions WHERE LOWER(name)=LOWER(?) AND ABS(latitude-?) < 0.001 AND ABS(longitude-?) < 0.001 LIMIT 1");
@@ -98,7 +98,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $existingId = $dupe->fetchColumn();
             if ($existingId) {
                 $pdo->prepare("UPDATE osm_attraction_imports SET status='approved', attraction_id=?, reviewed_at=NOW() WHERE import_id=?")->execute([(int)$existingId, $id]);
-                $notice = 'This place already exists in the attraction catalogue. The import was linked to the existing record.';
+                $notice = 'This place is already in Attractions. We linked the import to it.';
             } else {
                 $description = 'Imported from OpenStreetMap. Please review and complete this description before public promotion.';
                 // Only use an OSM image tag when it looks like a direct HTTPS image URL.
@@ -115,7 +115,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $insert->execute([$candidate['name'], $description, $candidate['category'], $candidate['location_name'], $candidate['latitude'], $candidate['longitude'], $photoPath]);
                 $attractionId = (int)$pdo->lastInsertId();
                 $pdo->prepare("UPDATE osm_attraction_imports SET status='approved', attraction_id=?, reviewed_at=NOW() WHERE import_id=?")->execute([$attractionId, $id]);
-                $notice = 'Attraction approved and added to the catalogue. You can edit its description and other details in Manage Attractions.';
+                $notice = 'Place approved and added to Attractions. You can edit its details in Manage Attractions.';
             }
         }
     }
@@ -135,8 +135,8 @@ $existingAttractions = $pdo->query("SELECT attraction_id, name, latitude, longit
 <link rel="stylesheet" href="../assets/css/style.css"><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
 .osm-page{max-width:1180px;margin:0 auto;padding:28px 20px}.osm-card{background:#fff;border:1px solid #e3e7e5;border-radius:12px;padding:20px;margin-bottom:20px}.osm-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.osm-grid label{display:block;font-size:13px;margin-bottom:5px}.osm-grid input,.osm-grid select{width:100%;padding:10px;border:1px solid #ccd4d0;border-radius:7px}.osm-map{height:320px;border-radius:10px;margin:16px 0}.osm-results{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px}.osm-result{border:1px solid #e0e5e2;border-radius:9px;padding:12px}.osm-result label{display:flex;gap:8px;align-items:flex-start}.osm-muted{color:#66736d;font-size:13px}.osm-pill{display:inline-block;border-radius:20px;padding:3px 9px;background:#fff1df;color:#96520c;font-size:11px}.osm-table{width:100%;border-collapse:collapse}.osm-table th,.osm-table td{text-align:left;padding:10px;border-bottom:1px solid #e5e9e7;vertical-align:top}.osm-actions{display:flex;gap:8px;flex-wrap:wrap}.osm-actions button{cursor:pointer}.osm-source{font-size:12px;word-break:break-all;color:#68736e}.osm-map{height:440px}.osm-buttons{display:flex;gap:10px;flex-wrap:wrap}.osm-help{margin:4px 0 14px;font-size:13px;background:#f4f8f6;border:1px solid #dfe9e4;border-radius:9px;padding:10px 14px}.osm-help summary{cursor:pointer;font-weight:700;color:#0d3b2e}.osm-help ol{margin:10px 0 2px 18px;padding:0;line-height:1.55}.osm-help li{margin-bottom:6px}.osm-have{display:inline-block;font-size:11px;font-weight:700;color:#1b6b4a;background:#e3f4ea;border-radius:10px;padding:2px 8px;margin-top:4px}.osm-have-card{background:#f6fbf8}.osm-popup{font-size:13px}.leaflet-container .osm-popup a.btn,.osm-result a.btn{color:#fff;text-decoration:none}.leaflet-container .osm-popup a.btn-primary:hover{color:#fff}.osm-popup-actions,.osm-card-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.osm-popup-actions .btn,.osm-card-actions .btn{min-height:30px;padding:5px 10px;font-size:11px}.osm-result{display:flex;flex-direction:column;justify-content:space-between}.osm-result label{cursor:pointer}@media(max-width:680px){.osm-grid{grid-template-columns:1fr}.osm-table{font-size:12px}.osm-table th,.osm-table td{padding:7px}}
-</style></head><body><?php require_once __DIR__ . '/../includes/app_shell.php'; appShellStart(); ?>
-<div class="osm-page"><h1>Find attractions on the map</h1><p class="osm-muted">Search an area for places, add the ones you like to the review list, and approve them before tourists can see them.</p>
+</style><link rel="stylesheet" href="../assets/css/dark.css"><meta name="color-scheme" content="light dark"><script src="../assets/js/se-theme.js"></script><script src="../assets/js/se-i18n.js"></script></head><body><?php require_once __DIR__ . '/../includes/app_shell.php'; appShellStart(); ?>
+<div class="osm-page"><h1>Find attractions on the map</h1><p class="osm-muted">Search an area for places, add the ones you like to the review list, and approve them before travellers can see them.</p>
 <?php foreach ($errors as $error): ?><div class="alert alert-error"><?= h($error, ENT_QUOTES, 'UTF-8') ?></div><?php endforeach; ?>
 <?php if ($notice): ?><div class="alert alert-success"><?= h($notice, ENT_QUOTES, 'UTF-8') ?></div><?php endif; ?>
 <section class="osm-card"><h2>Search an area</h2>
@@ -155,11 +155,11 @@ $existingAttractions = $pdo->query("SELECT attraction_id, name, latitude, longit
 <li><strong>Pick an area.</strong> Type a town or area (for example &ldquo;Naivasha&rdquo;) and press <em>Find places</em>, or click the map to place a pin yourself.</li>
 <li><strong>See what is nearby.</strong> Choose a type of place (restaurants, museums, parks&hellip;) and the distance. Each place found appears as an orange dot.</li>
 <li><strong>Add what you like.</strong> <em>Add attraction</em> opens the form with the name, category and position already filled in, so you only add a description and photos. <em>Find photos</em> suggests free photos with the photographer&rsquo;s credit. <em>Add to review list</em> keeps the place in the list below until you approve it.</li>
-<li>Nothing is shown to tourists until it is saved as an attraction. Map details come from volunteers, so names and positions can be wrong or missing. Please check each place.</li>
+<li>Nothing is shown to travellers until it is saved as an attraction. Map details come from volunteers, so names and positions can be wrong or missing. Please check each place.</li>
 </ol></details>
 <form method="post" id="osmImportForm"><input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>"><input type="hidden" name="action" value="import_selected"><input type="hidden" name="selected_places" id="osmSelectedPlaces" value="[]"><div id="osmResults" class="osm-results"></div><div style="margin-top:14px"><button type="submit" class="btn btn-primary" id="osmImportButton" disabled>Add selected to review list</button></div></form>
 </section>
-<section class="osm-card"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><h2>Imported places review queue</h2><form method="get"><label for="statusFilter">Status </label><select name="status" id="statusFilter" onchange="this.form.submit()"><option value="pending" <?= $statusFilter==='pending'?'selected':'' ?>>Pending</option><option value="approved" <?= $statusFilter==='approved'?'selected':'' ?>>Approved</option><option value="rejected" <?= $statusFilter==='rejected'?'selected':'' ?>>Rejected</option><option value="all" <?= $statusFilter==='all'?'selected':'' ?>>All</option></select></form></div>
+<section class="osm-card"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><h2>Imported places to review</h2><form method="get"><label for="statusFilter">Status </label><select name="status" id="statusFilter" onchange="this.form.submit()"><option value="pending" <?= $statusFilter==='pending'?'selected':'' ?>>Pending</option><option value="approved" <?= $statusFilter==='approved'?'selected':'' ?>>Approved</option><option value="rejected" <?= $statusFilter==='rejected'?'selected':'' ?>>Rejected</option><option value="all" <?= $statusFilter==='all'?'selected':'' ?>>All</option></select></form></div>
 <?php if (!$imports): ?><p class="osm-muted">No imports found for this status.</p><?php else: ?><div style="overflow-x:auto"><table class="osm-table"><thead><tr><th>Place</th><th>Location / coordinates</th><th>Source details</th><th>Status</th><th>Review action</th></tr></thead><tbody>
 <?php foreach ($imports as $item): $tags = json_decode($item['tags_json'] ?? '', true) ?: []; ?><tr><td><strong><?= h($item['name'], ENT_QUOTES, 'UTF-8') ?></strong><br><span class="osm-muted"><?= h($item['category'], ENT_QUOTES, 'UTF-8') ?></span></td><td><?= h($item['location_name'] ?? '', ENT_QUOTES, 'UTF-8') ?><br><span class="osm-muted"><?= h($item['latitude'] . ', ' . $item['longitude'], ENT_QUOTES, 'UTF-8') ?></span></td><td><span class="osm-source">OSM <?= h($item['osm_type'] . '/' . $item['osm_id'], ENT_QUOTES, 'UTF-8') ?></span><br><span class="osm-muted"><?= h(implode(', ', array_slice(array_map(function ($k, $v) { return $k . '=' . $v; }, array_keys($tags), array_values($tags)),0,8)), ENT_QUOTES, 'UTF-8') ?></span></td><td><span class="osm-pill"><?= h($item['status'], ENT_QUOTES, 'UTF-8') ?></span></td><td><?php if ($item['status']==='pending'): ?><div class="osm-actions"><form method="post"><input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>"><input type="hidden" name="action" value="approve"><input type="hidden" name="import_id" value="<?= (int)$item['import_id'] ?>"><button class="btn btn-primary" type="submit" onclick="return confirm('Approve this place and add it to the attraction catalogue?')">Approve</button></form><form method="post"><input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>"><input type="hidden" name="action" value="reject"><input type="hidden" name="import_id" value="<?= (int)$item['import_id'] ?>"><button class="btn btn-outline" type="submit" onclick="return confirm('Reject this place?')">Reject</button></form></div><?php elseif ($item['attraction_id']): ?><a href="attractions.php?edit=<?= (int)$item['attraction_id'] ?>">Edit attraction record</a><?php else: ?>—<?php endif; ?></td></tr><?php endforeach; ?></tbody></table></div><?php endif; ?>
 <p class="osm-muted" style="margin-top:12px">Map data © OpenStreetMap contributors. Please use the search button only when you need it.</p>

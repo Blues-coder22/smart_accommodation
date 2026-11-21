@@ -2,6 +2,7 @@
 require_once '../includes/auth.php';
 require_once '../includes/functions.php';
 require_once '../includes/db.php';
+require_once '../includes/notifications.php';
 require_once '../includes/commission.php';
 ensureCommissionTables($pdo);
 require_once '../includes/payment_audit.php';
@@ -20,7 +21,7 @@ $host_id = (int)$_SESSION['user_id'];
 // Payment verification is a separate action from accepting the booking.
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'confirm_payment') {
     requireCsrf();
-    $paymentId = (int)($_POST['payment_id'] ?? 0);
+    $paymentId = opaqueIdDecode('pay', $_POST['payment_ref'] ?? '');
     $owns = $pdo->prepare("SELECT p.payment_id, p.amount, p.booking_id, b.status AS booking_status, b.check_in_date, b.check_out_date, a.title,
             t.email AS tourist_email, t.full_name AS tourist_name
         FROM payments p JOIN bookings b ON b.booking_id=p.booking_id JOIN accommodations a ON a.accommodation_id=b.accommodation_id
@@ -30,7 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'confi
     if (!$paymentToVerify) {
         setFlash('error', 'Payment record not found for your listings.');
     } elseif (!in_array($paymentToVerify['booking_status'], ['pending','confirmed'], true)) {
-        setFlash('error', 'Payment verification is unavailable for a cancelled or completed booking. Handle any received funds through your normal refund process.');
+        setFlash('error', 'You can no longer confirm payment for a cancelled or completed booking. Handle any money you received through your usual refund process.');
     } else {
         $pdo->prepare("UPDATE payments SET payment_status='confirmed' WHERE payment_id=? AND payment_status='pending'")->execute([$paymentId]);
         logPaymentChange($pdo, $paymentId, $host_id, 'host', 'host_confirmed', 'pending', 'confirmed');
@@ -41,10 +42,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'confi
                 'total_amount' => $paymentToVerify['amount']];
             $refTxt = (string)($paymentToVerify['payment_reference'] ?? '');
             sendPaymentVerifiedEmail($paymentToVerify['tourist_email'], $paymentToVerify['tourist_name'], $mailB, $_SESSION['full_name'] ?? '', $refTxt, (int)$paymentId);
-            [$cm, $fee] = platformDueForBooking($pdo, $paymentToVerify['booking_id'], $paymentToVerify['amount']);
-            sendPaymentReceivedHostEmail($_SESSION['email'] ?? '', $_SESSION['full_name'] ?? 'Host', $mailB, $paymentToVerify['tourist_name'], $refTxt, $cm, $fee);
+            $sp = bookingSplitById($pdo, $paymentToVerify['booking_id']);
+            sendPaymentReceivedHostEmail($_SESSION['email'] ?? '', $_SESSION['full_name'] ?? 'Host', $mailB, $paymentToVerify['tourist_name'], $refTxt, $sp['commission'], $sp['service_fee']);
+            notifyUserOfBooking($pdo, $paymentToVerify['booking_id'], 'tourist', 'Payment received by your host', 'KES ' . number_format($paymentToVerify['amount'], 2) . ' confirmed for ' . bookingLabel($paymentToVerify['booking_id']) . '. Your receipt is ready under My bookings.', 'tourist/bookings.php');
         } catch (Throwable $e) {}
-        setFlash('success', 'Payment marked as verified and the guest was emailed. This does not change the booking status.');
+        setFlash('success', 'Payment marked as received and the guest was emailed. The booking status stays the same.');
     }
     redirect('payments.php?filter=' . urlencode($_GET['filter'] ?? 'all'));
 }
@@ -53,7 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'confi
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     requireCsrf();
     require_once '../includes/email.php';
-    $payment_id = (int)($_POST['payment_id'] ?? 0);
+    $payment_id = opaqueIdDecode('pay', $_POST['payment_ref'] ?? '');
     $action     = $_POST['action'] ?? '';
 
     $q = $pdo->prepare("
@@ -80,31 +82,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $refTxt = (string)($pay['payment_reference'] ?? '');
         try {
             sendPaymentVerifiedEmail($pay['tourist_email'], $pay['tourist_name'], $mailB, $_SESSION['full_name'] ?? '', $refTxt, (int)$payment_id);
-            [$cm, $fee] = platformDueForBooking($pdo, $pay['booking_id'], $pay['amount']);
-            sendPaymentReceivedHostEmail($_SESSION['email'] ?? '', $_SESSION['full_name'] ?? 'Host', $mailB, $pay['tourist_name'], $refTxt, $cm, $fee);
+            $sp = bookingSplitById($pdo, $pay['booking_id']);
+            sendPaymentReceivedHostEmail($_SESSION['email'] ?? '', $_SESSION['full_name'] ?? 'Host', $mailB, $pay['tourist_name'], $refTxt, $sp['commission'], $sp['service_fee']);
+            notifyUserOfBooking($pdo, $pay['booking_id'], 'tourist', 'Payment received by your host', 'KES ' . number_format($pay['amount'], 2) . ' confirmed for ' . bookingLabel($pay['booking_id']) . '. Your receipt is ready under My bookings.', 'tourist/bookings.php');
         } catch (Throwable $e) { error_log('Payment emails: ' . $e->getMessage()); }
         setFlash('success', 'Payment marked as received.');
     } elseif ($pay && $action === 'mark_unpaid' && $pay['payment_status'] === 'confirmed' && paymentLockedByAdmin($pdo, $payment_id)) {
-        setFlash('warning', 'An administrator has confirmed this payment, so it cannot be set back to awaiting. If something is wrong, report it to the administrator.');
+        setFlash('warning', 'An admin has confirmed this payment, so it cannot be set back to awaiting payment. If something is wrong, tell the admin.');
     } elseif ($pay && $action === 'mark_unpaid' && $pay['payment_status'] === 'confirmed') {
         $reason = trim((string)($_POST['reason'] ?? ''));
         if (mb_strlen($reason) < 5) {
-            setFlash('error', 'Please write why you are setting this payment back to awaiting (at least 5 characters). The guest and the administrator are told your reason.');
+            setFlash('error', 'Please say why you are setting this payment back to awaiting payment (at least 5 characters). The guest and the admin will see your reason.');
         } elseif (in_array($pay['booking_status'], ['completed', 'no_show'], true) || $pay['check_in_date'] <= date('Y-m-d')) {
             // After check-in a received payment is locked so a host cannot cancel a payment the guest really made.
-            setFlash('warning', 'The check-in day has arrived (or the stay is over), so a received payment can no longer be undone here. If something is wrong, report it to the administrator.');
+            setFlash('warning', 'The check-in day has come or passed, so a received payment can no longer be undone here. If something is wrong, tell the admin.');
         } else {
             $pdo->prepare("UPDATE payments SET payment_status = 'pending' WHERE payment_id = ?")->execute([$payment_id]);
-            // Recorded so an administrator can see that a payment marked as paid was later reversed, and why
+            // Recorded so an admin can see that a payment marked as paid was later reversed, and why
             logPaymentChange($pdo, $payment_id, $host_id, 'host', 'host_unpaid', 'confirmed', 'pending', $reason);
             logBookingEvent($pdo, $pay['booking_id'], $host_id, 'payment_reversed', $reason);
-            try {   // the guest and every administrator are told straight away
+            try {   // the guest and every admin are told straight away
                 sendPaymentReversedEmail($pay['tourist_email'], $pay['tourist_name'], $pay, $reason);
+                notifyUserOfBooking($pdo, $pay['booking_id'], 'tourist', 'Payment set back to unpaid', 'Your host marked ' . bookingLabel($pay['booking_id']) . ' as not received. Reason: ' . $reason, 'tourist/bookings.php');
+                notifyAdmins($pdo, 'A host reversed a payment', bookingLabel($pay['booking_id']) . ': ' . $reason, 'admin/payments.php');
                 foreach (adminEmailAddresses($pdo) as $adminMail) {
                     sendPaymentReversedAdminEmail($adminMail, $pay, $_SESSION['full_name'] ?? 'Host', $pay['tourist_name'], $reason);
                 }
             } catch (Throwable $e) { error_log('Reversal emails: ' . $e->getMessage()); }
-            setFlash('pending', 'Payment set back to awaiting. Your reason was recorded, and the guest and the administrator were emailed.');
+            setFlash('pending', 'Payment set back to awaiting payment. Your reason was saved, and the guest and the admin were emailed.');
         }
     }
     redirect('payments.php?filter=' . urlencode(sanitize($_GET['filter'] ?? 'all')));
@@ -284,7 +289,7 @@ $monthly = $monthly->fetchAll();
             .content-grid { grid-template-columns:1fr }
         }
     </style>
-</head>
+<link rel="stylesheet" href="../assets/css/dark.css"><meta name="color-scheme" content="light dark"><script src="../assets/js/se-theme.js"></script><script src="../assets/js/se-i18n.js"></script></head>
 <body>
 
 <?php if ($flash = getFlash()): ?><div class="alert alert-<?= h($flash['type'], ENT_QUOTES, 'UTF-8') ?>" style="margin:16px 28px 0"><?= h($flash['message'], ENT_QUOTES, 'UTF-8') ?></div><?php endif; ?>
@@ -384,8 +389,7 @@ $monthly = $monthly->fetchAll();
                                 </div>
                                 <div style="font-size:11px;
                                             color:var(--text-secondary)">
-                                    #BK<?= str_pad($p['booking_id'],
-                                        5, '0', STR_PAD_LEFT) ?>
+                                    <?= h(bookingLabel($p['booking_id'])) ?>
                                     &middot;
                                     <?= date('d M',
                                         strtotime($p['check_in_date'])) ?>
@@ -429,7 +433,7 @@ $monthly = $monthly->fetchAll();
                                 <form method="post" style="margin:0" onsubmit="return confirm('Have you independently verified that this payment was received?');">
                                     <input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
                                     <input type="hidden" name="action" value="confirm_payment">
-                                    <input type="hidden" name="payment_id" value="<?= (int)$p['payment_id'] ?>">
+                                    <input type="hidden" name="payment_ref" value="<?= h(opaqueId('pay', $p['payment_id'])) ?>">
                                     <button class="btn btn-outline" type="submit">Mark verified</button>
                                 </form>
                                 <?php else: ?><span class="small">—</span><?php endif; ?>
@@ -439,20 +443,20 @@ $monthly = $monthly->fetchAll();
                                     <div style="font-size:11px">Ref: <?= h($p['payment_reference']) ?></div>
                                 <?php endif; ?>
                                 <div style="font-size:11px;margin:3px 0">
-                                    <?php if ($p['payment_status'] === 'confirmed'): ?><a href="../tourist/receipt.php?payment_id=<?= (int)$p['payment_id'] ?>" target="_blank" rel="noopener">Receipt</a><?php endif; ?>
-                                    <?php if (!empty($p['payment_proof'])): ?><?= $p['payment_status'] === 'confirmed' ? ' &middot; ' : '' ?><a href="../proof.php?type=payment&amp;id=<?= (int)$p['payment_id'] ?>" target="_blank" rel="noopener">Guest's screenshot</a><?php endif; ?>
+                                    <?php if ($p['payment_status'] === 'confirmed'): ?><a href="../receipt.php?as=host&amp;pid=<?= h(opaqueId('pay', $p['payment_id'])) ?>" target="_blank" rel="noopener">Receipt</a><?php endif; ?>
+                                    <?php if (!empty($p['payment_proof'])): ?><?= $p['payment_status'] === 'confirmed' ? ' &middot; ' : '' ?><a href="../proof.php?as=host&amp;type=payment&amp;ref=<?= h(opaqueId('pay', $p['payment_id'])) ?>" target="_blank" rel="noopener">Guest's screenshot</a><?php endif; ?>
                                 </div>
                                 <?php if ($p['booking_status'] !== 'cancelled'): ?>
                                 <form method="POST" style="margin:0">
                                     <input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken()) ?>">
-                                    <input type="hidden" name="payment_id" value="<?= (int)$p['payment_id'] ?>">
+                                    <input type="hidden" name="payment_ref" value="<?= h(opaqueId('pay', $p['payment_id'])) ?>">
                                     <?php if ($p['payment_status'] === 'pending'): ?>
                                         <button name="action" value="mark_paid" type="submit">Mark as paid</button>
                                     <?php elseif ($p['payment_status'] === 'confirmed' && ($p['booking_status'] === 'completed' || $p['booking_status'] === 'no_show' || $p['check_in_date'] <= date('Y-m-d'))): ?>
-                                        <span class="small">Locked after check-in. Contact the administrator to change it.</span>
+                                        <span class="small">Locked after check-in. Contact the admin to change it.</span>
                                     <?php elseif ($p['payment_status'] === 'confirmed'): ?>
                                         <input type="text" name="reason" required minlength="5" maxlength="200" aria-label="Reason for setting this payment back to awaiting" placeholder="Reason (sent to guest and admin)" style="width:100%;margin-bottom:6px">
-                                        <button name="action" value="mark_unpaid" type="submit" onclick="return confirm('Set this received payment back to awaiting? The guest and the administrator will be emailed your reason.');">Mark unpaid</button>
+                                        <button name="action" value="mark_unpaid" type="submit" onclick="return confirm('Set this received payment back to awaiting? The guest and the admin will be emailed your reason.');">Mark unpaid</button>
                                     <?php endif; ?>
                                 </form>
                                 <?php endif; ?>

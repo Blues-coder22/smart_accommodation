@@ -1,12 +1,6 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) {
-    session_set_cookie_params([
-        'httponly' => true,
-        'samesite' => 'Lax',
-        'secure'   => !empty($_SERVER['HTTPS']),
-    ]);
-    session_start();
-}
+require_once __DIR__ . '/session_boot.php';
+seBootSession();   // one session per role, so tourist, host and admin can be signed in together in one browser
 
 // Never let the browser keep a copy of a page that depends on who is signed in. Without this, Back after
 // signing out can show the old signed-in page, and an old login form carries a security token that no longer
@@ -104,10 +98,10 @@ function loginUser($email, $password) {
     // Normalize the role before storing it so routing and access checks agree.
     $role = strtolower(trim((string)$user['role']));
     if (!in_array($role, ['tourist', 'host', 'admin'], true)) {
-        return ['success' => false, 'message' => 'This account has an invalid role. Please contact the administrator.'];
+        return ['success' => false, 'message' => 'This account has an invalid role. Please contact the admin.'];
     }
 
-    session_regenerate_id(true);
+    seSwitchToRole($role);   // this role's own session; other roles stay signed in
     $_SESSION['user_id']   = $user['user_id'];
     $_SESSION['full_name'] = $user['full_name'];
     $_SESSION['email']     = $user['email'];
@@ -198,11 +192,7 @@ function getCurrentUser() {
 
 // Logout
 function logoutUser() {
-    if (session_status() === PHP_SESSION_NONE) {
-        session_start();
-    }
-    session_unset();
-    session_destroy();
+    seEndCurrentSession();   // only this role signs out; a tourist/host/admin signed in elsewhere stays signed in
     // Use this copy's own address. A fixed '/smart_accommodation/login.php' sent people to a different
     // (older) copy of the site whenever the project folder had another name.
     $base = function_exists('appBasePath') ? appBasePath() : rtrim(dirname($_SERVER['SCRIPT_NAME'] ?? ''), '/');

@@ -9,7 +9,7 @@ require_once __DIR__ . '/includes/functions.php';
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>How Hosting Works — StayExplore Kenya</title>
     <link rel="stylesheet" href="assets/css/style.css">
-</head>
+<link rel="stylesheet" href="assets/css/dark.css"><meta name="color-scheme" content="light dark"><script src="assets/js/se-theme.js"></script><script src="assets/js/se-i18n.js"></script></head>
 <body>
 <?php include __DIR__ . '/includes/header.php'; ?>
 <main class="page">
@@ -19,7 +19,7 @@ require_once __DIR__ . '/includes/functions.php';
     <div class="grid grid-3" style="margin-top:28px">
         <section class="card pad"><div class="eyebrow">01</div><h2>Create a host account</h2><p class="small">Register as a host and verify your email before signing in.</p></section>
         <section class="card pad"><div class="eyebrow">02</div><h2>Add your property</h2><p class="small">Provide the property name, location, price, amenities, house rules and clear photos.</p></section>
-        <section class="card pad"><div class="eyebrow">03</div><h2>Wait for review</h2><p class="small">An administrator reviews the listing before it becomes visible as an approved accommodation.</p></section>
+        <section class="card pad"><div class="eyebrow">03</div><h2>Wait for review</h2><p class="small">An admin reviews the listing before it becomes visible as an approved accommodation.</p></section>
         <section class="card pad"><div class="eyebrow">04</div><h2>Manage availability</h2><p class="small">Keep availability and property details up to date so travellers can make informed booking requests.</p></section>
         <section class="card pad"><div class="eyebrow">05</div><h2>Track bookings and payments</h2><p class="small">Use the host dashboard to review bookings and view payment records supported by the system.</p></section>
         <section class="card pad"><div class="eyebrow">06</div><h2>Communicate responsibly</h2><p class="small">Follow house rules, respond to booking activity and use the reporting tools when an incident needs attention.</p></section>

@@ -10,6 +10,11 @@ if (session_status() === PHP_SESSION_NONE) session_start();
 
 requireLogin();
 requireRole('host');
+require_once '../includes/commission.php';
+if (!hostAgreementAccepted($pdo, (int)$_SESSION['user_id'])) {   // the host must accept the commission terms before listing
+    setFlash('info', 'Please read and accept the host agreement before you add a listing.');
+    redirect('agreement.php');
+}
 
 $errors  = [];
 $success = false;
@@ -98,7 +103,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($uploaded === 0) {
             $pdo->prepare('DELETE FROM accommodations WHERE accommodation_id = ?')
                 ->execute([$accommodation_id]);
-            $errors[] = 'No valid property photos could be saved. Please use JPG, PNG or WebP images under 5MB and try again.';
+            $errors[] = 'We could not save any of those photos. Please use JPG, PNG or WebP images under 5 MB and try again.';
+        }
+
+        if ($uploaded > 0) {
+            try { mediaSelfHeal($pdo, true); } catch (Throwable $e) {}   // back up the new photos and drop identical ones straight away
         }
 
         // Save amenities only after at least one photo was saved
@@ -268,7 +277,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         border:1px solid #9FE1CB }
         .success-icon svg { width:22px; height:22px; stroke:#126b4e }
     </style>
-</head>
+<link rel="stylesheet" href="../assets/css/dark.css"><meta name="color-scheme" content="light dark"><script src="../assets/js/se-theme.js"></script><script src="../assets/js/se-i18n.js"></script></head>
 <body>
 
 
@@ -289,7 +298,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <p style="font-size:14px;color:var(--text-secondary);
                        margin-bottom:24px;line-height:1.6">
                 Your listing has been submitted and is awaiting
-                administrator approval. You will receive an email
+                admin approval. You will receive an email
                 once it has been reviewed.
             </p>
             <div style="display:flex;gap:10px;justify-content:center">

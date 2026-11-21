@@ -1,0 +1,283 @@
+Map around your booked accommodation|||Ramani inayozunguka malazi uliyohifadhi
+No photo|||Hakuna picha
+Duration|||Muda
+Guests|||Wageni
+Payment status|||Hali ya malipo
+View or print host receipt|||Tazama au chapisha risiti ya mwenyeji
+View StayExplore receipt|||Tazama risiti ya StayExplore
+Print booking record|||Chapisha rekodi ya uhifadhi
+What happens next|||Kinachofuata
+Waiting for host decision|||Inasubiri uamuzi wa mwenyeji
+Payment details submitted for review|||Maelezo ya malipo yamewasilishwa kwa ukaguzi
+Leave a review after your stay|||Toa maoni baada ya kukaa
+After check-out you will be able to leave a verified review from your bookings page.|||Baada ya kutoka utaweza kutoa maoni yaliyothibitishwa kutoka ukurasa wa uhifadhi wako.
+Explore nearby places|||Gundua maeneo ya karibu
+Show nearby places|||Onyesha maeneo ya karibu
+Green pin: your stay. Terracotta pins: attractions nearby.|||Pini ya kijani: malazi yako. Pini za rangi ya udongo: vivutio vya karibu.
+Green pin: this stay. Terracotta pins: attractions nearby.|||Pini ya kijani: malazi haya. Pini za rangi ya udongo: vivutio vya karibu.
+Green pins are stays, terracotta pins are attractions.|||Pini za kijani ni malazi, pini za rangi ya udongo ni vivutio.
+Cafés, shops and other places around the map will appear here when you tap "Show nearby places".|||Mikahawa, maduka na maeneo mengine karibu na ramani yataonekana hapa ukigusa "Onyesha maeneo ya karibu".
+Attractions near your stay|||Vivutio karibu na malazi yako
+km|||km
+View my bookings|||Tazama uhifadhi wangu
+Cancel this booking|||Ghairi uhifadhi huu
+Bank reference or M-Pesa code|||Rejea ya benki au msimbo wa M-Pesa
+Processing payment|||Inashughulikia malipo
+Choose how you will pay.|||Chagua jinsi utakavyolipa.
+Pay on arrival (cash)|||Lipa ukifika (pesa taslimu)
+Pay your host in cash at check-in.|||Mlipe mwenyeji wako pesa taslimu wakati wa kuingia.
+Bank transfer|||Uhamisho wa benki
+Your host will send their bank details after booking is confirmed.|||Mwenyeji wako atatuma maelezo ya benki yake baada ya uhifadhi kuthibitishwa.
+M-Pesa (sent manually)|||M-Pesa (inatumwa mwenyewe)
+Send the money yourself to your host's M-Pesa number, then enter the code below.|||Tuma pesa mwenyewe kwa namba ya M-Pesa ya mwenyeji wako, kisha weka msimbo hapa chini.
+Transaction reference (optional)|||Rejea ya muamala (hiari)
+Screenshot or receipt of your payment (optional)|||Picha ya skrini au risiti ya malipo yako (hiari)
+Screenshot of this payment (optional)|||Picha ya skrini ya malipo haya (hiari)
+M-Pesa|||M-Pesa
+M-Pesa code or bank reference for this payment|||Msimbo wa M-Pesa au rejea ya benki kwa malipo haya
+Stay and extras, paid to your host|||Malazi na ziada, hulipwa kwa mwenyeji wako
+Total you pay|||Jumla unayolipa
+Total to pay host|||Jumla ya kumlipa mwenyeji
+Booking status remains pending until your host marks it as received.|||Hali ya uhifadhi inabaki inasubiri hadi mwenyeji wako aweke kuwa imepokelewa.
+Getting things ready…|||Tunaandaa mambo…
+Booking not found or already processed.|||Uhifadhi haukupatikana au umeshashughulikiwa.
+Please select a payment method.|||Tafadhali chagua njia ya malipo.
+Please confirm the amount and booking details.|||Tafadhali thibitisha kiasi na maelezo ya uhifadhi.
+Please choose how you paid StayExplore Kenya (M-Pesa or bank transfer).|||Tafadhali chagua jinsi ulivyolipa StayExplore Kenya (M-Pesa au uhamisho wa benki).
+Please enter the M-Pesa or bank reference for your payment to StayExplore Kenya.|||Tafadhali weka rejea ya M-Pesa au benki kwa malipo yako kwa StayExplore Kenya.
+Minimum price per night (KES)|||Bei ya chini kwa usiku (KES)
+Maximum price per night (KES)|||Bei ya juu kwa usiku (KES)
+Min|||Chini
+Max|||Juu
+Property Type|||Aina ya Mali
+Property type|||Aina ya mali
+Search Radius|||Eneo la Utafutaji
+Distance from the stay|||Umbali kutoka malazini
+Category|||Kategoria
+Sort results|||Panga matokeo
+Sort attractions|||Panga vivutio
+How is this worked out?|||Hii inakokotolewaje?
+View map|||Tazama ramani
+Accommodation|||Malazi
+accommodation|||malazi
+attraction|||kivutio
+found|||yamepatikana
+View this attraction|||Tazama kivutio hiki
+Show all stays|||Onyesha malazi yote
+View this stay|||Tazama malazi haya
+Show all attractions|||Onyesha vivutio vyote
+Filters|||Vichujio
+Where|||Wapi
+Price per night (KES)|||Bei kwa usiku (KES)
+All Types|||Aina Zote
+Amenities|||Huduma
+5 km|||5 km
+10 km|||10 km
+20 km|||20 km
+50 km|||50 km
+100 km|||100 km
+All Categories|||Kategoria Zote
+Apply Filters|||Tumia Vichujio
+Reset Filters|||Weka Upya Vichujio
+Clear Filters|||Futa Vichujio
+Sort: Recommended|||Panga: Yanayopendekezwa
+Sort: Price Low to High|||Panga: Bei ya Chini hadi Juu
+Sort: Price High to Low|||Panga: Bei ya Juu hadi Chini
+Sort: Highest Rated|||Panga: Yaliyokadiriwa Juu Zaidi
+Sort: Highest rated|||Panga: Yaliyokadiriwa juu zaidi
+Sort: Default|||Panga: Kawaida
+No stays found|||Hakuna malazi yaliyopatikana
+Try a different place, a wider distance, or fewer filters.|||Jaribu eneo tofauti, umbali mpana zaidi, au vichujio vichache.
+Smart score|||Alama ya busara
+(how?)|||(vipi?)
+New listing, no reviews yet|||Tangazo jipya, bado hakuna maoni
+km away|||km kutoka hapa
+/night|||/usiku
+/ night|||/ usiku
+View attractions|||Tazama vivutio
+No attractions found|||Hakuna vivutio vilivyopatikana
+Try a different category or search word.|||Jaribu kategoria tofauti au neno tofauti la utafutaji.
+Hover for a fun fact|||Weka kielekezi kuona jambo la kufurahisha
+Explore attraction|||Gundua kivutio
+View stays near here|||Tazama malazi karibu na hapa
+Destination unavailable|||Kivutio hakipatikani
+We couldn't find that attraction.|||Hatukuweza kupata kivutio hicho.
+It may have been removed or the link may be incorrect.|||Huenda kimeondolewa au kiungo si sahihi.
+In season now|||Kipo msimu wake sasa
+Find stays nearby|||Tafuta malazi ya karibu
+Get directions|||Pata maelekezo
+↗ Share|||↗ Shiriki
+Stays nearby|||Malazi ya karibu
+Closest stay|||Malazi ya karibu zaidi
+Best months|||Miezi bora
+The story|||Hadithi
+Location|||Eneo
+Landscape|||Mandhari
+Climate|||Hali ya hewa
+Best for|||Bora kwa
+Best time to go|||Wakati bora wa kwenda
+Green months are the best time to visit|||Miezi ya kijani ndiyo wakati bora wa kutembelea
+Did you know?|||Je, ulijua?
+Fun facts|||Mambo ya kufurahisha
+Another fact →|||Jambo jingine →
+What's new|||Kipya ni nini
+Latest|||Za hivi karibuni
+NEW|||MPYA
+Pack for the trip|||Pakia kwa safari
+Checklist|||Orodha ya ukaguzi
+Visitor ratings|||Ukadiriaji wa wageni
+Comment (optional, up to 500 characters)|||Maoni (hiari, hadi herufi 500)
+No ratings yet.|||Bado hakuna ukadiriaji.
+Getting there|||Jinsi ya kufika
+Map & directions|||Ramani na maelekezo
+Hide map|||Ficha ramani
+Stay nearby|||Kaa karibu
+There are no stays listed near this attraction yet.|||Bado hakuna malazi yaliyotangazwa karibu na kivutio hiki.
+Search stays around this destination|||Tafuta malazi karibu na kivutio hiki
+Your journeys|||Safari zako
+Everything planned, past and remembered.|||Kila kitu kilichopangwa, kilichopita na kinachokumbukwa.
+Upcoming|||Zijazo
+Completed|||Zilizokamilika
+Cancelled|||Zilizoghairiwa
+You have no upcoming bookings. Start by searching for a place to stay.|||Huna uhifadhi unaokuja. Anza kwa kutafuta mahali pa kukaa.
+You have no completed stays yet.|||Bado huna ukaaji uliokamilika.
+You have no cancelled bookings.|||Huna uhifadhi uliogheirwa.
+Find accommodation|||Tafuta malazi
+Host receipt|||Risiti ya mwenyeji
+StayExplore receipt|||Risiti ya StayExplore
+Leave review|||Toa maoni
+View details|||Tazama maelezo
+Cancel booking|||Ghairi uhifadhi
+Message host|||Tuma ujumbe kwa mwenyeji
+Booking not found.|||Uhifadhi haukupatikana.
+This booking can no longer be cancelled online. Please contact support if you need help.|||Uhifadhi huu hauwezi tena kughairiwa mtandaoni. Tafadhali wasiliana na msaada ukihitaji usaidizi.
+The booking could not be cancelled. Refresh and try again.|||Uhifadhi haukuweza kughairiwa. Onyesha upya ukurasa na ujaribu tena.
+Related booking|||Uhifadhi unaohusiana
+Describe what happened in as much detail as possible...|||Eleza kilichotokea kwa undani iwezekanavyo...
+Evidence|||Ushahidi
+Safety and support|||Usalama na msaada
+Report a listing or incident|||Ripoti tangazo au tukio
+Your report is private and reviewed by our trust team.|||Ripoti yako ni ya siri na hukaguliwa na timu yetu ya uaminifu.
+Report submitted|||Ripoti imewasilishwa
+Our trust team will review your report within 24 hours.|||Timu yetu ya uaminifu itakagua ripoti yako ndani ya saa 24.
+The listing has been temporarily suspended while we investigate.|||Tangazo limesimamishwa kwa muda tunapochunguza.
+Tell us what happened|||Tuambie kilichotokea
+Report type|||Aina ya ripoti
+Listing misrepresentation|||Kupotosha maelezo ya tangazo
+Safety or security incident|||Tukio la usalama
+Suspicious review|||Maoni yanayotia shaka
+Other concern|||Wasiwasi mwingine
+Select type|||Chagua aina
+Theft|||Wizi
+Physical abuse or threats|||Unyanyasaji wa kimwili au vitisho
+Sexual harassment|||Unyanyasaji wa kingono
+Safety hazard|||Hatari ya usalama
+Privacy violation (hidden camera etc)|||Ukiukaji wa faragha (kamera iliyofichwa n.k.)
+Property completely different from listing|||Mali tofauti kabisa na tangazo
+Other|||Nyingine
+Which stay is this about?|||Hii inahusu malazi gani?
+Select one of your stays|||Chagua moja ya malazi yako
+Incidents can only be reported for stays you have booked.|||Matukio yanaweza kuripotiwa tu kwa malazi uliyohifadhi.
+Details|||Maelezo
+Supporting evidence (optional)|||Ushahidi unaounga mkono (hiari)
+JPG, PNG or WebP — max 5MB|||JPG, PNG au WebP — kiwango cha juu 5MB
+Submit report|||Wasilisha ripoti
+If anyone is in danger|||Ikiwa mtu yeyote yuko hatarini
+999 or 112|||999 au 112
+Contact local emergency services first. In Kenya, call 999 or 112.|||Wasiliana kwanza na huduma za dharura. Nchini Kenya, piga 999 au 112.
+Your privacy|||Faragha yako
+Your report is confidential. The host will not be told who submitted it.|||Ripoti yako ni ya siri. Mwenyeji hataambiwa nani aliiwasilisha.
+Please provide more details (at least 20 characters).|||Tafadhali toa maelezo zaidi (angalau herufi 20).
+Please choose a valid report type.|||Tafadhali chagua aina halali ya ripoti.
+Share what mattered|||Shiriki kilichokuwa muhimu
+Leave a review|||Toa maoni
+Leave a Review|||Toa Maoni
+Your honest experience helps future guests make better decisions.|||Uzoefu wako wa kweli unasaidia wageni wa baadaye kufanya maamuzi bora.
+Review submitted|||Maoni yamewasilishwa
+Thank you for your honest feedback.|||Asante kwa maoni yako ya kweli.
+How was your overall stay?|||Ukaaji wako kwa ujumla ulikuwaje?
+Select a rating|||Chagua ukadiriaji
+Rate the details|||Kadiria maelezo
+Tell future guests what stood out|||Waambie wageni wa baadaye kilichovutia
+Publish review|||Chapisha maoni
+You can only review completed bookings.|||Unaweza kutoa maoni tu kwa uhifadhi uliokamilika.
+You have already submitted a review for this booking.|||Tayari umewasilisha maoni kwa uhifadhi huu.
+Please select a rating between 1 and 5.|||Tafadhali chagua ukadiriaji kati ya 1 na 5.
+Please write at least 10 characters in your review.|||Tafadhali andika angalau herufi 10 kwenye maoni yako.
+Remove from favourites|||Ondoa kwenye vipendwa
+Saved|||Vilivyohifadhiwa
+Accommodations and attractions you have saved for later.|||Malazi na vivutio ulivyohifadhi kwa baadaye.
+Saved stays|||Malazi yaliyohifadhiwa
+No saved stays yet|||Bado hakuna malazi yaliyohifadhiwa
+When you find accommodation you like, tap the heart icon to save it here.|||Ukipata malazi unayopenda, gusa alama ya moyo ili kuyahifadhi hapa.
+No longer available|||Hayapatikani tena
+Unavailable|||Hayapatikani
+Saved attractions|||Vivutio vilivyohifadhiwa
+No saved attractions yet|||Bado hakuna vivutio vilivyohifadhiwa
+When you find an attraction you want to visit, save it here for easy access.|||Ukipata kivutio unachotaka kutembelea, kihifadhi hapa kwa urahisi.
+Find nearby stays|||Tafuta malazi ya karibu
+Secure checkout|||Malipo salama
+Complete your booking|||Kamilisha uhifadhi wako
+Booking details|||Maelezo ya uhifadhi
+House rules|||Sheria za nyumba
+House Rules|||Sheria za Nyumba
+Your information is encrypted and handled securely.|||Taarifa zako zimesimbwa na kushughulikiwa kwa usalama.
+Continue to payment|||Endelea na malipo
+How your payment is shared|||Jinsi malipo yako yanavyogawanywa
+To your host:|||Kwa mwenyeji wako:
+To StayExplore Kenya:|||Kwa StayExplore Kenya:
+You pay each part directly to its owner on the next page.|||Unalipa kila sehemu moja kwa moja kwa mwenyewe kwenye ukurasa unaofuata.
+Entry fees for parks and other attractions nearby are not included. You pay those at the gate when you visit.|||Ada za kuingia kwenye hifadhi na vivutio vingine vya karibu hazijajumuishwa. Utalipa hizo langoni unapotembelea.
+Payments are tracked securely within the platform|||Malipo hufuatiliwa kwa usalama ndani ya jukwaa
+Please choose valid dates: check-in today or later, and check-out after check-in.|||Tafadhali chagua tarehe halali: kuingia leo au baadaye, na kutoka baada ya kuingia.
+These dates are no longer available. Please select different dates.|||Tarehe hizi hazipatikani tena. Tafadhali chagua tarehe nyingine.
+You must agree to the house rules to continue.|||Lazima ukubali sheria za nyumba ili kuendelea.
+Sorry, those dates were just taken. Please select different dates.|||Samahani, tarehe hizo zimechukuliwa hivi punde. Tafadhali chagua tarehe nyingine.
+Stay ratings and amenities|||Ukadiriaji na huduma za malazi
+review|||maoni
+New listing|||Tangazo jipya
+Up to|||Hadi
+guests|||wageni
+Hosted by|||Mwenyeji:
+About this place|||Kuhusu mahali hapa
+Guest rating|||Ukadiriaji wa wageni
+verified review|||maoni yaliyothibitishwa
+This is a new listing. Verified guest reviews will appear after the first stays.|||Hili ni tangazo jipya. Maoni ya wageni yaliyothibitishwa yataonekana baada ya ukaaji wa kwanza.
+What this stay offers|||Kinachotolewa na malazi haya
+Included|||Imejumuishwa
+The host has not listed amenities yet.|||Mwenyeji bado hajaorodhesha huduma.
+On the property|||Kwenye mali
+Availability|||Upatikanaji
+When this stay is free|||Malazi haya yako wazi lini
+Nearby Attractions|||Vivutio vya Karibu
+View attraction|||Tazama kivutio
+Other stays nearby|||Malazi mengine ya karibu
+No listed attractions close by yet.|||Bado hakuna vivutio vilivyoorodheshwa karibu.
+See the closest ones|||Tazama vilivyo karibu zaidi
+Guest Reviews|||Maoni ya Wageni
+No reviews yet — be the first to review after your stay.|||Bado hakuna maoni — kuwa wa kwanza kutoa maoni baada ya kukaa.
+Host response:|||Jibu la mwenyeji:
+Report this listing|||Ripoti tangazo hili
+CHECK IN|||KUINGIA
+CHECK OUT|||KUTOKA
+GUESTS|||WAGENI
+Some of these nights are already booked. Please pick other dates (the shaded days in the calendar are taken).|||Baadhi ya usiku huu tayari umehifadhiwa. Tafadhali chagua tarehe nyingine (siku zilizotiwa kivuli kwenye kalenda zimechukuliwa).
+Reserve|||Hifadhi
+Hosts cannot make bookings. Please use a tourist account.|||Wenyeji hawawezi kuhifadhi. Tafadhali tumia akaunti ya mtalii.
+Sign in to Book|||Ingia ili Kuhifadhi
+Don't have an account?|||Huna akaunti?
+Your profile photo|||Picha ya wasifu wako
+Profile photo|||Picha ya wasifu
+Enter current password|||Weka nenosiri la sasa
+Minimum 8 characters|||Angalau herufi 8
+Repeat new password|||Rudia nenosiri jipya
+My Profile|||Wasifu Wangu
+Completed stays|||Ukaaji uliokamilika
+Personal details|||Taarifa binafsi
+Profile updated successfully.|||Wasifu umesasishwa.
+Save changes|||Hifadhi mabadiliko
+Password updated successfully.|||Nenosiri limesasishwa.
+Update password|||Sasisha nenosiri
+Close account|||Funga akaunti
+Confirm with your current password|||Thibitisha kwa nenosiri lako la sasa
+Close my account|||Funga akaunti yangu

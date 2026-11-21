@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/functions.php';
 require_once __DIR__ . '/../includes/db.php';
+require_once __DIR__ . '/../includes/currency.php';
 require_once __DIR__ . '/../includes/attraction_content.php';
 require_once __DIR__ . '/../includes/gallery.php';
 require_once __DIR__ . '/../includes/commons_photos.php';
@@ -108,7 +109,7 @@ $monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'O
   <link rel="stylesheet" href="../assets/css/attractions.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-</head>
+<link rel="stylesheet" href="../assets/css/dark.css"><meta name="color-scheme" content="light dark"><script src="../assets/js/se-theme.js"></script><script src="../assets/js/se-i18n.js"></script></head>
 <body>
 <?php include __DIR__ . '/../includes/header.php'; ?>
 <main class="att-page">
@@ -287,12 +288,12 @@ $monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'O
         <article class="att-stay">
           <div class="att-stay-photo">
             <img src="<?= h(stayPhotoUrl($stay['primary_photo'] ?? '')) ?>" alt="<?= h($stay['title']) ?>" loading="lazy">
-            <span class="att-stay-km"><?= number_format((float)$stay['distance_km'], 1) ?> km away</span>
+            <span class="att-stay-km"><?= number_format((float)$stay['distance_km'], 1) ?> km (straight line)</span>
           </div>
           <div class="att-stay-body">
             <h3><?= h($stay['title']) ?></h3>
             <p class="small" style="margin:0"><?= h($stay['location_name'] ?: 'Kenya') ?></p>
-            <p style="margin:6px 0 10px"><strong>KSh <?= number_format((float)$stay['price_per_night']) ?></strong> <span class="small">/ night</span></p>
+            <p style="margin:6px 0 10px"><strong><?= moneyHtml((float)$stay['price_per_night']) ?></strong> <span class="small">/ night</span></p>
             <a class="btn btn-sm" style="margin-top:auto" href="details.php?id=<?= (int)$stay['accommodation_id'] ?>">View stay</a>
           </div>
         </article>
@@ -323,7 +324,7 @@ $monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'O
   L.marker([lat, lng], { icon: SEPins.attraction() }).addTo(map).bindPopup(b).openPopup();
   <?php foreach ($nearby as $s): ?>
   L.marker([<?= (float)$s['latitude'] ?>, <?= (float)$s['longitude'] ?>], { icon: SEPins.stay() })
-    .addTo(map).bindPopup(<?= json_encode('<b>' . h($s['title']) . '</b><br>' . number_format((float)$s['distance_km'], 1) . ' km away<br><a href="details.php?id=' . (int)$s['accommodation_id'] . '">View stay</a>', JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>);
+    .addTo(map).bindPopup(<?= json_encode('<b>' . h($s['title']) . '</b><br>' . number_format((float)$s['distance_km'], 1) . ' km (straight line)<br><a href="details.php?id=' . (int)$s['accommodation_id'] . '">View stay</a>', JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>);
   <?php endforeach; ?>
   var tm = document.getElementById('toggleAttMap'), mp = document.getElementById('attractionMap');
   if (tm && mp) tm.addEventListener('click', function () {

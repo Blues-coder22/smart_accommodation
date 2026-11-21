@@ -24,3 +24,49 @@ All PHP files in this package passed PHP syntax checks. The application was not 
 - Search/homepage image selection now prefers the primary photo but falls back to another uploaded photo when no primary is marked; broken or missing images fall back to a real bundled property image instead of a house emoji.
 - Photo paths saved as either filenames or uploads paths are normalized on the details and search pages.
 - Added subtle responsive animations, card hover elevation, smoother buttons/forms, and reduced-motion accessibility support across the public pages and shared dashboard styles.
+
+
+2026-11-14 — v9.21 Commission controls
+- Rates are editable by the admin: Admin > Rates & settings (admin/settings.php) sets the commission %, the guest service fee %, the days a host has to pay, and the payment instructions. Values are stored in the new platform_settings table. includes/config.php now only supplies the defaults used until the admin saves a value. New rates apply from then on; existing ledger rows and bookings keep the rate they were created with.
+- Overdue enforcement: a commission that has been owed (status "accrued", not yet reported) for more than the configured days makes the host overdue. Overdue hosts are hidden from search, the homepage and nearby lists, their listing pages and booking page refuse new bookings, and the host sees a "listings paused" notice on the dashboard and commission page. Nothing is changed in the listing's own status: it returns automatically when the host reports payment or the admin marks it received. Existing bookings are not affected. Setting the days to 0 turns this off. The ledger is refreshed automatically (at most every 5 minutes) so enforcement does not depend on someone opening a finance page.
+- Refunds of settled commission: if a stay is cancelled (or the payment reversed) after its commission was settled, the ledger row is marked "refund due" for the full commission plus service fee. Admin > Revenue lists these; the admin records the refund (amount up to the full figure, plus reference) or declines it with a reason. The host sees the status on the Commission page. Rows still accrued are voided as before. The money itself is still sent outside the site; the site records it.
+- Database: platform_settings table and commission_ledger.refund_* columns are created automatically. database/migration_v9_21_commission_controls.sql does the same by hand if preferred.
+
+
+2026-11-14 — v9.22 Booking numbers no longer exposed
+- The numeric booking_id (and the "#BK00012" label built from it) was shown on pages, in URLs, in hidden form fields and in emails, so booking numbers could be counted and guessed. Every page already checked that a booking belongs to the signed-in guest, host or admin, so other people's bookings could not be opened; this removes the guessable number as a second layer.
+- Each booking now has a random public reference, e.g. BK-K7M2QX9TPA (new column bookings.booking_ref, unique, created and back-filled automatically). Pages, links, forms, emails, the receipt, the evidence pack and the admin search use it. URLs use ?ref=..., forms post booking_ref. Numeric ids are no longer accepted in URLs or forms.
+- New file includes/booking_ref.php (loaded by includes/db.php): bookingRef(), bookingLabel(), bookingIdFromRef(). New bookings get their reference in tourist/book.php.
+- Old emails that contain a payment link with ?booking_id=12 will land on My bookings instead of the payment page; the guest can open the booking from there.
+- Not changed: payment_id (receipts, proofs) and ledger/remittance ids still appear in a few admin/host links. They are checked for ownership on every request but are still sequential numbers.
+
+
+2026-11-14 — v9.23 Payment, receipt and commission numbers no longer exposed
+- Payment ids, commission-ledger ids and commission-payment (remittance) ids are no longer shown in URLs, forms, links or page markup. They are replaced by opaque tokens (the id encrypted and authenticated with a secret key that the site generates once and keeps in platform_settings as id_token_key). Tokens cannot be guessed, edited, or used for a different kind of record, and need no extra database column. Numbers are no longer accepted: receipt.php?pid=..., proof.php?type=...&ref=..., and form fields payment_ref, ledger_ref, ledger[] and remittance_ref.
+- Receipt numbers are no longer the payment id (RC-000012). They are now a short code derived from it with the secret key (for example RC-L6ONNTSOUY). Receipts printed before this change show the old number; the receipt verification code is unchanged.
+- Old links in earlier emails (receipt.php?payment_id=...) now show "Receipt not found"; the guest can open the receipt from My bookings.
+- Keep the id_token_key row in platform_settings when you move or restore the database; if it is lost a new key is made and old links stop working.
+- Not changed: admin-only ids (users, incident reports, reviews, listings) and public listing ids in URLs (details.php?id=...).
+
+
+2026-11-14 — database/schema.sql (full structure)
+- New file database/schema.sql builds the complete empty database in one import: all 32 tables, every column the site otherwise adds on first page visit (booking_ref, service_fee, payment_proof, refund_*, platform_settings and the rest), all unique keys (including reviews.booking_id) and foreign keys. Structure only, no data and no administrator account; it is not a backup. Safe to run again: existing tables are left alone.
+- Checked by importing it into an empty database (identical structure to the working database, second import harmless) and loading the home, search, login and admin pages on it.
+- The older database/migration_*.sql files are only needed to upgrade a database made before this file existed.
+
+=== v9.25: v9.24 merged into the v9.21 split-payment line ===
+Kept from v9.24: public booking references (BK-XXXXXXXXXX, includes/booking_ref.php) in every URL, form, email and label; opaque tokens for payment ids (includes/opaque_id.php, now stored in site_settings as 'id_token_key'); non-sequential receipt numbers; admin search by booking reference; a complete schema file.
+Dropped from v9.24: the "host owes commission" ledger, overdue suspension of hosts, host remittances and the separate admin/settings.php page. Under the split-payment model the guest pays the platform's share directly to the admin at booking time, so nothing is owed later; the admin edits the rates in Revenue & commission and records refunds for cancelled bookings.
+Added in this line: one session per role (several roles signed in at once), split payments (platform_payments), platform receipts, Admin > Database setup (php database/run_setup.php), database/full_schema.sql.
+Notes: existing bookings get a reference automatically the first time they are shown (or when Database setup is run). Old links that contained numeric ids (bookmarks, older emails) stop working by design.
+
+=== v9.26 ===
+Notifications (bell + Notifications page) for bookings, payments, refunds, approvals and expiry, alongside the emails.
+Refund calculation when a booking is cancelled after the platform's share was accepted: host cancels or dates released = full refund of the platform share; guest cancels at least "free cancellation" hours before check-in = full; later = none automatic. Guest, host and admin are told; the admin sends the money and records it (amount saved).
+Admin-editable time limits (payment details, host reply, free cancellation) in Revenue & commission.
+Currencies: admin sets exchange rates (Admin > Currencies); guests choose a display currency; payments stay in KES with an approximate conversion shown.
+Language picker (Google's free translation widget, only loaded when a non-English language is chosen); receipts, certificates, booking records and evidence packs are excluded from translation.
+Certificates: printable host/guest verification and listing approval certificates (Admin > Certificates, host profile and listings), each with a number anyone can check at verify_certificate.php; valid only while the verification/approval stands.
+Printing: booking and payment record (guest, host, admin each see their own view), host payment statement (date range), admin revenue report (date range). Calendar past days now meet contrast.
+Database: new tables notifications, currencies, certificates; platform_payments refund columns. database/full_schema.sql regenerated (34 tables).
+Tests re-run after rebuild: notifications/refunds/time limits 17, currencies/language/certificates 20, printing 14, sessions/isolation (84 pages, 0 leaks)/tokens 14.

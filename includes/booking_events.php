@@ -1,5 +1,5 @@
 <?php
-/** Notes on a booking that an administrator may need later (for example why it was completed early). Created automatically. */
+/** Notes on a booking that an admin may need later (for example why it was completed early). Created automatically. */
 if (!function_exists('ensureBookingEventsTable')) {
     function ensureBookingEventsTable($pdo) {
         static $done = false;

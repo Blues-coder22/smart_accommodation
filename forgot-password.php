@@ -44,7 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 ?>
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Forgot password — StayExplore Kenya</title><link rel="stylesheet" href="assets/css/style.css"></head>
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Forgot password — StayExplore Kenya</title><link rel="stylesheet" href="assets/css/style.css"><link rel="stylesheet" href="assets/css/dark.css"><meta name="color-scheme" content="light dark"><script src="assets/js/se-theme.js"></script><script src="assets/js/se-i18n.js"></script></head>
 <body><?php include __DIR__ . '/includes/header.php'; ?><main class="auth-page"><section class="auth-visual"><div class="auth-copy"><div class="eyebrow">Locked out?</div><p class="auth-heading">Let's get you back in.</p><p>We'll email you a secure link to choose a new password.</p></div></section><section class="auth-form"><div class="auth-box"><h1>Forgot password</h1><p class="small">Enter the email address you registered with.</p>
 <?php if ($error): ?><div class="alert alert-error"><p><?= h($error) ?></p></div><?php endif; ?>
 <?php if ($message): ?><div class="alert alert-success"><p><?= h($message) ?></p></div><?php endif; ?>

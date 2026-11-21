@@ -17,7 +17,7 @@ $admin_id = (int)$_SESSION['user_id'];
 // ---- Admin decision on one payment (always needs a short written reason) ----
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     requireCsrf();
-    $pid    = (int)($_POST['payment_id'] ?? 0);
+    $pid    = opaqueIdDecode('pay', $_POST['payment_ref'] ?? '');
     $new    = $_POST['new_status'] ?? '';
     $note   = trim((string)($_POST['note'] ?? ''));
     $q = $pdo->prepare("SELECT p.*, a.title, t.email AS t_email, t.full_name AS t_name, h.email AS h_email, h.full_name AS h_name
@@ -40,7 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             require_once '../includes/email.php';
             $label = ['confirmed' => 'received (confirmed)', 'pending' => 'awaiting payment', 'failed' => 'failed'][$new];
-            $body = '<p>An administrator updated the payment for <strong>' . h($p['title']) . '</strong> (booking #' . (int)$p['booking_id']
+            $body = '<p>An admin updated the payment for <strong>' . h($p['title']) . '</strong> (booking ' . bookingLabel($p['booking_id'])
                   . ') to <strong>' . h($label) . '</strong>.</p><p>Reason given: ' . h($note) . '</p>';
             sendEmail($p['t_email'], 'Payment status updated — StayExplore Kenya', $body);
             sendEmail($p['h_email'], 'Payment status updated — StayExplore Kenya', $body);
@@ -63,7 +63,7 @@ switch ($filter) {
 if ($search !== '') {
     $where .= " AND (p.payment_reference LIKE :s1 OR t.full_name LIKE :s2 OR h.full_name LIKE :s3 OR a.title LIKE :s4 OR p.booking_id = :sid)";
     $params[':s1'] = $params[':s2'] = $params[':s3'] = $params[':s4'] = "%$search%";
-    $params[':sid'] = (int)$search;
+    $params[':sid'] = bookingIdFromRef($search);   // search by the public reference, e.g. BK-K7M2QX9TPA
 }
 
 $stmt = $pdo->prepare("
@@ -122,7 +122,7 @@ $badge = ['confirmed' => ['#e7f3ec', '#1f5a3f', 'Received'], 'pending' => ['#fff
 .decide button.bad{background:#fff;color:#8a2b22;border-color:#e0a39b}
 .help{background:#fff;border:1px solid #e4e1d8;border-radius:10px;padding:12px 16px;font-size:13px;color:#4a5249;line-height:1.6;margin-bottom:16px}
 </style>
-</head>
+<link rel="stylesheet" href="../assets/css/dark.css"><meta name="color-scheme" content="light dark"><script src="../assets/js/se-theme.js"></script><script src="../assets/js/se-i18n.js"></script></head>
 <body>
 <?php require_once __DIR__ . '/../includes/app_shell.php'; appShellStart(); ?>
         <div class="page-date"><?= strtoupper(date('l, j F')) ?></div>
@@ -140,7 +140,7 @@ $badge = ['confirmed' => ['#e7f3ec', '#1f5a3f', 'Received'], 'pending' => ['#fff
 
         <div class="help">
             <strong>When a host says &ldquo;unpaid&rdquo; but the guest says they paid.</strong>
-            Open the payment below: you can see the method and reference the guest gave, and the full history of who changed the status. If you are satisfied the guest paid, choose <em>Confirm as received</em> and write a reason. Once an administrator confirms a payment the host can no longer set it back to awaiting. Both people are emailed about every change you make.
+            Open the payment below: you can see the method and reference the guest gave, and the full history of who changed the status. If you are satisfied the guest paid, choose <em>Confirm as received</em> and write a reason. Once an admin confirms a payment the host can no longer set it back to awaiting. Both people are emailed about every change you make.
         </div>
 
         <div class="filter-tabs" style="margin-bottom:12px">
@@ -162,15 +162,15 @@ $badge = ['confirmed' => ['#e7f3ec', '#1f5a3f', 'Received'], 'pending' => ['#fff
             <?php foreach ($rows as $r): $b = $badge[$r['payment_status']] ?? $badge['pending']; $hist = $history[(int)$r['payment_id']] ?? []; ?>
             <tr>
                 <td>
-                    <strong>Booking #<?= (int)$r['booking_id'] ?></strong><br>
+                    <strong>Booking <?= h(bookingLabel($r['booking_id'])) ?></strong><br>
                     <?= h($r['title']) ?><br>
                     <span style="color:#565c55"><?= date('d M', strtotime($r['check_in_date'])) ?> &ndash; <?= date('d M Y', strtotime($r['check_out_date'])) ?></span><br>
                     <span style="color:#565c55"><?= h($r['payment_method'] ?: 'Method not given') ?> &middot; Ref: <strong><?= h($r['payment_reference'] ?: 'none') ?></strong></span><br>
                     <span style="color:#565c55;font-size:11px">Submitted <?= date('d M Y, H:i', strtotime($r['payment_date'])) ?></span><br>
                     <span style="font-size:11px">
-                        <?php if ($r['payment_status'] === 'confirmed'): ?><a href="../tourist/receipt.php?payment_id=<?= (int)$r['payment_id'] ?>" target="_blank" rel="noopener">Receipt</a> &middot; <?php endif; ?>
-                        <?php if (!empty($r['payment_proof'])): ?><a href="../proof.php?type=payment&amp;id=<?= (int)$r['payment_id'] ?>" target="_blank" rel="noopener">Screenshot</a> &middot; <?php endif; ?>
-                        <a href="evidence.php?booking_id=<?= (int)$r['booking_id'] ?>">Evidence pack</a>
+                        <?php if ($r['payment_status'] === 'confirmed'): ?><a href="../receipt.php?as=admin&amp;pid=<?= h(opaqueId('pay', $r['payment_id'])) ?>" target="_blank" rel="noopener">Receipt</a> &middot; <?php endif; ?>
+                        <?php if (!empty($r['payment_proof'])): ?><a href="../proof.php?as=admin&amp;type=payment&amp;ref=<?= h(opaqueId('pay', $r['payment_id'])) ?>" target="_blank" rel="noopener">Screenshot</a> &middot; <?php endif; ?>
+                        <a href="evidence.php?ref=<?= h(bookingRef($r['booking_id'])) ?>">Evidence pack</a>
                     </span>
                 </td>
                 <td>
@@ -196,7 +196,7 @@ $badge = ['confirmed' => ['#e7f3ec', '#1f5a3f', 'Received'], 'pending' => ['#fff
                 <td>
                     <form method="POST" class="decide" onsubmit="return this.note.value.trim().length >= 5 || (alert('Please write a short reason first.'), false);">
                         <input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
-                        <input type="hidden" name="payment_id" value="<?= (int)$r['payment_id'] ?>">
+                        <input type="hidden" name="payment_ref" value="<?= h(opaqueId('pay', $r['payment_id'])) ?>">
                         <input aria-label="Reason (required)" type="text" name="note" maxlength="500" placeholder="Reason (required)">
                         <div class="row">
                             <?php if ($r['payment_status'] !== 'confirmed'): ?><button type="submit" name="new_status" value="confirmed">Confirm as received</button><?php endif; ?>

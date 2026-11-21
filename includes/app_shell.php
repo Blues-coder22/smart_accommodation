@@ -58,7 +58,9 @@ if (!function_exists('appShellStart')) {
                 [['bookings.php', 'rate_guest.php'],         'Manage bookings',  'host/bookings.php',     'bookings'],
                 [['messages.php'],                           'Messages',         'host/messages.php',     null],
                 [['payments.php'],                           'Payment tracking', 'host/payments.php',     null],
+                [['statement.php'],                          'Payment statement', 'host/statement.php',   null],
                 [['commission.php'],                         'Commission',       'host/commission.php',   null],
+                [['agreement.php'],                          'Host agreement',   'host/agreement.php',    null],
                 [['reviews.php'],                            'Guest reviews',    'host/reviews.php',      'reviews'],
                 [['report.php'],                             'Report incident',  'host/report.php',       null],
                 [['profile.php'],                            'Host profile',     'host/profile.php',      null],
@@ -72,6 +74,10 @@ if (!function_exists('appShellStart')) {
                 [['bookings.php'],                           'Booking tracking',    'admin/bookings.php',    null],
                 [['payments.php'],                           'Payment tracking',    'admin/payments.php',    null],
                 [['revenue.php'],                            'Revenue & commission','admin/revenue.php',     null],
+                [['photos.php'],                             'Photo safekeeping',   'admin/photos.php',      null],
+                [['certificates.php'],                       'Certificates',        'admin/certificates.php', null],
+                [['currencies.php'],                         'Currencies',          'admin/currencies.php',  null],
+                [['setup.php'],                              'Database setup',      'admin/setup.php',       null],
                 [['reviews.php'],                            'Moderate reviews',    'admin/reviews.php',     'reviews'],
                 [['attraction_reviews.php'],                 'Attraction ratings',  'admin/attraction_reviews.php', null],
                 [['reports.php'],                            'Incident reports',    'admin/reports.php',     'reports'],
@@ -99,7 +105,10 @@ if (!function_exists('appShellStart')) {
     <div class="side-section">Account</div>
     <nav class="side-nav" aria-label="Account">
       <a href="<?= $e($base) ?>/index.php">View website</a>
-      <a href="<?= $e($base) ?>/logout.php">Sign out</a>
+      <?php require_once __DIR__ . '/translate.php'; echo languageWidgetHtml(); ?>
+      <?php require_once __DIR__ . '/notifications.php'; $__nc = unreadNotificationCount($GLOBALS['pdo'], (int)($_SESSION['user_id'] ?? 0)); ?>
+    <a class="se-bell" href="<?= $e($base) ?>/notifications.php?as=<?= urlencode($_SESSION['role'] ?? '') ?>" aria-label="Notifications<?= $__nc ? ', ' . $__nc . ' unread' : '' ?>" title="Notifications"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg><?php if ($__nc): ?><span class="se-bell-count"><?= $__nc > 99 ? '99+' : $__nc ?></span><?php endif; ?></a>
+      <a href="<?= $e($base) ?>/logout.php?as=<?= urlencode($_SESSION['role'] ?? '') ?>">Sign out</a>
     </nav>
   </aside>
   <main class="app-main">

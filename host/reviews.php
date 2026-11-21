@@ -208,7 +208,7 @@ $stats = $stats->fetch();
             .stats-row { grid-template-columns:repeat(2,1fr) }
         }
     </style>
-</head>
+<link rel="stylesheet" href="../assets/css/dark.css"><meta name="color-scheme" content="light dark"><script src="../assets/js/se-theme.js"></script><script src="../assets/js/se-i18n.js"></script></head>
 <body>
 
 
@@ -339,7 +339,7 @@ $stats = $stats->fetch();
                 <?php if ($r['host_reply']): ?>
                 <div class="host-reply">
                     <strong>Your response</strong>
-                    <?php if (!empty($r['host_reply_hidden'])): ?><em style="display:block;color:#a12b2b;font-size:12px">Hidden from the public by an administrator.</em><?php endif; ?>
+                    <?php if (!empty($r['host_reply_hidden'])): ?><em style="display:block;color:#a12b2b;font-size:12px">Hidden from the public by an admin.</em><?php endif; ?>
                     <?= nl2br(h($r['host_reply'])) ?>
                 </div>
                 <?php endif; ?>

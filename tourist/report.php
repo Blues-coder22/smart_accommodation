@@ -12,7 +12,7 @@ requireRole('tourist');
 
 $report_type = sanitize($_GET['type'] ?? 'listing');
 $target_id   = (int)($_GET['target_id'] ?? 0);
-$booking_id  = (int)($_GET['booking_id'] ?? 0);
+$booking_id  = bookingIdFromRef($_GET['ref'] ?? '');
 
 // Validate target exists
 $target_name = '';
@@ -96,7 +96,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // The listing to suspend comes from that booking, never from the URL.
     $critical_types = ['theft', 'physical_abuse', 'sexual_harassment', 'safety_hazard', 'privacy_violation'];
     if ($type === 'incident') {
-        $post_booking = (int)($_POST['booking_id'] ?? $booking_id);
+        $post_booking = (bookingIdFromRef($_POST['booking_ref'] ?? '') ?: $booking_id);
         $chk = $pdo->prepare("
             SELECT accommodation_id FROM bookings
             WHERE booking_id = ? AND tourist_id = ?
@@ -105,7 +105,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $chk->execute([$post_booking, $_SESSION['user_id']]);
         $own_acc = $chk->fetchColumn();
         if (!$own_acc) {
-            $errors[] = 'Incidents can only be reported for a stay you booked. Open this form from My bookings.';
+            $errors[] = 'You can only report a problem about a stay you booked. Open this form from My bookings.';
         } else {
             $target_id = (int)$own_acc;
         }
@@ -117,7 +117,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $chk = $pdo->prepare("SELECT COUNT(*) FROM accommodations WHERE accommodation_id = ?");
         $chk->execute([$target_id]);
         if (!$chk->fetchColumn()) {
-            $errors[] = 'Please open this form from a listing page so we know what you are reporting.';
+            $errors[] = 'Please open this form from the stay page so we know what you are reporting.';
         }
     }
 
@@ -255,7 +255,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             .report-layout { grid-template-columns:1fr }
         }
     </style>
-</head>
+<link rel="stylesheet" href="../assets/css/dark.css"><meta name="color-scheme" content="light dark"><script src="../assets/js/se-theme.js"></script><script src="../assets/js/se-i18n.js"></script></head>
 <body>
 
 <?php include '../includes/header.php'; ?>
@@ -385,21 +385,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="form-group">
                         <label>Related booking</label>
                         <input aria-label="Related booking" type="text" readonly
-                               value="#BK<?= str_pad($booking_id, 5, '0',
-                                   STR_PAD_LEFT) ?> &middot;
+                               value="<?= h(bookingLabel($booking_id)) ?> &middot;
                                    <?= h($target_name) ?>">
-                        <input type="hidden" name="booking_id"
-                               value="<?= $booking_id ?>">
+                        <input type="hidden" name="booking_ref"
+                               value="<?= h(bookingRef($booking_id)) ?>">
                     </div>
                     <?php else: ?>
                     <div class="form-group" id="incidentBookingGroup"
                          style="display:<?= $report_type === 'incident' ? 'block' : 'none' ?>">
                         <label for="incident_booking">Which stay is this about?</label>
-                        <select id="incident_booking" name="booking_id">
+                        <select id="incident_booking" name="booking_ref">
                             <option value="">Select one of your stays</option>
                             <?php foreach ($my_stays as $st): ?>
-                                <option value="<?= (int)$st['booking_id'] ?>">
-                                    #BK<?= str_pad($st['booking_id'], 5, '0', STR_PAD_LEFT) ?> &middot; <?= h($st['title']) ?> &middot; <?= date('d M Y', strtotime($st['check_in_date'])) ?>
+                                <option value="<?= h(bookingRef($st['booking_id'])) ?>">
+                                    <?= h(bookingLabel($st['booking_id'])) ?> &middot; <?= h($st['title']) ?> &middot; <?= date('d M Y', strtotime($st['check_in_date'])) ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>

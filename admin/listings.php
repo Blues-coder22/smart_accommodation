@@ -2,7 +2,9 @@
 require_once '../includes/auth.php';
 require_once '../includes/functions.php';
 require_once '../includes/db.php';
+require_once '../includes/notifications.php';
 require_once '../includes/email.php';
+require_once '../includes/commission.php';
 
 if (session_status() === PHP_SESSION_NONE) session_start();
 
@@ -30,6 +32,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($action === 'approve' && $listing['status'] === 'approved') {
             setFlash('info', "Nothing changed: \"{$listing['title']}\" is already approved, so the host was not emailed again.");
 
+        } elseif ($action === 'approve' && !hostAgreementAccepted($pdo, (int)$listing['host_id'])) {
+            notify($pdo, (int)$listing['host_id'], 'Accept the host agreement', 'Your listing "' . $listing['title'] . '" cannot go live until you accept the host agreement.', 'host/agreement.php');
+            setFlash('error', "Not approved: {$listing['host_name']} has not accepted the host agreement yet. The host has been notified; approve again after they accept.");
+
         } elseif ($action === 'approve') {
             $pdo->prepare("
                 UPDATE accommodations
@@ -37,6 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 WHERE accommodation_id = ?
             ")->execute([$listing_id]);
 
+            notify($pdo, (int)$listing['host_id'], 'Listing approved', '"' . $listing['title'] . '" is now live. You can print its approval certificate from Listings.', 'host/listings.php');
             sendListingApprovedEmail(
                 $listing['host_email'],
                 $listing['host_name'],
@@ -55,6 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 WHERE accommodation_id = ?
             ")->execute([$listing_id]);
 
+            notify($pdo, (int)$listing['host_id'], 'Listing not approved', '"' . $listing['title'] . '" was not approved. Open it to see why and edit it.', 'host/listings.php');
             sendListingRejectedEmail(
                 $listing['host_email'],
                 $listing['host_name'],
@@ -388,7 +396,7 @@ if ($reviewing) {
             .sidebar   { display:none }
         }
     </style>
-</head>
+<link rel="stylesheet" href="../assets/css/dark.css"><meta name="color-scheme" content="light dark"><script src="../assets/js/se-theme.js"></script><script src="../assets/js/se-i18n.js"></script></head>
 <body>
 
 
@@ -532,9 +540,9 @@ if ($reviewing) {
         <!-- Filter Tabs -->
         <div class="filter-tabs">
             <?php foreach ([
-                'pending'  => 'Pending',
+                'pending'  => 'Awaiting review',
                 'approved' => 'Approved',
-                'rejected' => 'Rejected',
+                'rejected' => 'Not approved',
                 'suspended'=> 'Suspended',
                 'all'      => 'All'
             ] as $key => $label): ?>
@@ -627,9 +635,9 @@ if ($reviewing) {
                         'suspended' => 's-suspended'
                     ][$l['status']] ?? 's-pending';
                     $label = [
-                        'pending'   => 'Pending',
+                        'pending'   => 'Awaiting review',
                         'approved'  => 'Approved',
-                        'rejected'  => 'Rejected',
+                        'rejected'  => 'Not approved',
                         'suspended' => 'Suspended'
                     ][$l['status']] ?? ucfirst($l['status']);
                     ?>

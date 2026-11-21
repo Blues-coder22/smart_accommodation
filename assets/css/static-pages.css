@@ -20,3 +20,11 @@ main h2{animation-delay:.08s}main p{animation-delay:.12s}
 @media(prefers-reduced-motion:reduce){body,main *{animation:none!important}}
 .public-nav .nav-toggle{color:#0d3b2e;border-color:#c9bfae;background:transparent}
 .hp-footer h2{font-family:Arial,sans-serif;font-size:12px;color:#fff;margin:0 0 10px;font-weight:700;letter-spacing:0}
+
+/* v9.26: currency selector, language picker, converted prices; hide Google's own toolbar */
+.se-cur,.se-lang{display:inline-flex;align-items:center;margin:0 6px}
+.se-cur select,.se-lang select{padding:5px 8px;border:1px solid #c9bfae;border-radius:6px;background:#fff;color:#1f241f;font:inherit;font-size:13px;cursor:pointer}
+.se-lang select{max-width:130px}
+.money{border-bottom:1px dotted currentColor;cursor:help}.money-approx{font-size:.85em;color:#565c55;font-weight:400}
+.goog-te-banner-frame,.skiptranslate>iframe,#goog-gt-tt,.goog-te-balloon-frame{display:none!important}body{top:0!important}
+.goog-text-highlight{background:none!important;box-shadow:none!important}

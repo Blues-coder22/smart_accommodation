@@ -4,29 +4,30 @@
  * and summarised in booking emails. Change the numbers here and every page and email follows.
  */
 require_once __DIR__ . '/commission.php';   // SERVICE_FEE_PERCENT
-require_once __DIR__ . '/booking_holds.php';   // BOOKING_NO_PAYMENT_HOLD_HOURS, BOOKING_HOST_REPLY_HOURS
+require_once __DIR__ . '/booking_holds.php';   // bookingHoldHours(), hostReplyHours()
 
 // Free cancellation until this many hours before check-in. Inside the window a refund is up to the host.
-if (!defined('BOOKING_FREE_CANCEL_HOURS')) define('BOOKING_FREE_CANCEL_HOURS', 48);
 
 if (!function_exists('isLateCancellation')) {
-    /** True when the check-in date is less than BOOKING_FREE_CANCEL_HOURS away (check-in counted from 00:00). */
+    /** True when the check-in date is less than freeCancelHours() away (check-in counted from 00:00). */
     function isLateCancellation($checkInDate) {
         $ts = strtotime($checkInDate . ' 00:00:00');
-        return $ts !== false && ($ts - time()) < BOOKING_FREE_CANCEL_HOURS * 3600;
+        return $ts !== false && ($ts - time()) < freeCancelHours() * 3600;
     }
 }
 
 if (!function_exists('bookingRulesList')) {
     /** [heading => text] in plain words. */
     function bookingRulesList() {
-        $hold = (int)BOOKING_NO_PAYMENT_HOLD_HOURS; $reply = (int)BOOKING_HOST_REPLY_HOURS; $free = (int)BOOKING_FREE_CANCEL_HOURS;
+        $hold = (int)bookingHoldHours(); $reply = (int)hostReplyHours(); $free = (int)freeCancelHours();
         return [
             'Reserving'            => "Sending a booking request holds your dates for you straight away. The booking is not final until your host accepts it.",
-            'Service fee'          => ((float)SERVICE_FEE_PERCENT > 0 ? "A service fee of " . rtrim(rtrim(number_format((float)SERVICE_FEE_PERCENT, 2), '0'), '.') . "% is added to your total and shown before you reserve. It helps run StayExplore Kenya. You pay it with the booking, to your host, who passes it on." : "No service fee is added to your booking."),
-            'Paying'               => "Bank transfer and M-Pesa: send the money to your host and enter the details on the payment page within $hold hours of reserving, or your request is cancelled and the dates are released. Cash: you pay your host in cash when you check in.",
+            'Service fee'          => (serviceFeePercent() > 0 ? "A service fee of " . pct(serviceFeePercent()) . "% is added to your total and shown before you reserve. It helps run StayExplore Kenya and is paid to StayExplore Kenya, not to your host." : "No service fee is added to your booking."),
+            'Paying'               => (commissionMode() === 'invoice' && serviceFeePercent() <= 0)
+                ? "You pay your host the full price directly, by M-Pesa, bank transfer or cash. Enter your payment details on the payment page within $hold hours of reserving, or your request is cancelled and the dates are released. You pay nothing extra to StayExplore Kenya."
+                : "You pay in two parts, each straight to its owner: your host's share to your host, and StayExplore Kenya's share (including the service fee) to StayExplore Kenya, by M-Pesa or bank transfer. Enter both payments' details on the payment page within $hold hours of reserving, or your request is cancelled and the dates are released. The host's share can also be paid in cash when you check in.",
             'Host reply'           => "Your host has $reply hours to accept or decline. If they do not reply, the request is cancelled automatically and you are told by email.",
-            'Payment confirmation' => "The site does not take your money. Your host confirms once they have really received it, and you get an email when they do.",
+            'Payment confirmation' => "The site does not hold your money. Your host confirms their share, and StayExplore Kenya confirms its share, once each has really been received. You get an email and a receipt for each.",
             'Cancelling'           => "You can cancel online until the day of check-in. Cancel at least $free hours before check-in for a free cancellation. Closer than that, any refund of money you have already paid is decided by your host.",
             'If your host cancels' => "You are emailed with the reason. If you had already paid, your host should refund you. If they do not, contact us through the report option.",
         ];
@@ -80,7 +81,7 @@ if (!function_exists('bookingRulesDialog')) {
 if (!function_exists('bookingRulesEmailHtml')) {
     /** Short version for emails. */
     function bookingRulesEmailHtml() {
-        $hold = (int)BOOKING_NO_PAYMENT_HOLD_HOURS; $free = (int)BOOKING_FREE_CANCEL_HOURS;
+        $hold = (int)bookingHoldHours(); $free = (int)freeCancelHours();
         return "<p style='margin-top:18px'><strong>Good to know</strong></p><ul>"
              . "<li>Bank transfer or M-Pesa: enter your payment details within $hold hours of reserving, or the dates are released. Cash: pay at check-in.</li>"
              . "<li>Your host confirms when the money has really arrived.</li>"

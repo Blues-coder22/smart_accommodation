@@ -852,7 +852,7 @@ input,select,textarea{border-radius:8px}
 .bc-dow{text-align:center;font-size:10px;color:#8a948e;padding:2px 0}
 .bc-day{aspect-ratio:1;display:grid;place-items:center;font-size:12px;border-radius:6px;background:#f4f8f5;color:#0f6e56}
 .bc-empty{background:none}
-.bc-past{opacity:.35}
+.bc-past{opacity:1;color:#5f6862;text-decoration:line-through;text-decoration-color:#9aa39d}
 .bc-today{outline:2px solid #0d3b2e;outline-offset:-2px}
 .bc-day.bc-booked,.bc-key.bc-booked{background:#a3462a;color:#fff}
 .bc-day.bc-pending,.bc-key.bc-pending{background:#f2c35b;color:#4a3500}
@@ -927,3 +927,16 @@ button:not(:disabled):active,.btn:active,.btn-sm:active{transform:translateY(1px
   button.is-loading::after,.btn.is-loading::after{animation-duration:1.6s!important}
   button:not(:disabled):active,.btn:active,.btn-sm:active{transform:none}
 }
+
+/* v9.26: notification bell */
+.se-bell{position:relative;display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:50%;color:inherit;margin:0 4px}
+.se-bell:hover{background:rgba(0,0,0,.06)}
+.se-bell-count{position:absolute;top:2px;right:0;min-width:18px;height:18px;padding:0 4px;border-radius:9px;background:#a3462a;color:#fff;font-size:11px;font-weight:700;line-height:18px;text-align:center;font-variant-numeric:tabular-nums}
+
+/* v9.26: currency selector, language picker, converted prices; hide Google's own toolbar */
+.se-cur,.se-lang{display:inline-flex;align-items:center;margin:0 6px}
+.se-cur select,.se-lang select{padding:5px 8px;border:1px solid #c9bfae;border-radius:6px;background:#fff;color:#1f241f;font:inherit;font-size:13px;cursor:pointer}
+.se-lang select{max-width:130px}
+.money{border-bottom:1px dotted currentColor;cursor:help}.money-approx{font-size:.85em;color:#565c55;font-weight:400}
+.goog-te-banner-frame,.skiptranslate>iframe,#goog-gt-tt,.goog-te-balloon-frame{display:none!important}body{top:0!important}
+.goog-text-highlight{background:none!important;box-shadow:none!important}

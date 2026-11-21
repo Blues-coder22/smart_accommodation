@@ -2,6 +2,7 @@
 require_once '../includes/auth.php';
 require_once '../includes/functions.php';
 require_once '../includes/db.php';
+require_once '../includes/currency.php';
 require_once '../includes/booking_holds.php';
 expireStaleBookingRequests($pdo);   // releases dates held by unpaid or unanswered requests
 require_once '../includes/onsite_experience.php';
@@ -326,7 +327,7 @@ foreach (reviewCategoryLabels() as $col => $n) {
             .booking-card { position: static; }
         }
     </style>
-</head>
+<link rel="stylesheet" href="../assets/css/dark.css"><meta name="color-scheme" content="light dark"><script src="../assets/js/se-theme.js"></script><script src="../assets/js/se-i18n.js"></script></head>
 <body class="tourist-details">
 
 <?php include '../includes/header.php'; ?>
@@ -483,7 +484,7 @@ foreach (reviewCategoryLabels() as $col => $n) {
                     <p>
                         <?= h($att['category']) ?>
                         &nbsp;·&nbsp;
-                        <?= number_format($att['distance'], 1) ?> km away
+                        <?= number_format($att['distance'], 1) ?> km (straight line)
                     </p>
                     <a href="attraction.php?id=<?= (int)$att['attraction_id'] ?>">View attraction</a>
                     &nbsp;&middot;&nbsp;
@@ -557,7 +558,7 @@ foreach (reviewCategoryLabels() as $col => $n) {
         <!-- Right Column — Booking Card -->
         <div>
             <div class="booking-card res-card">
-                <div class="res-price">KES <?= number_format($acc['price_per_night']) ?> <small>/ night</small></div>
+                <div class="res-price"><?= moneyHtml($acc['price_per_night']) ?> <small>/ night</small></div>
 
                 <?php if (isLoggedIn() && hasRole('tourist')): ?>
                 <form class="booking-form" method="GET" action="book.php">
@@ -584,13 +585,13 @@ foreach (reviewCategoryLabels() as $col => $n) {
 
                     <div class="price-breakdown" id="price-breakdown" style="display:none">
                         <div class="price-row">
-                            <span id="nights-label">KES <?= number_format($acc['price_per_night'])?> × <span id="nights-count">0</span> nights</span>
-                            <span id="subtotal">KES 0</span>
+                            <span id="nights-label"><?= moneyHtml($acc['price_per_night']) ?> × <span id="nights-count">0</span> nights</span>
+                            <span id="subtotal"><?= moneyHtml(0) ?></span>
                         </div>
                         <?php if ($hasOnsite): ?>
-                        <div class="price-row"><span><?= h($onsiteName) ?> (KES <?= number_format($onsiteFee) ?> per guest)</span><span id="onsite-amount">KES 0</span></div>
+                        <div class="price-row"><span><?= h($onsiteName) ?> (<?= moneyHtml($onsiteFee) ?> per guest)</span><span id="onsite-amount">KES 0</span></div>
                         <?php endif; ?>
-                        <div class="price-row price-total"><span>Total</span><span id="total-amount">KES 0</span></div>
+                        <div class="price-row price-total"><span>Total</span><span id="total-amount"><?= moneyHtml(0) ?></span></div>
                     </div>
 
                     <p id="bookedWarn" style="display:none;margin:12px 0 0;padding:8px 10px;background:#fdecea;color:#8a2b22;border-radius:8px;font-size:12px">Some of these nights are already booked. Please pick other dates (the shaded days in the calendar are taken).</p>
@@ -608,7 +609,7 @@ foreach (reviewCategoryLabels() as $col => $n) {
                 <?php elseif (isLoggedIn() && hasRole('host')): ?>
                 <div class="alert alert-warning">
                     <p>Hosts cannot make bookings. 
-                       Please use a tourist account.</p>
+                       Please sign in with a traveller account.</p>
                 </div>
 
                 <?php else: ?>
@@ -635,6 +636,7 @@ foreach (reviewCategoryLabels() as $col => $n) {
 <script src="../assets/js/osm-nearby.js"></script>
 <script src="../assets/js/map-pins.js"></script>
 <script src="../assets/js/directions.js"></script>
+<?php currencyScript(); ?>
 <script>
 const map = L.map('map').setView(
     [<?= $acc['latitude'] ?>, <?= $acc['longitude'] ?>], 14
@@ -660,7 +662,7 @@ L.marker(
     { icon: SEPins.attraction() }
 ).addTo(map).bindPopup(`
     <b><?= h($att['name']) ?></b><br>
-    <?= number_format($att['distance'], 1) ?> km away
+    <?= number_format($att['distance'], 1) ?> km (straight line)
 `);
 <?php endif; ?>
 <?php endforeach; ?>
@@ -698,14 +700,14 @@ function calcPrice() {
 
         document.getElementById('nights-count').textContent = nights;
         document.getElementById('subtotal').textContent =
-            'KES ' + subtotal.toLocaleString();
+            seMoney(subtotal);
         const guestsEl = document.querySelector('select[name="guests"]');
         const guestCount = guestsEl ? parseInt(guestsEl.value, 10) || 1 : 1;
         const onsiteTotal = onsiteFee * guestCount;
         const onsiteEl = document.getElementById('onsite-amount');
-        if (onsiteEl) onsiteEl.textContent = 'KES ' + onsiteTotal.toLocaleString();
+        if (onsiteEl) onsiteEl.textContent = seMoney(onsiteTotal);
         document.getElementById('total-amount').textContent =
-            'KES ' + (subtotal + onsiteTotal).toLocaleString();
+            seMoney(subtotal + onsiteTotal);
         document.getElementById('price-breakdown').style.display = 'block';
         const clash = rangeHasBookedNight(checkIn, checkOut);
         const warn = document.getElementById('bookedWarn');

@@ -1,5 +1,6 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) session_start();
+require_once __DIR__ . '/session_boot.php';
+seBootSession();
 require_once __DIR__ . '/functions.php';
 require_once __DIR__ . '/auth.php';   // isLoggedIn() and hasRole() are defined here
 require_once __DIR__ . '/profile_photo.php';
@@ -14,12 +15,13 @@ $base = appBasePath();
     // Every link comes before the profile; the profile avatar is the last item before Sign out.
     $__navLinks = [[$base . '/tourist/search.php?type=accommodation', 'Discover'],
                    [$base . '/tourist/search.php?type=attraction', 'Attractions'],
+                   [$base . '/tourist/choose_destination.php', 'Where to go'],
                    [$base . '/how-it-works.html', 'How it works'],
                    [$base . '/about.html', 'About']];
     $__role = ''; $__profileUrl = ''; $__roleLabel = '';
     if (isLoggedIn()) {
         if (hasRole('tourist')) {
-            $__role = 'tourist'; $__roleLabel = 'Tourist'; $__profileUrl = $base . '/tourist/profile.php';
+            $__role = 'tourist'; $__roleLabel = 'Traveller'; $__profileUrl = $base . '/tourist/profile.php';
             $__navLinks[] = [$base . '/tourist/bookings.php', 'My bookings'];
             $__navLinks[] = [$base . '/tourist/favourites.php', 'Favourites'];
             $__navLinks[] = [$base . '/messages.php', 'Messages'];
@@ -53,8 +55,12 @@ $base = appBasePath();
     <span class="role-pill" title="You are signed in as a <?= h(strtolower($__roleLabel)) ?>"><?= h($__roleLabel) ?></span>
     <?php $__av = avatarHtml($_SESSION['user_id'] ?? 0, $_SESSION['full_name'] ?? $__roleLabel, currentUserPhotoName($pdo), 36, 'se-avatar-nav'); ?>
     <a class="nav-avatar" href="<?= h($__profileUrl) ?>" title="My profile" aria-label="My profile"><?= $__av ?></a>
-    <a href="<?= $base ?>/logout.php" class="btn btn-outline">Sign out</a>
+    <?php require_once __DIR__ . '/currency.php'; require_once __DIR__ . '/translate.php'; echo languageWidgetHtml() . currencySelectorHtml($base); ?>
+    <?php require_once __DIR__ . '/notifications.php'; if ($__role === 'tourist') { require_once __DIR__ . '/alerts.php'; runTouristAlerts($GLOBALS['pdo'], (int)($_SESSION['user_id'] ?? 0)); } $__nc = unreadNotificationCount($GLOBALS['pdo'], (int)($_SESSION['user_id'] ?? 0)); ?>
+    <a class="se-bell" href="<?= $base ?>/notifications.php?as=<?= urlencode($_SESSION['role'] ?? '') ?>" aria-label="Notifications<?= $__nc ? ', ' . $__nc . ' unread' : '' ?>" title="Notifications"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg><?php if ($__nc): ?><span class="se-bell-count"><?= $__nc > 99 ? '99+' : $__nc ?></span><?php endif; ?></a>
+    <a href="<?= $base ?>/logout.php?as=<?= urlencode($_SESSION['role'] ?? '') ?>" class="btn btn-outline">Sign out</a>
   <?php else: ?>
+    <?php require_once __DIR__ . '/currency.php'; require_once __DIR__ . '/translate.php'; echo languageWidgetHtml() . currencySelectorHtml($base); ?>
     <a href="<?= $base ?>/login.php">Sign in</a>
     <a href="<?= $base ?>/register.php" class="btn">Sign up</a>
   <?php endif; ?>

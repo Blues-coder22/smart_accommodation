@@ -2,6 +2,7 @@
 require_once '../includes/auth.php';
 require_once '../includes/functions.php';
 require_once '../includes/db.php';
+require_once '../includes/currency.php';
 
 if (session_status() === PHP_SESSION_NONE) session_start();
 
@@ -132,7 +133,7 @@ $att_favs = $att_favs->fetchAll();
         .divider { height:0.5px; background:var(--border);
                    margin-bottom:28px }
     </style>
-</head>
+<link rel="stylesheet" href="../assets/css/dark.css"><meta name="color-scheme" content="light dark"><script src="../assets/js/se-theme.js"></script><script src="../assets/js/se-i18n.js"></script></head>
 <body>
 
 <?php include '../includes/header.php'; ?>
@@ -216,7 +217,7 @@ $att_favs = $att_favs->fetchAll();
                     </div>
                     <div class="fav-meta">
                         <span class="fav-price">
-                            KES <?= number_format($f['price_per_night']) ?>
+                            <?= moneyHtml($f['price_per_night']) ?>
                             <span style="font-weight:400;font-size:11px;
                                          color:var(--text-secondary)">
                                 /night

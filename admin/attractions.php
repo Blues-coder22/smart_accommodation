@@ -307,7 +307,7 @@ if ($pickTitles) [$pickedCommons, $pickedCommonsError] = commonsInfoForTitles($p
             .form-card { position:static }
         }
     </style>
-</head>
+<link rel="stylesheet" href="../assets/css/dark.css"><meta name="color-scheme" content="light dark"><script src="../assets/js/se-theme.js"></script><script src="../assets/js/se-i18n.js"></script></head>
 <body>
 
 
@@ -317,9 +317,9 @@ if ($pickTitles) [$pickedCommons, $pickedCommonsError] = commonsInfoForTitles($p
 
         <div class="page-tag">Admin</div>
         <h1 class="page-title">Attractions</h1>
-<div style="margin:12px 0 18px"><a class="btn btn-outline" href="osm_attractions.php">Find attractions on the map</a> <span style="font-size:12px;color:#666">Add new places for review before tourists see them.</span></div>
+<div style="margin:12px 0 18px"><a class="btn btn-outline" href="osm_attractions.php">Find attractions on the map</a> <span style="font-size:12px;color:#666">Add new places for review before travellers see them.</span></div>
         <p class="page-sub">
-            Add and manage tourist attractions.
+            Add and manage attractions.
             These appear in search results and
             on recommendation maps.
         </p>

@@ -1,5 +1,5 @@
 <?php
-// Streams a host's ID photo to an administrator. Files live outside any public folder (private_uploads/).
+// Streams a host's ID photo to an admin. Files live outside any public folder (private_uploads/).
 require_once '../includes/auth.php';
 require_once '../includes/functions.php';
 require_once '../includes/db.php';

@@ -31,7 +31,7 @@ if (!function_exists('startVerifyWait')) {
     /** Call in the browser that is waiting (right after registering, or after signing in with an unverified email). */
     function startVerifyWait($pdo, $user_id, $email) {
         ensureVerifyWaitsTable($pdo);
-        if (session_status() === PHP_SESSION_NONE) session_start();
+        if (session_status() === PHP_SESSION_NONE) seBootSession();
         $raw = bin2hex(random_bytes(32));
         $pdo->prepare("UPDATE verify_waits SET used_at = NOW() WHERE user_id = ? AND used_at IS NULL")->execute([(int)$user_id]);
         $pdo->prepare("INSERT INTO verify_waits (user_id, token_hash, expires_at) VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 30 MINUTE))")
@@ -42,7 +42,7 @@ if (!function_exists('startVerifyWait')) {
 
 if (!function_exists('startUserSession')) {
     function startUserSession(array $u) {
-        session_regenerate_id(true);
+        seSwitchToRole(strtolower(trim((string)$u['role'])));
         $_SESSION['user_id']   = $u['user_id'];
         $_SESSION['full_name'] = $u['full_name'];
         $_SESSION['email']     = $u['email'];

@@ -1,5 +1,5 @@
 <?php
-/** History of every payment status change (who, when, why) so an administrator can track disputes. */
+/** History of every payment status change (who, when, why) so an admin can track disputes. */
 if (!function_exists('ensurePaymentAuditTable')) {
     function ensurePaymentAuditTable($pdo) {
         static $done = false;
@@ -31,7 +31,7 @@ if (!function_exists('logPaymentChange')) {
     }
 }
 if (!function_exists('paymentLockedByAdmin')) {
-    /** True when the most recent change was an administrator confirming the payment. The host may not undo that. */
+    /** True when the most recent change was an admin confirming the payment. The host may not undo that. */
     function paymentLockedByAdmin($pdo, $payment_id) {
         ensurePaymentAuditTable($pdo);
         try {

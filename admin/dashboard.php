@@ -211,7 +211,7 @@ $monthly = $pdo->query("
             .content-grid { grid-template-columns:1fr }
         }
     </style>
-</head>
+<link rel="stylesheet" href="../assets/css/dark.css"><meta name="color-scheme" content="light dark"><script src="../assets/js/se-theme.js"></script><script src="../assets/js/se-i18n.js"></script></head>
 <body>
 
 
@@ -234,7 +234,7 @@ $monthly = $pdo->query("
             ['Identity checks', $pendingIds, 'users.php#verification', 'IDs waiting for your decision'],
             ['Listing approvals', (int)$stats['pending_listings'], 'listings.php', 'New listings waiting to go live'],
             ['Incident reports', (int)$stats['open_reports'], 'reports.php', 'Open reports from guests and hosts'],
-            ['Flagged reviews', (int)$stats['flagged_reviews'], 'reviews.php', 'Reviews held back for moderation'],
+            ['Flagged reviews', (int)$stats['flagged_reviews'], 'reviews.php', 'Reviews held back to be checked'],
         ];
         ?>
         <section class="attention-grid" aria-label="Needs your attention">
@@ -325,7 +325,7 @@ $monthly = $pdo->query("
                 <div class="stat-note <?= $stats['flagged_reviews'] > 0
                     ? 'warn' : '' ?>">
                     <?= $stats['flagged_reviews'] > 0
-                        ? 'Awaiting moderation' : 'All clear' ?>
+                        ? 'Awaiting review' : 'All clear' ?>
                 </div>
             </div>
         </div>
