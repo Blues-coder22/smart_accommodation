@@ -119,7 +119,7 @@ function resendVerificationEmailSafely($pdo, array $user) {
         $pdo->prepare('UPDATE users SET verification_token = ? WHERE user_id = ?')->execute([$oldToken ?: null, $uid]);
         try {
             if ($oldCode) $pdo->prepare('REPLACE INTO verify_codes (user_id, code_hash, expires_at, attempts) VALUES (?, ?, ?, ?)')
-                               ->execute([$uid, $oldCode['code_hash'], $oldCode['expires_at'], $oldCode['attempts']]);
+                               ->execute([$uid, $oldCode['code_hash'], $oldCode['expires_at'], 0]);   // fresh tries: a failed resend must never leave the person locked out
             else $pdo->prepare('DELETE FROM verify_codes WHERE user_id = ?')->execute([$uid]);
         } catch (Throwable $e) {}
     }
@@ -251,9 +251,9 @@ function sendBookingConfirmationEmail($to, $name, $booking) {
 function sendNewBookingHostEmail($to, $name, $booking) {
     $ref = bookingLabel($booking['booking_id']);
     $body = "
-        <h2>New booking received</h2>
+        <h2>New booking request</h2>
         <p>Dear $name,</p>
-        <p>You have a new booking:</p>
+        <p>A guest has asked to book:</p>
         <table border='1' cellpadding='8'>
             <tr><td>Booking ID</td><td>$ref</td></tr>
             <tr><td>Property</td><td>{$booking['title']}</td></tr>
@@ -261,10 +261,9 @@ function sendNewBookingHostEmail($to, $name, $booking) {
             <tr><td>Check-out</td><td>{$booking['check_out_date']}</td></tr>
             <tr><td>Total</td><td>KES " . number_format($booking['total_amount']) . "</td></tr>
         </table>
-        <p>When the guest's payment reaches you, open <strong>Payments</strong> in your host area and
-           choose <strong>Mark as paid</strong>.</p>
+        <p>Open <strong>Bookings</strong> in your host area to <strong>accept or decline</strong> this request. The guest is asked to pay you only after you accept.</p>
     ";
-    return sendEmail($to, 'New Booking — StayExplore Kenya', $body);
+    return sendEmail($to, 'New booking request — StayExplore Kenya', $body);
 }
 
 // Sent to the tourist when they submit their payment details (not currently used at checkout:
@@ -409,11 +408,11 @@ function sendPaymentReversedAdminEmail($to, $booking, $hostName, $touristName, $
 function sendBookingExpiredEmail($to, $name, $booking, $why, $forHost = false) {
     $ref = bookingLabel($booking['booking_id']);
     if ($why === 'no_payment') {
-        $line = 'We did not receive payment details within ' . (int)bookingHoldHours() . ' hours, so the dates were released for other guests.';
+        $line = 'Your host accepted this request, but we did not receive your payment details within ' . (int)paymentDeadlineHours() . ' hours of acceptance, so the booking was cancelled and the dates were released for other guests. If you still want the stay, please send a new request.';
     } elseif ($forHost) {
         $line = 'You did not accept or decline this request within ' . (int)hostReplyHours() . ' hours, so it expired and the dates were released. Please reply to requests promptly.';
     } else {
-        $line = 'The host did not reply within ' . (int)hostReplyHours() . ' hours, so the request expired and the dates were released. You have not been charged by this website; if you already sent money to the host, ask for a refund.';
+        $line = 'The host did not reply within ' . (int)hostReplyHours() . ' hours, so the request expired and the dates were released. You have not been charged, and nothing is owed. If you already sent money to the host, please ask them for a refund.';
     }
     $body = "
         <h2>Booking request expired</h2>
@@ -452,12 +451,12 @@ function sendPasswordChangedEmail($to, $name) {
 // Reminder: the guest has not entered payment details and the dates will be released soon.
 function sendPaymentDeadlineReminderEmail($to, $name, $booking, $minutesLeft) {
     $ref = bookingLabel($booking['booking_id']);
-    $body = "<h2>Your dates will be released soon</h2><p>Dear " . h($name) . ",</p>"
-          . "<p>We are holding <strong>" . h($booking['title']) . "</strong> (" . h($booking['check_in_date']) . " to " . h($booking['check_out_date']) . ") for you, booking $ref.</p>"
-          . "<p>We have not yet received your payment details. If they are not entered in about <strong>" . (int)$minutesLeft . " minutes</strong>, the request is cancelled and the dates are released to other guests.</p>"
-          . "<p>If you are paying by <strong>cash on arrival</strong>, open the payment page and choose <strong>Cash (pay on arrival)</strong> to keep your dates.</p>"
+    $left = $minutesLeft >= 90 ? 'about ' . round($minutesLeft / 60) . ' hours' : (int)$minutesLeft . ' minutes';
+    $body = "<h2>Pay your host soon to keep your dates</h2><p>Dear " . h($name) . ",</p>"
+          . "<p>Your host accepted booking <strong>$ref</strong> for <strong>" . h($booking['title']) . "</strong> (" . h($booking['check_in_date']) . " to " . h($booking['check_out_date']) . ").</p>"
+          . "<p>You have <strong>$left</strong> left to pay your host and enter the payment details. After that the booking is cancelled and the dates are released to other guests.</p>"
           . "<p><a href='" . h(appAbsoluteUrl('tourist/payment.php?ref=' . bookingRef($booking['booking_id']))) . "'>Go to the payment page</a></p>";
-    return sendEmail($to, 'Your dates will be released soon — StayExplore Kenya', $body);
+    return sendEmail($to, 'Pay your host to keep your dates — StayExplore Kenya', $body);
 }
 
 // Host releases the dates of a pending request (decline), with an optional note.
@@ -509,19 +508,15 @@ function sendCommissionDecisionHostEmail($to, $name, $amount, $reference, $accep
 }
 
 // To the HOST at the moment they confirm a payment: "KES x received from ...", plus what is owed to the platform.
-function sendPaymentReceivedHostEmail($to, $hostName, $booking, $guestName, $reference, $commission, $serviceFee) {
+function sendPaymentReceivedHostEmail($to, $hostName, $booking, $guestName, $reference, $commission = 0, $serviceFee = 0) {
     $ref = bookingLabel($booking['booking_id']);
     $amount = 'KES ' . number_format((float)$booking['total_amount'], 2);
-    $c = (float)$commission;
-    $body = "<h2>Payment received</h2><p>Dear " . h($hostName) . ",</p>"
+    $body = "<h2>Payment confirmed</h2><p>Dear " . h($hostName) . ",</p>"
           . "<p style='font-size:18px'><strong>$amount received from " . h($guestName) . "</strong> for " . h($booking['title']) . " (booking $ref).</p>"
           . ($reference !== '' ? "<p><strong>Reference:</strong> " . h($reference) . "</p>" : "")
-          . ($c > 0 ? "<table border='1' cellpadding='8'><tr><td>Your price</td><td>KES " . number_format((float)$booking['total_amount'] + $c, 2) . "</td></tr>"
-              . "<tr><td>Platform commission (" . pct(commissionRatePercent()) . "%)</td><td>– KES " . number_format($c, 2) . "</td></tr>"
-              . "<tr><td><strong>You receive</strong></td><td><strong>$amount</strong></td></tr></table>"
-              . "<p>The commission and the guest's service fee are paid by the guest directly to StayExplore Kenya, so <strong>you owe nothing more</strong>.</p>" : "")
-          . "<p>The guest has been told you received their payment.</p>";
-    return sendEmail($to, $amount . ' received from ' . $guestName, $body);
+          . "<p>The booking is now confirmed and the guest has been told.</p>"
+          . "<p>Guests pay you directly. Your agreed platform commission is payable separately to StayExplore Kenya after eligible completed stays; it will appear as an invoice on your Commission page once this stay is completed.</p>";
+    return sendEmail($to, 'Payment confirmed: ' . $amount . ' from ' . $guestName, $body);
 }
 
 // ---- Platform share (service fee + commission) paid by the guest straight to the admin (v9.21) ----

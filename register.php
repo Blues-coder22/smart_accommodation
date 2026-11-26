@@ -2,14 +2,16 @@
 require_once 'includes/auth.php';
 require_once 'includes/email.php';
 require_once 'includes/functions.php';
-require_once 'includes/sms.php';
+require_once 'includes/phone.php';
 
 // Redirect if already logged in
 if (isLoggedIn()) {
     redirect(roleHome());
 }
 
+header('Cache-Control: no-store');   // the form can be sent back with what the person typed, so it must not be cached
 $errors = [];
+$fe = [];          // errors by field: only the wrong field is marked and cleared; everything else stays filled in
 $success = '';
 $selectedRole = in_array(($_POST['role'] ?? $_GET['role'] ?? ''), ['tourist', 'host'], true) ? ($_POST['role'] ?? $_GET['role']) : 'tourist';
 
@@ -21,37 +23,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $confirm   = $_POST['confirm_password'] ?? '';
     $role      = sanitize($_POST['role'] ?? $selectedRole);
     $phone     = sanitize($_POST['phone'] ?? '');
-    $verifyVia = ($_POST['verify_via'] ?? 'email') === 'sms' ? 'sms' : 'email';   // how the person wants to confirm the account
     $phoneNorm = normalizePhone($phone);
 
     // Validation
-    if (empty($full_name)) $errors[] = 'Full name is required';
+    if (empty($full_name)) $fe['full_name'] = 'Enter your full name.';
     if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL))
-        $errors[] = 'Valid email is required';
+        $fe['email'] = 'Enter a valid email address, for example name@example.com.';
     if (strlen($password) < 8)
-        $errors[] = 'Password must be at least 8 characters';
-    if ($password !== $confirm)
-        $errors[] = 'Passwords do not match';
+        $fe['password'] = 'Use at least 8 characters.';
+    elseif ($password !== $confirm)
+        $fe['confirm_password'] = 'The two passwords do not match. Type the second one again.';
     if (!in_array($role, ['tourist', 'host']))
-        $errors[] = 'Please select a valid role';
+        $fe['role'] = 'Choose how you are signing up.';
 
-    if ($phone !== '' && !$phoneNorm) $errors[] = 'Enter a valid phone number, for example 0712 345 678 (other countries: start with + and the country code).';
-    if ($verifyVia === 'sms' && !$phoneNorm) $errors[] = 'To get a code by SMS, enter your phone number.';
+    if (empty($_POST['agree'])) $fe['agree'] = 'Tick the box to agree to the terms and privacy policy.';
+    if ($phone !== '' && !$phoneNorm) $fe['phone'] = 'Enter a valid phone number, for example 0712 345 678 (other countries: start with + and the country code).';
 
-    if (empty($errors)) {
+    if (empty($fe)) {
         $result = registerUser($full_name, $email, $password, $role, $phoneNorm ?: $phone);
 
-        if ($result['success'] && $verifyVia === 'sms') {
-            // Text a 6-digit code. The waiting page takes the code and signs the person in.
-            require_once __DIR__ . '/includes/verify_wait.php';
-            startVerifyWait($pdo, (int)$result['user_id'], $email);
-            $_SESSION['verify_wait']['channel'] = 'sms';
-            $sms = sendVerificationSms($pdo, (int)$result['user_id']);
-            if ($sms !== 'sent') { $_SESSION['verify_wait']['unsent'] = true; $_SESSION['verify_wait']['last_sent'] = 0; }
-            if ($sms === 'sent') setFlash('success', 'Account created. We sent a 6-digit code by SMS to ' . maskPhone($phoneNorm) . '.');
-            else { $m = smsResultMessage($sms); setFlash($m[0] === 'success' ? 'warning' : $m[0], 'Your account is ready. ' . $m[1]); }
-            redirect(appBasePath() . '/verify_wait.php');
-        } elseif ($result['success']) {
+        if ($result['success']) {
             // Send verification email
             // No internet: do not even try, so nothing half-sends. The person can press "Send the email again" later.
             $emailSent = emailIsOffline() ? false : sendVerificationEmail($email, $full_name, $result['token']);
@@ -64,10 +55,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 : 'Your account is ready, but we couldn’t send your confirmation email just now. Please check your internet connection, then press "Send the email again" when you’re back online.');
             redirect(appBasePath() . '/verify_wait.php');
         } else {
-            $errors[] = $result['message'];
+            if (stripos((string)$result['message'], 'email') !== false) $fe['email'] = $result['message'] . '. Use a different email, or sign in instead.';
+            else $errors[] = $result['message'];
         }
     }
 }
+$fv = function ($k) use ($fe) { return isset($fe[$k]) ? ' aria-invalid="true" aria-describedby="err_' . $k . '"' : ''; };
+$fm = function ($k) use ($fe) { return isset($fe[$k]) ? '<div class="field-error" id="err_' . $k . '" role="alert">' . h($fe[$k]) . '</div>' : ''; };
+// Keep what was typed, except the field that was wrong.
+$keep = function ($k) use ($fe) { return isset($fe[$k]) ? '' : h($_POST[$k] ?? ''); };
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -76,6 +72,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Register — StayExplore Kenya</title>
     <link rel="stylesheet" href="assets/css/style.css">
+<link rel="stylesheet" href="assets/css/ui.css"><script src="assets/js/ui.js" defer></script>
 <link rel="stylesheet" href="assets/css/dark.css"><meta name="color-scheme" content="light dark"><script src="assets/js/se-theme.js"></script><script src="assets/js/se-i18n.js"></script></head>
 <body>
 
@@ -93,15 +90,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <div class="auth-box">
         <div class="eyebrow">Join the journey</div>
         <h1>Create your account.</h1>
-        <p class="small">It only takes a minute. Confirm your account by email or by SMS code.</p>
+        <p class="small">It only takes a minute. We will email you a link to confirm your account.</p>
 
-        <?php if (!empty($errors)): ?>
-            <div class="alert alert-error">
-                <?php foreach ($errors as $error): ?>
-                    <p><?= h($error) ?></p>
-                <?php endforeach; ?>
+        <?php if (!empty($errors) || !empty($fe)): ?>
+            <div class="alert alert-error" role="alert">
+                <?php foreach ($errors as $error): ?><p><?= h($error) ?></p><?php endforeach; ?>
+                <?php if (!empty($fe)): ?><p>Please fix <?= count($fe) === 1 ? 'the highlighted field' : 'the highlighted fields' ?> below. Everything else you typed has been kept.</p><?php endif; ?>
             </div>
         <?php endif; ?>
+        <style>.field-error{color:var(--bad-fg,#b3261e);font-size:13px;margin-top:5px}.field input[aria-invalid=true],.field select[aria-invalid=true]{border-color:var(--bad-fg,#b3261e)!important;box-shadow:0 0 0 2px rgba(179,38,30,.15)}</style>
 
         <?php if ($success): ?>
             <div class="alert alert-success">
@@ -109,39 +106,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
         <?php else: ?>
 
-        <form method="POST" action="register.php" class="grid grid-2" autocomplete="on" style="margin-top:25px">
+        <form method="POST" action="register.php" id="regForm" novalidate class="grid grid-2" autocomplete="on" style="margin-top:25px">
 <input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
             <div class="field">
                 <label for="full_name">Full name</label>
                 <input type="text" id="full_name" name="full_name"
-                       value="<?= h($_POST['full_name'] ?? '') ?>"
-                       autocomplete="name" required>
+                       value="<?= $keep('full_name') ?>"
+                       autocomplete="name" required<?= $fv('full_name') ?>>
+                <?= $fm('full_name') ?>
             </div>
 
             <div class="field">
                 <label for="email">Email</label>
                 <input type="email" id="email" name="email"
-                       value="<?= h($_POST['email'] ?? '') ?>"
-                       autocomplete="email" required>
+                       value="<?= $keep('email') ?>"
+                       autocomplete="email" required<?= $fv('email') ?>>
+                <?= $fm('email') ?>
             </div>
 
             <div class="field">
-                <label for="phone">Phone number</label>
+                <label for="phone">Phone number (optional)</label>
                 <input type="tel" id="phone" name="phone"
-                       value="<?= h($_POST['phone'] ?? '') ?>"
-                       autocomplete="tel" placeholder="0712 345 678">
+                       value="<?= $keep('phone') ?>"
+                       autocomplete="tel" placeholder="0712 345 678"<?= $fv('phone') ?>>
+                <?= $fm('phone') ?>
             </div>
-
-            <fieldset class="field full" style="border:0;padding:0;margin:0">
-                <legend style="font-weight:600;margin-bottom:6px">Confirm my account with</legend>
-                <?php $via = ($_POST['verify_via'] ?? 'email') === 'sms' ? 'sms' : 'email'; ?>
-                <label class="check"><input type="radio" name="verify_via" value="email" <?= $via === 'email' ? 'checked' : '' ?>> <span><strong>Email</strong>: a link and a 6-digit code sent to my email</span></label>
-                <label class="check"><input type="radio" name="verify_via" value="sms" <?= $via === 'sms' ? 'checked' : '' ?>> <span><strong>SMS</strong>: a 6-digit code sent to my phone (needs the phone number above)</span></label>
-            </fieldset>
 
             <div class="field full">
                 <label for="role">I am signing up as</label>
-                <select id="role" name="role" required>
+                <select id="role" name="role" required<?= $fv('role') ?>>
                     <option value="">Choose one</option>
                     <option value="tourist" 
                         <?= (($_POST['role'] ?? $_GET['role'] ?? '') === 'tourist')
@@ -154,30 +147,72 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         Host — list your property and manage bookings
                     </option>
                 </select>
+                <?= $fm('role') ?>
             </div>
 
+            <?php /* Passwords are sent back only when they were fine, so a mistake elsewhere does not make anyone retype them. */
+                  $pwKeep = !isset($fe['password']) && !isset($fe['confirm_password']); ?>
             <div class="field">
                 <label for="password">Password</label>
                 <input type="password" id="password" name="password"
-                       minlength="8" autocomplete="new-password" required>
+                       value="<?= $pwKeep ? h($_POST['password'] ?? '') : '' ?>"
+                       minlength="8" autocomplete="new-password" required<?= $fv('password') ?>>
+                <?= $fm('password') ?>
             </div>
 
             <div class="field">
                 <label for="confirm_password">Confirm Password</label>
                 <input type="password" id="confirm_password"
                        name="confirm_password"
-                       minlength="8" autocomplete="new-password" required>
+                       value="<?= (!isset($fe['confirm_password']) && !isset($fe['password'])) ? h($_POST['confirm_password'] ?? '') : '' ?>"
+                       minlength="8" autocomplete="new-password" required<?= $fv('confirm_password') ?>>
+                <?= $fm('confirm_password') ?>
             </div>
 
             <label class="check full">
-                <input type="checkbox" required>
+                <input type="checkbox" name="agree" value="1" required <?= ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($fe['agree'])) ? 'checked' : '' ?><?= $fv('agree') ?>>
                 <span>By continuing, you agree to our <a class="home-link" href="terms.html">terms</a> and <a class="home-link" href="privacy.html">privacy policy</a>.</span>
+                <?= $fm('agree') ?>
             </label>
 
             <button type="submit" class="btn full">
                 Create account
             </button>
         </form>
+
+        <script>
+        (function () {   // check each field as the person leaves it, and mark only the one that is wrong
+            var f = document.getElementById('regForm'); if (!f) return;
+            var rules = {
+                full_name: function (v) { return v.trim() ? '' : 'Enter your full name.'; },
+                email: function (v) { return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v) ? '' : 'Enter a valid email address, for example name@example.com.'; },
+                phone: function (v) { return !v.trim() || /^\+?[0-9 ()-]{9,17}$/.test(v) ? '' : 'Enter a valid phone number, for example 0712 345 678.'; },
+                password: function (v) { return v.length >= 8 ? '' : 'Use at least 8 characters.'; },
+                confirm_password: function (v) { return v === f.password.value ? '' : 'The two passwords do not match.'; }
+            };
+            function show(el, msg) {
+                var id = 'err_' + el.name, old = document.getElementById(id);
+                if (old) old.remove();
+                el.removeAttribute('aria-invalid'); el.removeAttribute('aria-describedby');
+                if (!msg) return;
+                var d = document.createElement('div'); d.className = 'field-error'; d.id = id; d.setAttribute('role', 'alert'); d.textContent = msg;
+                el.setAttribute('aria-invalid', 'true'); el.setAttribute('aria-describedby', id);
+                el.parentNode.appendChild(d);
+            }
+            Object.keys(rules).forEach(function (n) {
+                var el = f.elements[n]; if (!el) return;
+                el.addEventListener('blur', function () { if (el.value !== '' || n === 'full_name') show(el, rules[n](el.value)); });
+                el.addEventListener('input', function () { if (el.getAttribute('aria-invalid')) show(el, rules[n](el.value)); });
+            });
+            f.addEventListener('submit', function (e) {
+                var first = null;
+                Object.keys(rules).forEach(function (n) { var el = f.elements[n]; if (!el) return; var m = rules[n](el.value); show(el, m); if (m && !first) first = el; });
+                if (f.elements.agree && !f.elements.agree.checked) { show(f.elements.agree, 'Tick the box to agree to the terms and privacy policy.'); first = first || f.elements.agree; }
+                if (f.elements.role && !f.elements.role.value) { show(f.elements.role, 'Choose how you are signing up.'); first = first || f.elements.role; }
+                if (first) { e.preventDefault(); first.focus(); }   // nothing is cleared, nothing is lost
+            });
+        })();
+        </script>
 
         <?php endif; ?>
 

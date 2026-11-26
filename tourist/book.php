@@ -5,6 +5,7 @@ require_once '../includes/db.php';
 require_once '../includes/currency.php';
 require_once '../includes/notifications.php';
 require_once '../includes/booking_rules.php';
+require_once '../includes/booking_workflow.php';
 require_once '../includes/booking_holds.php';
 expireStaleBookingRequests($pdo);   // releases dates held by unpaid or unanswered requests
 require_once '../includes/onsite_experience.php';
@@ -56,10 +57,21 @@ $rules = $rules->fetchAll(PDO::FETCH_COLUMN);
 $d_in  = DateTime::createFromFormat('Y-m-d', $check_in);
 $d_out = DateTime::createFromFormat('Y-m-d', $check_out);
 $today = new DateTime('today');
-if (!$d_in || !$d_out || $d_in->format('Y-m-d') !== $check_in
-    || $d_out->format('Y-m-d') !== $check_out
-    || $d_in < $today || $d_out <= $d_in) {
-    setFlash('error', 'Please choose valid dates: check-in today or later, and check-out after check-in.');
+$tomorrow = (new DateTime('tomorrow'))->format('D, j M Y');
+if (!$d_in || !$d_out || $d_in->format('Y-m-d') !== $check_in || $d_out->format('Y-m-d') !== $check_out) {
+    setFlash('error', 'Please choose valid dates.');
+    redirect("details.php?id=$accommodation_id");
+}
+if ($check_in < $today->format('Y-m-d')) {
+    setFlash('error', 'You cannot book dates that have already passed. Please choose a check-in date from tomorrow (' . $tomorrow . ') onwards.');
+    redirect("details.php?id=$accommodation_id");
+}
+if ($check_in === $today->format('Y-m-d')) {
+    setFlash('error', 'You cannot book for today. Your host needs time to reply, so the earliest check-in is tomorrow (' . $tomorrow . ').');
+    redirect("details.php?id=$accommodation_id");
+}
+if ($check_out <= $check_in) {
+    setFlash('error', 'Check-out must be after check-in. Choose at least one night.');
     redirect("details.php?id=$accommodation_id");
 }
 $guests = max(1, $guests);
@@ -85,11 +97,8 @@ $serviceFee   = serviceFeeFor($hostPrice);                 // guest service fee,
 $commBase     = commissionBase() === 'stay_only' ? $subtotal : $hostPrice;   // what the commission is a percentage of (admin setting)
 $commission   = commissionFor($commBase);                  // platform commission
 $commissionRate = commissionRatePercent();
-$commMode     = commissionMode();                          // 'upfront' = guest pays it with the booking; 'invoice' = host pays it after the stay
+$commMode     = commissionMode();                          // always 'invoice' now: the HOST pays the commission after the stay. Stored privately on the booking; never shown to guests.
 $total        = $hostPrice + $serviceFee;                  // what the guest pays in all
-$commissionNow = $commMode === 'invoice' ? 0.0 : $commission;
-$platformShare = $serviceFee + $commissionNow;             // goes to StayExplore Kenya (the admin) at booking time
-$hostShare    = $total - $platformShare;                   // goes to the host
 // A host with overdue commission (invoice mode) cannot take new bookings until it is paid.
 if (hostIsBlockedForCommission($pdo, (int)$acc['host_id'])) {
     setFlash('error', 'This host is not taking new bookings right now. Please choose another stay.');
@@ -153,8 +162,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($pdo->inTransaction()) $pdo->rollBack();
             throw $e;
         }
-        notifyUserOfBooking($pdo, $booking_id, 'host', 'New booking request', bookingLabel($booking_id) . ': ' . $acc['title'] . ', ' . $check_in . ' to ' . $check_out . '. The guest will now send payment details.', 'host/bookings.php');
-        redirect('payment.php?ref=' . urlencode(bookingRef($booking_id)));
+        notifyUserOfBooking($pdo, $booking_id, 'host', 'New booking request', bookingLabel($booking_id) . ': ' . $acc['title'] . ', ' . $check_in . ' to ' . $check_out . '. Please accept or decline. The guest pays only after you accept.', 'host/bookings.php');
+        try {
+            require_once '../includes/email.php';
+            $hq = $pdo->prepare('SELECT email, full_name FROM users WHERE user_id = ?'); $hq->execute([(int)$acc['host_id']]); $hu = $hq->fetch();
+            if ($hu) sendNewBookingHostEmail($hu['email'], $hu['full_name'], ['booking_id' => $booking_id, 'title' => $acc['title'], 'check_in_date' => $check_in, 'check_out_date' => $check_out, 'total_amount' => $total]);
+        } catch (Throwable $e) { error_log('host request email: ' . $e->getMessage()); }
+        setFlash('success', 'Request sent. Your host will reply within ' . (int)hostReplyHours() . ' hours. You will be asked to pay only after the host accepts.');
+        redirect('bookings.php');
     }
 }
 ?>
@@ -163,17 +178,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Complete your booking — StayExplore Kenya</title>
+    <title>Request to book — StayExplore Kenya</title>
     <link rel="stylesheet" href="../assets/css/style.css">
+<link rel="stylesheet" href="../assets/css/ui.css"><script src="../assets/js/ui.js" defer></script>
     <style>
-        .page-wrap { max-width:960px; margin:0 auto; padding:32px 24px; }
-        .page-tag  { font-size:11px; font-weight:600; letter-spacing:.06em;
-                     color:#126b4e; text-transform:uppercase;
-                     margin-bottom:8px; }
-        .page-title { font-size:28px; font-weight:400; color:var(--text-primary);
-                      margin-bottom:4px; }
-        .page-sub { font-size:14px; color:var(--text-secondary);
-                    margin-bottom:32px; }
+        
         .booking-layout { display:grid; grid-template-columns:1fr 320px;
                           gap:32px; }
         .booking-main { background:var(--surface-2);
@@ -181,6 +190,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         border-radius:8px; padding:28px; }
         .booking-main h3 { font-size:15px; font-weight:500;
                            margin-bottom:20px; color:var(--text-primary); }
+        .pay-note { margin:12px 0; padding:12px 14px; background:var(--surface-2); border:1px solid var(--border); border-left:3px solid var(--forest, var(--accent)); border-radius:6px; font-size:13px; line-height:1.55; }
         .detail-row { display:flex; justify-content:space-between;
                       padding:10px 0; border-bottom:1px solid var(--border);
                       font-size:14px; }
@@ -207,7 +217,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         border:1px solid var(--border);
                         border-radius:8px; overflow:hidden;
                         position:sticky; top:80px; }
-        .summary-img { height:160px; background:#E1F5EE;
+        .summary-img { height:160px; background:var(--accent-soft);
                        display:flex; align-items:center;
                        justify-content:center; font-size:36px; }
         .summary-img img { width:100%; height:100%; object-fit:cover; }
@@ -223,10 +233,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                        color:var(--text-primary);
                        border-top:1px solid var(--border);
                        padding-top:10px; margin-top:4px; }
-        .secure-note { font-size:12px; color:var(--text-secondary);
-                       margin-top:12px; display:flex;
-                       align-items:center; gap:6px; }
-        .submit-btn { width:100%; padding:12px; background:#085041;
+        .submit-btn { width:100%; padding:12px; background:var(--btn-hover);
                       color:white; border:none; border-radius:6px;
                       font-size:14px; font-weight:500; cursor:pointer;
                       margin-top:16px; }
@@ -343,7 +350,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 <p class="small" style="margin:0 0 12px">Before you send this request, please read the <?php bookingRulesDialog(); ?></p>
                 <button type="submit" class="submit-btn">
-                    Continue to payment
+                    Send booking request
                 </button>
             </div>
         </div>
@@ -354,9 +361,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="summary-img">
                     <?php if ($photo): ?>
                         <img src="../uploads/accommodations/<?= h($photo) ?>"
-                             alt="<?= h($acc['title']) ?>">
+                             alt="<?= h($acc['title']) ?>" loading="lazy" decoding="async">
                     <?php else: ?>
-                        <span style="font-size:12px;color:#8a948e">No photo</span>
+                        <span style="font-size:12px;color:var(--text-tertiary)">No photo</span>
                     <?php endif; ?>
                 </div>
                 <div class="summary-body">
@@ -390,22 +397,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <span>Total</span>
                             <span>KES <?= number_format($total) ?><?= approxHtml($total) ?></span>
                         </div>
-                        <?php if ($platformShare > 0): ?>
-                        <div style="margin:12px 0;padding:10px 12px;background:#eef6f1;border-radius:6px;font-size:13px;line-height:1.5">
-                            <strong>How your payment is shared</strong><br>
-                            To your host: <strong>KES <?= number_format($hostShare) ?></strong><br>
-                            To StayExplore Kenya: <strong>KES <?= number_format($platformShare) ?></strong> (includes the service fee)<br>
-                            <span style="color:#4f5f57">You pay each part directly to its owner on the next page.</span>
+                        <div class="pay-note">
+                            <strong>You do not pay now.</strong> Your host replies to this request first. If the host accepts, you will have <?= (int)paymentDeadlineHours() ?> hours to pay your host directly. The booking is confirmed when your host confirms they received your payment.
                         </div>
-                        <?php endif; ?>
-                        <p style="font-size:12px;color:#4f5f57;line-height:1.5;margin-top:10px">
+                        <p style="font-size:12px;color:var(--text-secondary);line-height:1.5;margin-top:10px">
                             <?php if ($onsiteFee > 0): ?>The extra KES <?= number_format($onsiteFee) ?> is for <strong><?= h($onsiteName) ?></strong>, a tour or guide your host offers at the stay (KES <?= number_format($onsitePer) ?> per guest). <?php endif; ?>
                             Entry fees for parks and other attractions nearby are not included. You pay those at the gate when you visit.
                         </p>
                     </div>
-                    <div class="secure-note">
-                                                Payments are tracked securely within the platform
-                    </div>
+                    
                 </div>
             </div>
         </div>

@@ -31,14 +31,15 @@ $mb = round($st['db_bytes'] / 1048576, 1);
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Photo safekeeping — Admin</title>
 <link rel="stylesheet" href="../assets/css/style.css">
+<link rel="stylesheet" href="../assets/css/ui.css"><script src="../assets/js/ui.js" defer></script>
 <style>
-.help{background:#fff;border:1px solid #e4e1d8;border-radius:10px;padding:14px 18px;font-size:13px;color:#4a5249;line-height:1.7;margin-bottom:16px}
-.ph-table{width:100%;border-collapse:collapse;font-size:13px;background:#fff}
-.ph-table th{text-align:left;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#565c55;padding:10px 12px;border-bottom:1px solid #e4e1d8}
-.ph-table td{padding:10px 12px;border-bottom:1px solid #eee}
+.help{background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:14px 18px;font-size:13px;color:var(--text-secondary);line-height:1.7;margin-bottom:16px}
+.ph-table{width:100%;border-collapse:collapse;font-size:13px;background:var(--surface-2)}
+.ph-table th{text-align:left;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);padding:10px 12px;border-bottom:1px solid var(--border)}
+.ph-table td{padding:10px 12px;border-bottom:1px solid var(--border)}
 .ph-actions{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0}
-.ph-actions button{padding:9px 16px;border-radius:8px;border:1px solid #0d3b2e;background:#0d3b2e;color:#fff;font-size:13px;cursor:pointer}
-.ph-actions button.alt{background:#fff;color:#8a2b22;border-color:#e0a39b}
+.ph-actions button{padding:9px 16px;border-radius:8px;border:1px solid var(--forest);background:var(--forest);color:#fff;font-size:13px;cursor:pointer}
+.ph-actions button.alt{background:var(--surface-2);color:var(--bad-fg);border-color:#e0a39b}
 </style>
 <link rel="stylesheet" href="../assets/css/dark.css"><meta name="color-scheme" content="light dark"><script src="../assets/js/se-theme.js"></script><script src="../assets/js/se-i18n.js"></script></head>
 <body>

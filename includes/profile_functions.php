@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/upload_helpers.php';
 require_once __DIR__ . '/profile_photo.php';
+require_once __DIR__ . '/host_profile.php';
 function updateProfile($pdo, $user_id, $data) {
     $full_name   = sanitize($data['full_name'] ?? '');
     $phone       = sanitize($data['phone'] ?? '');
@@ -8,6 +9,15 @@ function updateProfile($pdo, $user_id, $data) {
 
     if (empty($full_name))
         $errors[] = 'Full name is required.';
+
+    // Optional host introduction (only sent by the host profile form)
+    $intro = null;
+    if (array_key_exists('intro', $data)) {
+        $intro = sanitize($data['intro'] ?? '');
+        $plain = html_entity_decode($intro, ENT_QUOTES, 'UTF-8');
+        if ((function_exists('mb_strlen') ? mb_strlen($plain) : strlen($plain)) > 600)
+            $errors[] = 'Your introduction must be 600 characters or fewer.';
+    }
 
     // Handle profile photo upload
     $photo = $data['existing_photo'] ?? null;
@@ -44,6 +54,13 @@ function updateProfile($pdo, $user_id, $data) {
             profile_photo = ?
         WHERE user_id = ?
     ")->execute([$full_name, $phone, $photo, $user_id]);
+
+    if ($intro !== null) {
+        ensureHostIntroColumn($pdo);
+        try {
+            $pdo->prepare("UPDATE users SET host_intro = ? WHERE user_id = ?")->execute([$intro === '' ? null : $intro, $user_id]);
+        } catch (Throwable $e) { /* column not installed */ }
+    }
 
     // Keep the picture itself in the database too, so it survives replacing the project folder.
     if ($newPhotoMime !== null) {
@@ -150,9 +167,9 @@ function deleteUserAccount($pdo, $user_id, $password, $typed) {
     // Upcoming or in-progress stays must be finished or cancelled first.
     if ($user['role'] === 'host') {
         $open = $pdo->prepare("SELECT COUNT(*) FROM bookings b JOIN accommodations a ON a.accommodation_id = b.accommodation_id
-                               WHERE a.host_id = ? AND b.status IN ('pending','confirmed') AND b.check_out_date >= CURDATE()");
+                               WHERE a.host_id = ? AND b.status IN ('pending','accepted','payment_pending','confirmed') AND b.check_out_date >= CURDATE()");
     } else {
-        $open = $pdo->prepare("SELECT COUNT(*) FROM bookings b WHERE b.tourist_id = ? AND b.status IN ('pending','confirmed')
+        $open = $pdo->prepare("SELECT COUNT(*) FROM bookings b WHERE b.tourist_id = ? AND b.status IN ('pending','accepted','payment_pending','confirmed')
                                AND b.check_out_date >= CURDATE()");
     }
     $open->execute([$user_id]);
@@ -173,6 +190,7 @@ function deleteUserAccount($pdo, $user_id, $password, $typed) {
                        account_closed_at = COALESCE(account_closed_at, NOW()), account_deleted_at = NOW()
                        WHERE user_id = ?")->execute([$anonEmail, $randomPw, $user_id]);
         try { $pdo->prepare("UPDATE users SET profile_photo_data = NULL, profile_photo_mime = NULL WHERE user_id = ?")->execute([$user_id]); } catch (Throwable $e) { /* column not installed */ }
+        try { $pdo->prepare("UPDATE users SET host_intro = NULL WHERE user_id = ?")->execute([$user_id]); } catch (Throwable $e) { /* column not installed */ }
         $pdo->prepare("DELETE FROM favourites WHERE tourist_id = ?")->execute([$user_id]);
         try { $pdo->prepare("DELETE FROM host_verifications WHERE host_id = ?")->execute([$user_id]); } catch (Throwable $e) { /* table not installed */ }
         try {

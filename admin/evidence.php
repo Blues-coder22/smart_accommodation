@@ -35,8 +35,9 @@ $ref = bookingLabel($bid);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Evidence pack <?= h($ref) ?> — StayExplore Kenya</title>
     <link rel="stylesheet" href="../assets/css/style.css">
+<link rel="stylesheet" href="../assets/css/ui.css"><script src="../assets/js/ui.js" defer></script>
     <link rel="stylesheet" href="../assets/css/finance.css">
-    <style>.ev-wrap{max-width:900px;margin:20px auto;padding:0 16px}.ev-wrap h2{margin-top:0}.ev-two{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media(max-width:640px){.ev-two{grid-template-columns:1fr}}@media print{.ev-wrap{max-width:none;margin:0;padding:0}}</style>
+    <style>.ev-wrap{max-width:900px;margin:20px auto;padding:0 16px}.ev-wrap h2{margin-top:0}.ev-two{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media(max-width:768px){.ev-two{grid-template-columns:1fr}}@media print{.ev-wrap{max-width:none;margin:0;padding:0}}</style>
 </head>
 <body>
 <main class="ev-wrap" id="main-content">

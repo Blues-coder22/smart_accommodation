@@ -21,6 +21,7 @@ if (!function_exists('appShellBadges')) {
                 $b['reviews']  = (int)$pdo->query("SELECT COUNT(*) FROM reviews WHERE is_flagged = 1 AND is_published = 0")->fetchColumn();
                 $b['reports']  = (int)$pdo->query("SELECT COUNT(*) FROM reports WHERE status = 'pending'")->fetchColumn();
                 $b['users']    = 0;
+                try { $b['support'] = (int)$pdo->query("SELECT COUNT(DISTINCT thread_id) FROM support_messages WHERE is_admin = 0 AND read_at IS NULL")->fetchColumn(); } catch (Throwable $e) {}
                 try {
                     $b['users'] = (int)$pdo->query("SELECT COUNT(*) FROM host_verifications WHERE status = 'pending'")->fetchColumn();
                 } catch (Throwable $e) {}
@@ -47,6 +48,7 @@ if (!function_exists('appShellStart')) {
         $base   = function_exists('appBasePath') ? appBasePath() : '/smart_accommodation';
         $file   = basename($_SERVER['SCRIPT_NAME'] ?? '');
         $badges = appShellBadges($role);
+        if (function_exists('markPageNotificationsRead') || is_file(__DIR__ . '/notifications.php')) { require_once __DIR__ . '/notifications.php'; global $pdo; markPageNotificationsRead($pdo, (int)($_SESSION['user_id'] ?? 0)); }
 
         // [file name(s), label, link, badge key]
         if ($role === 'host') {
@@ -58,6 +60,7 @@ if (!function_exists('appShellStart')) {
                 [['bookings.php', 'rate_guest.php'],         'Manage bookings',  'host/bookings.php',     'bookings'],
                 [['messages.php'],                           'Messages',         'host/messages.php',     null],
                 [['payments.php'],                           'Payment tracking', 'host/payments.php',     null],
+                [['support.php'],                            'Contact support',  'host/support.php',      null],
                 [['statement.php'],                          'Payment statement', 'host/statement.php',   null],
                 [['commission.php'],                         'Commission',       'host/commission.php',   null],
                 [['agreement.php'],                          'Host agreement',   'host/agreement.php',    null],
@@ -81,6 +84,7 @@ if (!function_exists('appShellStart')) {
                 [['reviews.php'],                            'Moderate reviews',    'admin/reviews.php',     'reviews'],
                 [['attraction_reviews.php'],                 'Attraction ratings',  'admin/attraction_reviews.php', null],
                 [['reports.php'],                            'Incident reports',    'admin/reports.php',     'reports'],
+                [['support.php'],                            'Support inbox',       'admin/support.php',     'support'],
                 [['attractions.php', 'osm_attractions.php'], 'Manage attractions',  'admin/attractions.php', null],
                 [['profile.php'],                            'Admin profile',       'admin/profile.php',     null],
             ];
@@ -91,6 +95,7 @@ if (!function_exists('appShellStart')) {
         $roleLabel = $role === 'host' ? 'Host' : 'Admin';
         $e = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
         ?>
+<?php if (isLoggedIn()): ?><script>window.SE_LIVE={base:<?= json_encode($base) ?>,role:<?= json_encode((string)($_SESSION['role'] ?? '')) ?>};</script><script src="<?= $e($base) ?>/assets/js/live.js" defer></script><script src="<?= $e($base) ?>/assets/js/emoji.js" defer></script><?php endif; ?>
 <div class="app">
   <button type="button" class="side-toggle" aria-expanded="false" aria-controls="appSidebar">Menu</button>
   <aside class="app-sidebar" id="appSidebar">

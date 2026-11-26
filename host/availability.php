@@ -52,7 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
         $has_booking = $pdo->prepare("
             SELECT COUNT(*) FROM bookings
             WHERE accommodation_id = ?
-            AND status IN ('pending','confirmed')
+            AND status IN ('pending','accepted','payment_pending','confirmed')
             AND ? BETWEEN check_in_date
             AND DATE_SUB(check_out_date, INTERVAL 1 DAY)
         ");
@@ -120,36 +120,14 @@ $today         = date('Y-m-d');
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Availability — StayExplore Kenya</title>
     <link rel="stylesheet" href="../assets/css/style.css">
+<link rel="stylesheet" href="../assets/css/ui.css"><script src="../assets/js/ui.js" defer></script>
     <style>
-        
-        .dash-wrap   { display:grid;
-                       grid-template-columns:200px 1fr; flex:1 }
         .sidebar     { background:var(--surface-2);
                        border-right:1px solid var(--border);
                        padding:24px 0; position:sticky;
                        top:52px; height:calc(100vh - 52px);
                        overflow-y:auto }
-        .sidebar-role{ font-size:10px; font-weight:700;
-                       letter-spacing:.08em; color:#126b4e;
-                       text-transform:uppercase;
-                       padding:0 20px; margin-bottom:12px }
-        .sidebar-link{ display:flex; align-items:center; gap:10px;
-                       padding:9px 20px; font-size:13px;
-                       color:var(--text-secondary);
-                       text-decoration:none; width:100% }
-        .sidebar-link:hover { color:var(--text-primary);
-                              background:var(--surface-1) }
-        .sidebar-link.active { color:#085041; font-weight:500;
-                               background:#E1F5EE;
-                               border-left:3px solid #126b4e }
         .main        { padding:28px }
-        .page-tag    { font-size:11px; font-weight:600;
-                       letter-spacing:.06em; color:#126b4e;
-                       text-transform:uppercase; margin-bottom:8px }
-        .page-title  { font-size:26px; font-weight:400;
-                       margin-bottom:4px }
-        .page-sub    { font-size:13px; color:var(--text-secondary);
-                       margin-bottom:24px }
         .listing-select { display:flex; gap:10px; align-items:center;
                           margin-bottom:24px; flex-wrap:wrap }
         .listing-select label { font-size:13px; font-weight:500 }
@@ -173,7 +151,7 @@ $today         = date('Y-m-d');
                        border-radius:4px; text-decoration:none;
                        color:var(--text-secondary);
                        border:1px solid var(--border) }
-        .cal-nav a:hover { border-color:#126b4e; color:#126b4e }
+        .cal-nav a:hover { border-color:var(--accent); color:var(--accent) }
         .cal-grid    { padding:14px }
         .dow-row     { display:grid; grid-template-columns:repeat(7,1fr);
                        gap:4px; margin-bottom:4px }
@@ -188,14 +166,14 @@ $today         = date('Y-m-d');
                        cursor:pointer; border:1px solid transparent;
                        user-select:none; position:relative }
         .day-cell.empty { cursor:default }
-        .day-cell.today { border-color:#126b4e;
-                          font-weight:600; color:#085041 }
-        .day-cell.available { background:#E1F5EE; color:#0F6E56 }
-        .day-cell.unavailable { background:#FEF2F2; color:#b42318;
+        .day-cell.today { border-color:var(--accent);
+                          font-weight:600; color:var(--accent-strong) }
+        .day-cell.available { background:var(--accent-soft); color:var(--accent-strong) }
+        .day-cell.unavailable { background:var(--bad-bg); color:var(--bad-fg);
                                 text-decoration:line-through }
         .day-cell.booked { background:#E0E7FF; color:#3730A3;
                            cursor:not-allowed }
-        .day-cell.booked-pending { background:#FDE9B0; color:#7A5A00; cursor:default }
+        .day-cell.booked-pending { background:#FDE9B0; color:var(--warn-fg); cursor:default }
         .day-cell.past   { opacity:.4; cursor:default }
         .day-cell.selected { box-shadow:0 0 0 2px #126b4e;
                              z-index:1 }
@@ -223,21 +201,20 @@ $today         = date('Y-m-d');
                        border:1px solid var(--border);
                        border-radius:6px; cursor:pointer;
                        transition:.15s }
-        .avail-opt:has(input:checked) { border-color:#126b4e;
+        .avail-opt:has(input:checked) { border-color:var(--accent);
                                         background:#F0FAF6 }
         .avail-opt input { accent-color:#126b4e }
         .avail-opt span  { font-size:13px; font-weight:500 }
         .avail-opt small { font-size:11px; color:var(--text-secondary);
                            display:block }
-        .btn-update  { width:100%; padding:10px; background:#085041;
+        .btn-update  { width:100%; padding:10px; background:var(--btn-hover);
                        color:#fff; border:none; border-radius:6px;
                        font-size:13px; font-weight:500; cursor:pointer }
         .btn-update:hover { background:#0a6350 }
         .btn-update:disabled { opacity:.5; cursor:not-allowed }
         .no-listing  { text-align:center; padding:48px;
                        color:var(--text-secondary); font-size:14px }
-        @media(max-width:1000px){
-            .dash-wrap { grid-template-columns:1fr }
+        @media(max-width:1024px){
             .sidebar   { display:none }
             .cal-layout { grid-template-columns:1fr }
             .actions-card { position:static }
@@ -376,15 +353,15 @@ $today         = date('Y-m-d');
                 <div class="legend">
                     <div class="legend-item">
                         <div class="legend-dot"
-                             style="background:#E1F5EE;
-                                    border:1px solid #9FE1CB">
+                             style="background:var(--accent-soft);
+                                    border:1px solid var(--accent-line)">
                         </div>
                         Available
                     </div>
                     <div class="legend-item">
                         <div class="legend-dot"
-                             style="background:#FEF2F2;
-                                    border:1px solid #FECACA">
+                             style="background:var(--bad-bg);
+                                    border:1px solid var(--bad-line)">
                         </div>
                         Unavailable
                     </div>
@@ -404,7 +381,7 @@ $today         = date('Y-m-d');
                     </div>
                     <div class="legend-item">
                         <div class="legend-dot"
-                             style="border:1.5px solid #126b4e">
+                             style="border:1.5px solid var(--accent)">
                         </div>
                         Today
                     </div>

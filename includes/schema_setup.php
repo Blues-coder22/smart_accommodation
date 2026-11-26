@@ -6,7 +6,7 @@
  */
 require_once __DIR__ . '/functions.php';
 foreach (['gallery', 'attraction_reviews', 'profile_photo', 'attraction_content', 'commons_photos', 'review_extras', 'login_throttle',
-          'payment_audit', 'media_store', 'booking_events', 'commission', 'onsite_experience', 'verify_wait', 'notifications', 'currency', 'certificates'] as $f) {
+          'payment_audit', 'media_store', 'booking_events', 'commission', 'onsite_experience', 'verify_wait', 'notifications', 'currency', 'certificates', 'host_profile', 'support', 'emoji_support'] as $f) {
     if (is_file(__DIR__ . "/$f.php")) require_once __DIR__ . "/$f.php";
 }
 
@@ -26,7 +26,7 @@ if (!function_exists('runSchemaSetup')) {
         $msgs = []; $calls = ['ensureAttractionPhotosTable', 'ensureAttractionReviewsTable', 'ensureProfilePhotoColumns', 'ensureAttractionExtras',
             'ensureAttractionPhotoCreditsTable', 'ensureReviewExtraColumns', 'ensureLoginAttemptsTable', 'ensurePaymentAuditTable',
             'ensureMediaTables', 'ensureBookingEventsTable', 'ensureCommissionTables', 'ensureOnsiteExperienceColumns',
-            'ensureVerifyWaitsTable', 'ensureVerifyCodesTable', 'ensureBookingRefColumn', 'ensureNotificationsTable', 'ensureCurrenciesTable', 'ensureCertificatesTable'];
+            'ensureVerifyWaitsTable', 'ensureVerifyCodesTable', 'ensureBookingRefColumn', 'ensureNotificationsTable', 'ensureCurrenciesTable', 'ensureCertificatesTable', 'ensureHostIntroColumn', 'ensureSupportTables', 'ensureEmojiSupport'];
         foreach ($calls as $fn) {
             if (!function_exists($fn)) { $msgs[] = "$fn: not found"; continue; }
             try { $fn($pdo); $msgs[] = "$fn: ok"; } catch (Throwable $e) { $msgs[] = "$fn: FAILED (" . $e->getMessage() . ")"; }

@@ -9,6 +9,7 @@ require_once __DIR__ . '/includes/functions.php';
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>How Hosting Works — StayExplore Kenya</title>
     <link rel="stylesheet" href="assets/css/style.css">
+<link rel="stylesheet" href="assets/css/ui.css"><script src="assets/js/ui.js" defer></script>
 <link rel="stylesheet" href="assets/css/dark.css"><meta name="color-scheme" content="light dark"><script src="assets/js/se-theme.js"></script><script src="assets/js/se-i18n.js"></script></head>
 <body>
 <?php include __DIR__ . '/includes/header.php'; ?>

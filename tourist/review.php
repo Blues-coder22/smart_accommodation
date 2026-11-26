@@ -165,14 +165,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Leave a Review — StayExplore Kenya</title>
     <link rel="stylesheet" href="../assets/css/style.css">
+<link rel="stylesheet" href="../assets/css/ui.css"><script src="../assets/js/ui.js" defer></script>
     <style>
-        .page-wrap  { max-width:680px; margin:0 auto; padding:32px 24px }
-        .page-tag   { font-size:11px; font-weight:600; letter-spacing:.06em;
-                      color:#126b4e; text-transform:uppercase;
-                      margin-bottom:8px }
-        .page-title { font-size:28px; font-weight:400; margin-bottom:4px }
-        .page-sub   { font-size:14px; color:var(--text-secondary);
-                      margin-bottom:28px }
+        
         .review-card{ background:var(--surface-2);
                       border:1px solid var(--border);
                       border-radius:8px; padding:28px }
@@ -181,7 +176,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                       border-bottom:1px solid var(--border);
                       margin-bottom:24px }
         .prop-thumb { width:64px; height:52px; border-radius:6px;
-                      background:#E1F5EE; overflow:hidden;
+                      background:var(--accent-soft); overflow:hidden;
                       display:flex; align-items:center;
                       justify-content:center; font-size:22px;
                       flex-shrink:0 }
@@ -214,29 +209,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                font-family:inherit;
                                background:var(--surface-2) }
         .form-group textarea:focus { outline:none;
-                                     border-color:#126b4e }
+                                     border-color:var(--accent) }
         .char-count { font-size:11px; color:var(--text-secondary);
                       text-align:right; margin-top:4px }
         .honesty-note { background:#F0FAF6;
-                        border:1px solid #9FE1CB;
+                        border:1px solid var(--accent-line);
                         border-radius:6px; padding:12px 14px;
-                        font-size:13px; color:#0F6E56;
+                        font-size:13px; color:var(--accent-strong);
                         margin-bottom:20px; line-height:1.5 }
         .reveal-note { background:var(--surface-1);
                        border:1px solid var(--border);
                        border-radius:6px; padding:12px 14px;
                        font-size:12px; color:var(--text-secondary);
                        margin-bottom:20px; line-height:1.5 }
-        .submit-btn { width:100%; padding:12px; background:#085041;
+        .submit-btn { width:100%; padding:12px; background:var(--btn-hover);
                       color:#fff; border:none; border-radius:6px;
                       font-size:14px; font-weight:500; cursor:pointer }
         .submit-btn:hover { background:#0a6350 }
         .success-state { text-align:center; padding:40px 20px }
-        .success-icon  { width:52px; height:52px; background:#E1F5EE;
+        .success-icon  { width:52px; height:52px; background:var(--accent-soft);
                          border-radius:50%; display:flex;
                          align-items:center; justify-content:center;
                          margin:0 auto 16px;
-                         border:1px solid #9FE1CB }
+                         border:1px solid var(--accent-line) }
         .success-icon svg { width:22px; height:22px; stroke:#126b4e }
         .success-state h2 { font-size:20px; font-weight:500;
                             margin-bottom:8px }
@@ -248,7 +243,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <?php include '../includes/header.php'; ?>
 
-<div class="page-wrap">
+<div class="page-wrap narrow">
 
     <div class="page-tag">Share what mattered</div>
     <h1 class="page-title">Leave a review</h1>
@@ -277,7 +272,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </p>
                 <a href="bookings.php"
                    style="display:inline-block;padding:10px 24px;
-                          background:#085041;color:#fff;
+                          background:var(--btn-hover);color:#fff;
                           border-radius:6px;font-size:14px;
                           font-weight:500;text-decoration:none">
                     Back to my bookings
@@ -302,9 +297,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="prop-thumb">
                     <?php if ($booking['primary_photo']): ?>
                         <img src="../uploads/accommodations/<?= h($booking['primary_photo']) ?>"
-                             alt="<?= h($booking['title']) ?>">
+                             alt="<?= h($booking['title']) ?>" loading="lazy" decoding="async">
                     <?php else: ?>
-                        <span style="font-size:12px;color:#8a948e">No photo</span>
+                        <span style="font-size:12px;color:var(--text-tertiary)">No photo</span>
                     <?php endif; ?>
                 </div>
                 <div>
@@ -360,7 +355,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="form-group">
                     <span class="rating-label">Rate the details</span>
                     <?php foreach (reviewCategoryLabels() as $col => $label): ?>
-                    <div class="cat-row" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid #eee">
+                    <div class="cat-row" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--border)">
                         <span style="font-size:14px"><?= h($label) ?></span>
                         <span class="cat-stars" data-name="<?= h($col) ?>">
                             <?php for ($i = 1; $i <= 5; $i++): ?><button type="button" class="cat-star" data-value="<?= $i ?>" aria-label="<?= $i ?> out of 5 for <?= h(strtolower($label)) ?>">&#9733;</button><?php endfor; ?>

@@ -1,0 +1,64 @@
+Contact support|||Wasiliana na msaada
+Approvals|||Idhini
+Users|||Watumiaji
+Support inbox|||Kikasha cha msaada
+Where to go|||Wapi pa kwenda
+Report this host|||Ripoti mwenyeji huyu
+Photo gallery|||Albamu ya picha
+View all photos|||Tazama picha zote
+Whole photo|||Picha nzima
+Fill|||Jaza fremu
+Zoom|||Kuza
+Fit to screen|||Rudisha kwenye skrini
+All photos|||Picha zote
+Back to photo|||Rudi kwenye picha
+New message|||Ujumbe mpya
+Send|||Tuma
+Reply|||Jibu
+Send reply|||Tuma jibu
+Send to support|||Tuma kwa msaada
+Your message|||Ujumbe wako
+Title|||Kichwa
+What is it about?|||Inahusu nini?
+Your messages|||Jumbe zako
+Nothing yet.|||Bado hakuna kitu.
+Mark as solved|||Weka kama imetatuliwa
+Reopen|||Fungua tena
+Add a message|||Ongeza ujumbe
+Write here…|||Andika hapa…
+Prefer email?|||Unapendelea barua pepe?
+Open my email app|||Fungua programu yangu ya barua pepe
+Open in Gmail|||Fungua kwenye Gmail
+Open in Outlook|||Fungua kwenye Outlook
+Contact StayExplore support|||Wasiliana na msaada wa StayExplore
+Transaction code|||Msimbo wa muamala
+(required)|||(inahitajika)
+Tick the box to agree to the terms and privacy policy.|||Weka alama kwenye kisanduku ili ukubali masharti na sera ya faragha.
+Enter your full name.|||Weka jina lako kamili.
+The two passwords do not match. Type the second one again.|||Nenosiri hazilingani. Andika la pili tena.
+Choose how you are signing up.|||Chagua unajisajili kama nani.
+Say hello|||Salimia
+You cannot book for today.|||Huwezi kuweka nafasi ya leo.
+Bookings start from tomorrow. You cannot book today or days that have passed.|||Uhifadhi huanza kesho. Huwezi kuhifadhi leo wala siku zilizopita.
+Check-out must be after check-in.|||Kuondoka lazima kuwe baada ya kuwasili.
+A booking or payment|||Uhifadhi au malipo
+A cancellation or refund|||Kughairi au kurejeshewa pesa
+A host or guest problem|||Tatizo la mwenyeji au mgeni
+My account or sign-in|||Akaunti yangu au kuingia
+My listing (hosts)|||Tangazo langu (wenyeji)
+Something else|||Jambo lingine
+Report a host (behaviour, scam, harassment)|||Ripoti mwenyeji (tabia, ulaghai, unyanyasaji)
+Host conduct|||Mwenendo wa mwenyeji
+Refund|||Kurejeshewa pesa
+Add an emoji|||Ongeza emoji
+Message support inside the app|||Tuma ujumbe kwa msaada ndani ya programu
+Mark as paid|||Weka kama imelipwa
+Please fix the highlighted field below. Everything else you typed has been kept.|||Tafadhali sahihisha sehemu iliyoangaziwa hapa chini. Kila kitu kingine ulichoandika kimehifadhiwa.
+Support message|||Ujumbe wa msaada
+Reply from support|||Jibu kutoka kwa msaada
+Support request closed|||Ombi la msaada limefungwa
+Booking cancelled: this payment can no longer be marked as paid.|||Uhifadhi umeghairiwa: malipo haya hayawezi tena kuwekwa kuwa yamelipwa.
+Tip:|||Kidokezo:
+if you asked for the email more than once, use the code from the|||ukiomba barua pepe zaidi ya mara moja, tumia msimbo kutoka kwenye
+newest email|||barua pepe mpya zaidi
+. Older codes stop working.|||. Misimbo ya zamani haifanyi kazi tena.

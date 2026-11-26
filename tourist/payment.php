@@ -6,6 +6,7 @@ require_once '../includes/currency.php';
 require_once '../includes/notifications.php';
 require_once '../includes/commission.php';
 ensureCommissionTables($pdo);
+require_once '../includes/booking_workflow.php';
 require_once '../includes/booking_rules.php';
 require_once '../includes/booking_holds.php';
 expireStaleBookingRequests($pdo);   // releases dates held by unpaid or unanswered requests
@@ -32,6 +33,7 @@ $stmt = $pdo->prepare("
            a.host_id,
            u.full_name AS host_name,
            u.email AS host_email,
+           u.payment_instructions AS host_instr,
            (SELECT photo_path FROM accommodation_photos
             WHERE accommodation_id = a.accommodation_id
             ORDER BY is_primary DESC, photo_id ASC LIMIT 1) AS primary_photo
@@ -40,13 +42,29 @@ $stmt = $pdo->prepare("
     JOIN users u ON u.user_id = a.host_id
     WHERE b.booking_id = ?
     AND b.tourist_id = ?
-    AND b.status = 'pending'
 ");
 $stmt->execute([$booking_id, $_SESSION['user_id']]);
 $booking = $stmt->fetch();
 
 if (!$booking) {
-    setFlash('error', 'Booking not found or already processed.');
+    setFlash('error', 'Booking not found.');
+    redirect('bookings.php');
+}
+// PAYMENT IS OPEN ONLY AFTER THE HOST ACCEPTED, and only until the payment deadline.
+if ($booking['status'] === 'pending') {
+    setFlash('warning', 'Your host has not accepted this request yet. You will be asked to pay only after they accept, and we will notify you.');
+    redirect('bookings.php');
+}
+if (in_array($booking['status'], ['payment_pending', 'confirmed', 'completed'], true)) {
+    redirect('confirmation.php?ref=' . urlencode(bookingRef($booking_id)));
+}
+if ($booking['status'] !== 'accepted') {
+    setFlash('error', 'This booking can no longer be paid for.');
+    redirect('bookings.php');
+}
+if (!guestSubmitPaymentAllowed($booking)) {
+    expireStaleBookingRequests($pdo, true);
+    setFlash('error', 'The payment deadline for this booking has passed, so the dates were released. You can send a new request.');
     redirect('bookings.php');
 }
 
@@ -68,13 +86,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $reference = sanitize($_POST['payment_reference'] ?? '');
     $confirmed = isset($_POST['confirmed']) ? 1 : 0;
 
-    $allowed_methods = ['cash', 'bank_transfer', 'mpesa'];
+    $allowed_methods = ['bank_transfer', 'mpesa'];   // cash on arrival cannot be verified before the payment deadline
 
     if (!in_array($method, $allowed_methods)) {
         $errors[] = 'Please select a payment method.';
     }
     if (!$confirmed) {
         $errors[] = 'Please confirm the amount and booking details.';
+    }
+    // Reference check, on the server: an M-Pesa code is letters and digits (for example QGH7ABC123); a bank reference is 4 to 40 plain characters.
+    $reference = strtoupper(preg_replace('/\s+/', '', (string)$reference));
+    if ($reference === '') {
+        $errors[] = 'The transaction code is required. Copy it from your M-Pesa confirmation message or your bank receipt, then paste it here.';
+    } elseif ($method === 'mpesa' && !preg_match('/^[A-Z0-9]{8,14}$/', $reference)) {
+        $errors[] = 'Enter the M-Pesa transaction code from your confirmation message (8 to 14 letters and numbers, for example QGH7ABC123).';
+    } elseif ($method === 'bank_transfer' && !preg_match('/^[A-Z0-9\/_.-]{4,40}$/', $reference)) {
+        $errors[] = 'Enter the bank transfer reference (4 to 40 letters, numbers or - / _ .).';
+    }
+    if (empty($errors)) {   // one payment reference cannot be used to support two different bookings
+        $dup = $pdo->prepare('SELECT 1 FROM payments WHERE payment_reference = ? AND payment_method = ? AND booking_id <> ? LIMIT 1');
+        $dup->execute([$reference, $method, $booking_id]);
+        if ($dup->fetchColumn()) $errors[] = 'This payment reference is already used for another booking. Please check it and try again.';
     }
 
     // Second part of the payment: StayExplore Kenya's share (service fee + commission), paid straight to the admin.
@@ -118,18 +150,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (empty($errors)) {
+        // Move the booking to 'payment_pending' first (locks the row, re-checks that it is still 'accepted'), then record the details.
+        $pdo->beginTransaction();
+        $mv = transitionBooking($pdo, $booking_id, 'payment_pending', 'tourist', (int)$_SESSION['user_id'], ['event' => 'payment_submitted', 'expect' => 'accepted', 'note' => 'Guest reported a payment (' . $method . ')']);
+        if (!$mv['ok']) { $pdo->rollBack(); setFlash('error', $mv['error']); redirect('bookings.php'); }
         // Record payment details as pending for host review. Reuse the existing row if the form is resubmitted.
         $existingPayment = $pdo->prepare("SELECT payment_id, payment_status, payment_method, payment_reference FROM payments WHERE booking_id = ? ORDER BY payment_id DESC LIMIT 1");
         $existingPayment->execute([$booking_id]);
         $existingRow = $existingPayment->fetch(PDO::FETCH_ASSOC) ?: null;
         $existingPaymentId = $existingRow ? (int)$existingRow['payment_id'] : 0;
-        // Already confirmed, or the very same details sent again (double click, Back button, refresh):
-        // change nothing and do not email the host a second time.
-        if ($existingRow && ($existingRow['payment_status'] === 'confirmed'
-            || ($existingRow['payment_method'] === $method && (string)$existingRow['payment_reference'] === (string)$reference))) {
-            if ($proofName && $existingPaymentId) {
-                $pdo->prepare("UPDATE payments SET payment_proof = ? WHERE payment_id = ? AND tourist_id = ? AND payment_status <> 'confirmed'")->execute([$proofName, $existingPaymentId, $_SESSION['user_id']]);
-            }
+        // A payment the host already confirmed is never overwritten.
+        if ($existingRow && $existingRow['payment_status'] === 'confirmed') {
+            $pdo->rollBack();
             redirect('confirmation.php?ref=' . urlencode(bookingRef($booking_id)));
         }
         if ($existingPaymentId) {
@@ -144,6 +176,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $pdo->prepare("UPDATE payments SET payment_proof = ? WHERE payment_id = ? AND tourist_id = ?")->execute([$proofName, $existingPaymentId, $_SESSION['user_id']]);
         }
 
+        $pdo->commit();
         // Details submitted, but nothing is confirmed yet: tell the host to check their account, and acknowledge to the guest.
         try {
             $mailBooking = ['booking_id' => $booking_id, 'title' => $booking['title'], 'check_in_date' => $booking['check_in_date'],
@@ -163,15 +196,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Payment — StayExplore Kenya</title>
+    <title>Pay your host — StayExplore Kenya</title>
     <link rel="stylesheet" href="../assets/css/style.css">
+<link rel="stylesheet" href="../assets/css/ui.css"><script src="../assets/js/ui.js" defer></script>
     <style>
-        .page-wrap   { max-width:900px; margin:0 auto; padding:32px 24px }
-        .page-tag    { font-size:11px; font-weight:600; letter-spacing:.06em;
-                       color:#126b4e; text-transform:uppercase; margin-bottom:8px }
-        .page-title  { font-size:28px; font-weight:400; margin-bottom:4px }
-        .page-sub    { font-size:14px; color:var(--text-secondary);
-                       margin-bottom:32px }
+        
+        .deadline-box { background:var(--surface-2); border:1px solid var(--border); border-left:3px solid var(--accent); border-radius:6px; padding:14px 16px; margin-bottom:22px; font-size:14px; line-height:1.6; display:grid; gap:6px }
+        .host-instr  { font-size:13px; color:var(--text-secondary); padding-top:8px; border-top:1px dashed var(--border) }
         .pay-layout  { display:grid; grid-template-columns:1fr 300px; gap:28px }
         .pay-card    { background:var(--surface-2); border:1px solid var(--border);
                        border-radius:8px; padding:28px }
@@ -182,7 +213,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                        padding:14px; border:1px solid var(--border);
                        border-radius:6px; cursor:pointer; transition:.15s }
         .method-opt:has(input:checked) {
-                       border-color:#126b4e;
+                       border-color:var(--accent);
                        background:#F0FAF6 }
         .method-opt input[type=radio] { margin-top:3px; accent-color:#126b4e;
                                         flex-shrink:0 }
@@ -190,16 +221,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                              display:block; margin-bottom:2px }
         .method-opt small  { font-size:12px; color:var(--text-secondary) }
         .ref-field   { margin-top:16px }
-        .notice-box  { background:#FFF8E1; border:1px solid #F9D57C;
+        .notice-box  { background:var(--warn-bg); border:1px solid var(--warn-line);
                        border-radius:6px; padding:12px 14px; font-size:13px;
-                       color:#7a5200; margin-top:16px; display:none }
+                       color:var(--warn-fg); margin-top:16px; display:none }
         .confirm-row { display:flex; align-items:flex-start; gap:10px;
                        margin:20px 0 }
         .confirm-row input { margin-top:2px; accent-color:#126b4e;
                              width:15px; height:15px; flex-shrink:0 }
         .confirm-row label { font-size:13px; color:var(--text-secondary);
                              line-height:1.5 }
-        .pay-btn     { width:100%; padding:12px; background:#085041;
+        .pay-btn     { width:100%; padding:12px; background:var(--btn-hover);
                        color:#fff; border:none; border-radius:6px;
                        font-size:14px; font-weight:500; cursor:pointer }
         .pay-btn:hover { background:#0a6350 }
@@ -207,7 +238,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         border:1px solid var(--border);
                         border-radius:8px; overflow:hidden;
                         position:sticky; top:80px }
-        .summary-img  { height:150px; background:#E1F5EE;
+        .summary-img  { height:150px; background:var(--accent-soft);
                         display:flex; align-items:center;
                         justify-content:center; font-size:36px }
         .summary-img img { width:100%; height:100%; object-fit:cover }
@@ -238,12 +269,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <div class="page-wrap">
 
     <div class="page-tag">Payment</div>
-    <h1 class="page-title">Choose how you will pay.</h1>
+    <h1 class="page-title">Pay your host</h1>
     <p class="page-sub">
-        This prototype records your selected payment method for host review; it does not process a live M-Pesa or bank transaction.
-        We do not process card details or move money —
-        your host confirms when they have received it.
+        Your host accepted this booking. Pay your host directly, then enter the payment details below.
+        StayExplore Kenya does not receive or hold this money. Your booking is confirmed when your host confirms they received it.
     </p>
+    <div class="deadline-box">
+        <div><strong>Booking <?= h(bookingLabel($booking_id)) ?></strong> &middot; <?= h($booking['title']) ?> &middot; <?= (int)$nights ?> night<?= $nights == 1 ? '' : 's' ?></div>
+        <div>Amount to pay your host: <strong>KES <?= number_format($split['host_amount']) ?></strong> &middot; Pay before <strong><?= h(date('j M Y, H:i', strtotime($booking['payment_due_at']))) ?></strong> or the dates are released.</div>
+        <?php if (!empty($booking['host_instr'])): ?><div class="host-instr"><strong>How to pay <?= h($booking['host_name']) ?>:</strong><br><?= nl2br(h($booking['host_instr'])) ?></div>
+        <?php else: ?><div class="host-instr">Your host has not added payment details yet. Message your host from the Messages page to ask for their M-Pesa or bank details.</div><?php endif; ?>
+    </div>
 
     <?php if (!empty($errors)): ?>
     <div class="alert alert-error" style="margin-bottom:20px">
@@ -264,22 +300,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="method-list">
                 <label class="method-opt">
                     <input type="radio" name="payment_method"
-                           value="cash" required
-                           onchange="showHint(this)">
-                    <div>
-                        <strong>Pay on arrival (cash)</strong>
-                        <small>Pay your host in cash at check-in.</small>
-                    </div>
-                </label>
-                <label class="method-opt">
-                    <input type="radio" name="payment_method"
-                           value="bank_transfer"
+                           value="bank_transfer" required
                            onchange="showHint(this)">
                     <div>
                         <strong>Bank transfer</strong>
                         <small>
-                            Your host will send their bank details
-                            after booking is confirmed.
+                            Use the bank details your host gave you above or in Messages, then enter the transfer reference below.
                         </small>
                     </div>
                 </label>
@@ -304,12 +330,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="ref-field" id="refField" style="display:none">
                 <div class="form-group">
                     <label for="payment_reference">
-                        Transaction reference (optional)
+                        Transaction code <span style="color:var(--bad-fg,#b3261e)" aria-hidden="true">*</span> <span class="small">(required)</span>
                     </label>
                     <input type="text" id="payment_reference"
                            name="payment_reference"
-                           maxlength="40"
-                           placeholder="Bank reference or M-Pesa code">
+                           maxlength="40" aria-required="true"
+                           autocomplete="off" autocapitalize="characters" spellcheck="false"
+                           value="<?= h((string)($_POST['payment_reference'] ?? '')) ?>"
+                           placeholder="M-Pesa code (e.g. QGH7ABC123) or bank reference">
+                    <div class="small">We cannot send your details to the host without it. It is how the host finds your payment.</div>
                 </div>
                 <div class="form-group">
                     <label for="payment_proof">Screenshot or receipt of your payment (optional)</label>
@@ -351,8 +380,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             <p class="small" style="margin:0 0 12px"><?php bookingRulesDialog(); ?> (deadlines, cancelling and refunds)</p>
             <button type="submit" class="pay-btn">
-                Submit payment details &mdash;
-                KES <?= number_format($booking['total_amount']) ?>
+                I have paid &mdash; send details to my host
             </button>
         </div>
 
@@ -362,9 +390,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="summary-img">
                     <?php if ($booking['primary_photo']): ?>
                         <img src="../uploads/accommodations/<?= h($booking['primary_photo']) ?>"
-                             alt="<?= h($booking['title']) ?>">
+                             alt="<?= h($booking['title']) ?>" loading="lazy" decoding="async">
                     <?php else: ?>
-                        <span style="font-size:12px;color:#8a948e">No photo</span>
+                        <span style="font-size:12px;color:var(--text-tertiary)">No photo</span>
                     <?php endif; ?>
                 </div>
                 <div class="summary-body">
@@ -429,7 +457,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
             <input type="hidden" name="action" value="cancel_booking">
             <input type="hidden" name="booking_ref" value="<?= h(bookingRef($booking['booking_id'])) ?>">
-            <button type="submit" style="background:none;border:0;color:#b42318;font:inherit;font-size:13px;cursor:pointer;text-decoration:underline">Cancel this booking</button>
+            <button type="submit" style="background:none;border:0;color:var(--bad-fg);font:inherit;font-size:13px;cursor:pointer;text-decoration:underline">Cancel this booking</button>
         </form>
         <?php endif; ?>
 
@@ -457,10 +485,15 @@ function showHint(input) {
     hintBox.style.display = 'block';
 
     // Show reference field for bank and mpesa
-    refField.style.display =
-        (input.value === 'bank_transfer' || input.value === 'mpesa')
-        ? 'block' : 'none';
+    var needRef = (input.value === 'bank_transfer' || input.value === 'mpesa');
+    refField.style.display = needRef ? 'block' : 'none';
+    var refInput = document.getElementById('payment_reference');
+    if (refInput) refInput.required = needRef;   // the transaction code is mandatory whenever it is shown
 }
+(function () {   // keep the field visible after a failed submit
+    var c = document.querySelector('input[name="payment_method"]:checked');
+    if (c) showHint(c);
+})();
 </script>
 
 
@@ -468,12 +501,12 @@ function showHint(input) {
 <style>
 #payProcessing{position:fixed;inset:0;background:rgba(13,59,46,.55);display:none;align-items:center;justify-content:center;z-index:9999;padding:20px}
 #payProcessing.show{display:flex}
-.pp-box{background:#fff;border-radius:14px;padding:30px 28px;width:100%;max-width:380px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.25)}
-.pp-box h4{margin:0 0 6px;font-size:18px;color:#0d3b2e}
-.pp-step{font-size:13px;color:#4f5f57;min-height:20px;margin:0 0 18px}
+.pp-box{background:var(--surface-2);border-radius:14px;padding:30px 28px;width:100%;max-width:380px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+.pp-box h4{margin:0 0 6px;font-size:18px;color:var(--heading)}
+.pp-step{font-size:13px;color:var(--text-secondary);min-height:20px;margin:0 0 18px}
 .pp-track{height:10px;background:#e8e5dc;border-radius:99px;overflow:hidden;position:relative}
 .pp-fill{height:100%;width:0;background:linear-gradient(90deg,#16866b,#a3462a);border-radius:99px;transition:width .35s ease}
-.pp-pct{font-size:12px;font-weight:700;color:#0d3b2e;margin-top:10px}
+.pp-pct{font-size:12px;font-weight:700;color:var(--heading);margin-top:10px}
 </style>
 <div id="payProcessing" role="alertdialog" aria-live="polite" aria-label="Processing payment">
   <div class="pp-box">

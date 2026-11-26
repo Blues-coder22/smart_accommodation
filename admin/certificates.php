@@ -19,6 +19,7 @@ $lists = $pdo->query("SELECT a.accommodation_id, a.title, a.location_name, u.ful
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Certificates — StayExplore Kenya</title>
     <link rel="stylesheet" href="../assets/css/style.css">
+<link rel="stylesheet" href="../assets/css/ui.css"><script src="../assets/js/ui.js" defer></script>
     <link rel="stylesheet" href="../assets/css/finance.css">
 <link rel="stylesheet" href="../assets/css/dark.css"><meta name="color-scheme" content="light dark"><script src="../assets/js/se-theme.js"></script><script src="../assets/js/se-i18n.js"></script></head>
 <body>

@@ -10,6 +10,7 @@ require_once __DIR__ . '/helpers.php';
 if (!function_exists('ensureProfilePhotoColumns')) {
     /** Adds the two photo columns if missing (same as database/migration_profile_photo.sql). Never fatal. */
     function ensureProfilePhotoColumns($pdo) {
+        if (function_exists('schemaIsUpgraded') && schemaIsUpgraded()) return;   // v9.33: tables are created once by the upgrade, not on every request
         static $done = false;
         if ($done) return;
         $done = true;

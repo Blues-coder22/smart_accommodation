@@ -223,40 +223,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Edit Listing — StayExplore Kenya</title>
     <link rel="stylesheet" href="../assets/css/style.css">
-    <link rel="stylesheet"
-          href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="../assets/css/ui.css"><script src="../assets/js/ui.js" defer></script>
+    <script src="../assets/js/leaflet-loader.js"></script>
 <script src="../assets/js/map-pins.js"></script>
     <style>
-        
-        .dash-wrap  { display:grid;
-                      grid-template-columns:200px 1fr; flex:1 }
         .sidebar    { background:var(--surface-2);
                       border-right:1px solid var(--border);
                       padding:24px 0; position:sticky;
                       top:52px; height:calc(100vh - 52px);
                       overflow-y:auto }
-        .sidebar-role { font-size:10px; font-weight:700;
-                        letter-spacing:.08em; color:#126b4e;
-                        text-transform:uppercase;
-                        padding:0 20px; margin-bottom:12px }
-        .sidebar-link { display:flex; align-items:center; gap:10px;
-                        padding:9px 20px; font-size:13px;
-                        color:var(--text-secondary);
-                        text-decoration:none; width:100% }
-        .sidebar-link:hover { color:var(--text-primary);
-                              background:var(--surface-1) }
-        .sidebar-link.active { color:#085041; font-weight:500;
-                               background:#E1F5EE;
-                               border-left:3px solid #126b4e }
         .main       { padding:28px; max-width:800px }
-        .page-tag   { font-size:11px; font-weight:600;
-                      letter-spacing:.06em; color:#126b4e;
-                      text-transform:uppercase; margin-bottom:8px }
-        .page-title { font-size:26px; font-weight:400;
-                      margin-bottom:4px }
-        .page-sub   { font-size:13px; color:var(--text-secondary);
-                      margin-bottom:24px }
         .form-section { background:var(--surface-2);
                         border:1px solid var(--border);
                         border-radius:8px; padding:24px;
@@ -281,7 +257,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .form-group input:focus,
         .form-group select:focus,
         .form-group textarea:focus { outline:none;
-                                     border-color:#126b4e }
+                                     border-color:var(--accent) }
         .form-row   { display:grid;
                       grid-template-columns:1fr 1fr; gap:14px }
         .amenity-grid { display:grid;
@@ -302,14 +278,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .photo-item img { width:100%; height:100%; object-fit:cover;
                           border-radius:6px;
                           border:1px solid var(--border) }
-        .photo-del  { position:absolute; top:-6px; right:-6px;
-                      width:18px; height:18px; background:#DC2626;
-                      color:#fff; border:none; border-radius:50%;
-                      font-size:11px; cursor:pointer;
-                      display:flex; align-items:center;
-                      justify-content:center }
         .photo-primary { position:absolute; bottom:2px; left:2px;
-                         font-size:9px; background:#085041;
+                         font-size:9px; background:var(--btn-hover);
                          color:#fff; padding:1px 4px;
                          border-radius:2px }
         .photo-upload { border:0.5px dashed var(--border-strong);
@@ -323,12 +293,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .photo-preview img { width:80px; height:64px;
                              border-radius:4px; object-fit:cover;
                              border:1px solid var(--border) }
-        .resubmit-notice { background:#FFF8E1;
-                           border:1px solid #F9D57C;
+        .resubmit-notice { background:var(--warn-bg);
+                           border:1px solid var(--warn-line);
                            border-radius:6px; padding:12px 14px;
-                           font-size:13px; color:#7a5200;
+                           font-size:13px; color:var(--warn-fg);
                            margin-bottom:20px }
-        .submit-btn { width:100%; padding:12px; background:#085041;
+        .submit-btn { width:100%; padding:12px; background:var(--btn-hover);
                       color:#fff; border:none; border-radius:6px;
                       font-size:14px; font-weight:500; cursor:pointer }
         .submit-btn:hover { background:#0a6350 }
@@ -452,7 +422,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <p class="map-hint">
                     Click to move the pin to your exact location.
                     <span id="coordDisplay"
-                          style="color:#126b4e;margin-left:6px">
+                          style="color:var(--accent);margin-left:6px">
                         <?= number_format($listing['latitude'],4) ?>,
                         <?= number_format($listing['longitude'],4) ?>
                     </span>
@@ -509,7 +479,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <?php foreach ($photos as $p): ?>
                     <div class="photo-item">
                         <img src="../uploads/accommodations/<?= h($p['photo_path']) ?>"
-                             alt="Property photo">
+                             alt="Property photo" loading="lazy" decoding="async">
                         <?php if ($p['is_primary']): ?>
                         <span class="photo-primary">Main</span>
                         <?php endif; ?>
@@ -561,7 +531,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <?php appShellEnd(); ?>
 
-<script>
+<script type="text/se-leaflet" data-target="map">
 const map = L.map('map').setView(
     [<?= $listing['latitude'] ?>, <?= $listing['longitude'] ?>],
     14

@@ -1,4 +1,4 @@
-Map around your booked accommodation|||Ramani inayozunguka malazi uliyohifadhi
+Map around your booked accommodation|||Ramani inayozunguka malazi uliyoweka nafasi
 No photo|||Hakuna picha
 Duration|||Muda
 Guests|||Wageni
@@ -10,7 +10,7 @@ What happens next|||Kinachofuata
 Waiting for host decision|||Inasubiri uamuzi wa mwenyeji
 Payment details submitted for review|||Maelezo ya malipo yamewasilishwa kwa ukaguzi
 Leave a review after your stay|||Toa maoni baada ya kukaa
-After check-out you will be able to leave a verified review from your bookings page.|||Baada ya kutoka utaweza kutoa maoni yaliyothibitishwa kutoka ukurasa wa uhifadhi wako.
+After check-out you will be able to leave a verified review from your bookings page.|||Baada ya kuondoka utaweza kutoa maoni yaliyothibitishwa kutoka ukurasa wa uhifadhi wako.
 Explore nearby places|||Gundua maeneo ya karibu
 Show nearby places|||Onyesha maeneo ya karibu
 Green pin: your stay. Terracotta pins: attractions nearby.|||Pini ya kijani: malazi yako. Pini za rangi ya udongo: vivutio vya karibu.
@@ -25,7 +25,7 @@ Bank reference or M-Pesa code|||Rejea ya benki au msimbo wa M-Pesa
 Processing payment|||Inashughulikia malipo
 Choose how you will pay.|||Chagua jinsi utakavyolipa.
 Pay on arrival (cash)|||Lipa ukifika (pesa taslimu)
-Pay your host in cash at check-in.|||Mlipe mwenyeji wako pesa taslimu wakati wa kuingia.
+Pay your host in cash at check-in.|||Mlipe mwenyeji wako pesa taslimu wakati wa kuwasili.
 Bank transfer|||Uhamisho wa benki
 Your host will send their bank details after booking is confirmed.|||Mwenyeji wako atatuma maelezo ya benki yake baada ya uhifadhi kuthibitishwa.
 M-Pesa (sent manually)|||M-Pesa (inatumwa mwenyewe)
@@ -88,7 +88,7 @@ Sort: Highest rated|||Panga: Yaliyokadiriwa juu zaidi
 Sort: Default|||Panga: Kawaida
 No stays found|||Hakuna malazi yaliyopatikana
 Try a different place, a wider distance, or fewer filters.|||Jaribu eneo tofauti, umbali mpana zaidi, au vichujio vichache.
-Smart score|||Alama ya busara
+Smart score|||Alama mahiri
 (how?)|||(vipi?)
 New listing, no reviews yet|||Tangazo jipya, bado hakuna maoni
 km away|||km kutoka hapa
@@ -120,7 +120,7 @@ Green months are the best time to visit|||Miezi ya kijani ndiyo wakati bora wa k
 Did you know?|||Je, ulijua?
 Fun facts|||Mambo ya kufurahisha
 Another fact →|||Jambo jingine →
-What's new|||Kipya ni nini
+What's new|||Mapya
 Latest|||Za hivi karibuni
 NEW|||MPYA
 Pack for the trip|||Pakia kwa safari
@@ -141,7 +141,7 @@ Completed|||Zilizokamilika
 Cancelled|||Zilizoghairiwa
 You have no upcoming bookings. Start by searching for a place to stay.|||Huna uhifadhi unaokuja. Anza kwa kutafuta mahali pa kukaa.
 You have no completed stays yet.|||Bado huna ukaaji uliokamilika.
-You have no cancelled bookings.|||Huna uhifadhi uliogheirwa.
+You have no cancelled bookings.|||Huna uhifadhi ulioghairiwa.
 Find accommodation|||Tafuta malazi
 Host receipt|||Risiti ya mwenyeji
 StayExplore receipt|||Risiti ya StayExplore
@@ -177,7 +177,7 @@ Property completely different from listing|||Mali tofauti kabisa na tangazo
 Other|||Nyingine
 Which stay is this about?|||Hii inahusu malazi gani?
 Select one of your stays|||Chagua moja ya malazi yako
-Incidents can only be reported for stays you have booked.|||Matukio yanaweza kuripotiwa tu kwa malazi uliyohifadhi.
+Incidents can only be reported for stays you have booked.|||Matukio yanaweza kuripotiwa tu kwa malazi ambayo umeweka nafasi.
 Details|||Maelezo
 Supporting evidence (optional)|||Ushahidi unaounga mkono (hiari)
 JPG, PNG or WebP — max 5MB|||JPG, PNG au WebP — kiwango cha juu 5MB
@@ -209,12 +209,12 @@ Saved|||Vilivyohifadhiwa
 Accommodations and attractions you have saved for later.|||Malazi na vivutio ulivyohifadhi kwa baadaye.
 Saved stays|||Malazi yaliyohifadhiwa
 No saved stays yet|||Bado hakuna malazi yaliyohifadhiwa
-When you find accommodation you like, tap the heart icon to save it here.|||Ukipata malazi unayopenda, gusa alama ya moyo ili kuyahifadhi hapa.
+When you find accommodation you like, tap the heart icon to save it here.|||Ukipata malazi unayopenda, gusa alama ya moyo ili kuyaongeza kwenye vipendwa.
 No longer available|||Hayapatikani tena
 Unavailable|||Hayapatikani
 Saved attractions|||Vivutio vilivyohifadhiwa
 No saved attractions yet|||Bado hakuna vivutio vilivyohifadhiwa
-When you find an attraction you want to visit, save it here for easy access.|||Ukipata kivutio unachotaka kutembelea, kihifadhi hapa kwa urahisi.
+When you find an attraction you want to visit, save it here for easy access.|||Ukipata kivutio unachotaka kutembelea, kiongeze kwenye vipendwa ili kukifikia kwa urahisi.
 Find nearby stays|||Tafuta malazi ya karibu
 Secure checkout|||Malipo salama
 Complete your booking|||Kamilisha uhifadhi wako
@@ -226,10 +226,10 @@ Continue to payment|||Endelea na malipo
 How your payment is shared|||Jinsi malipo yako yanavyogawanywa
 To your host:|||Kwa mwenyeji wako:
 To StayExplore Kenya:|||Kwa StayExplore Kenya:
-You pay each part directly to its owner on the next page.|||Unalipa kila sehemu moja kwa moja kwa mwenyewe kwenye ukurasa unaofuata.
+You pay each part directly to its owner on the next page.|||Unalipa kila sehemu moja kwa moja kwa mhusika wake kwenye ukurasa unaofuata.
 Entry fees for parks and other attractions nearby are not included. You pay those at the gate when you visit.|||Ada za kuingia kwenye hifadhi na vivutio vingine vya karibu hazijajumuishwa. Utalipa hizo langoni unapotembelea.
 Payments are tracked securely within the platform|||Malipo hufuatiliwa kwa usalama ndani ya jukwaa
-Please choose valid dates: check-in today or later, and check-out after check-in.|||Tafadhali chagua tarehe halali: kuingia leo au baadaye, na kutoka baada ya kuingia.
+Please choose valid dates: check-in today or later, and check-out after check-in.|||Tafadhali chagua tarehe halali: kuwasili leo au baadaye, na kuondoka baada ya kuwasili.
 These dates are no longer available. Please select different dates.|||Tarehe hizi hazipatikani tena. Tafadhali chagua tarehe nyingine.
 You must agree to the house rules to continue.|||Lazima ukubali sheria za nyumba ili kuendelea.
 Sorry, those dates were just taken. Please select different dates.|||Samahani, tarehe hizo zimechukuliwa hivi punde. Tafadhali chagua tarehe nyingine.
@@ -258,13 +258,12 @@ Guest Reviews|||Maoni ya Wageni
 No reviews yet — be the first to review after your stay.|||Bado hakuna maoni — kuwa wa kwanza kutoa maoni baada ya kukaa.
 Host response:|||Jibu la mwenyeji:
 Report this listing|||Ripoti tangazo hili
-CHECK IN|||KUINGIA
-CHECK OUT|||KUTOKA
+CHECK IN|||KUWASILI
+CHECK OUT|||KUONDOKA
 GUESTS|||WAGENI
-Some of these nights are already booked. Please pick other dates (the shaded days in the calendar are taken).|||Baadhi ya usiku huu tayari umehifadhiwa. Tafadhali chagua tarehe nyingine (siku zilizotiwa kivuli kwenye kalenda zimechukuliwa).
-Reserve|||Hifadhi
-Hosts cannot make bookings. Please use a tourist account.|||Wenyeji hawawezi kuhifadhi. Tafadhali tumia akaunti ya mtalii.
-Sign in to Book|||Ingia ili Kuhifadhi
+Some of these nights are already booked. Please pick other dates (the shaded days in the calendar are taken).|||Baadhi ya usiku huu tayari umechukuliwa. Tafadhali chagua tarehe nyingine (siku zilizotiwa kivuli kwenye kalenda zimechukuliwa).
+Reserve|||Weka nafasi
+Sign in to Book|||Ingia ili uweke nafasi
 Don't have an account?|||Huna akaunti?
 Your profile photo|||Picha ya wasifu wako
 Profile photo|||Picha ya wasifu

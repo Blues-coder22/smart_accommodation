@@ -20,7 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $pid    = opaqueIdDecode('pay', $_POST['payment_ref'] ?? '');
     $new    = $_POST['new_status'] ?? '';
     $note   = trim((string)($_POST['note'] ?? ''));
-    $q = $pdo->prepare("SELECT p.*, a.title, t.email AS t_email, t.full_name AS t_name, h.email AS h_email, h.full_name AS h_name
+    $q = $pdo->prepare("SELECT p.*, b.status AS booking_status, a.title, t.email AS t_email, t.full_name AS t_name, h.email AS h_email, h.full_name AS h_name
         FROM payments p JOIN bookings b ON b.booking_id = p.booking_id JOIN accommodations a ON a.accommodation_id = b.accommodation_id
         JOIN users t ON t.user_id = p.tourist_id JOIN users h ON h.user_id = p.host_id WHERE p.payment_id = ?");
     $q->execute([$pid]);
@@ -28,6 +28,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (!$p || !in_array($new, ['confirmed', 'pending', 'failed'], true)) {
         setFlash('error', 'That payment could not be found.');
+    } elseif ($new === 'confirmed' && in_array($p['booking_status'], ['cancelled', 'pending'], true)) {
+        setFlash('error', 'This booking is ' . $p['booking_status'] . ', so its payment cannot be confirmed as received.');
     } elseif (mb_strlen($note) < 5) {
         setFlash('error', 'Please write a short reason (at least 5 characters) so the history makes sense.');
     } elseif ($p['payment_status'] === $new) {
@@ -98,7 +100,7 @@ $reversedCount = (int)$pdo->query("SELECT COUNT(DISTINCT p.payment_id) FROM paym
 
 $actionText = ['host_confirmed' => 'Host marked as received', 'host_unpaid' => 'Host set back to awaiting', 'admin_confirmed' => 'Administrator confirmed',
                'admin_pending' => 'Administrator set to awaiting', 'admin_failed' => 'Administrator marked failed'];
-$badge = ['confirmed' => ['#e7f3ec', '#1f5a3f', 'Received'], 'pending' => ['#fff6dc', '#7a5a00', 'Awaiting'], 'failed' => ['#fdecea', '#8a2b22', 'Failed']];
+$badge = ['confirmed' => ['#e7f3ec', '#1f5a3f', 'Received'], 'pending' => ['var(--warn-bg)', 'var(--warn-fg)', 'Awaiting'], 'failed' => ['var(--bad-bg)', 'var(--bad-fg)', 'Failed']];
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -106,21 +108,22 @@ $badge = ['confirmed' => ['#e7f3ec', '#1f5a3f', 'Received'], 'pending' => ['#fff
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Payment tracking — Admin</title>
 <link rel="stylesheet" href="../assets/css/style.css">
+<link rel="stylesheet" href="../assets/css/ui.css"><script src="../assets/js/ui.js" defer></script>
 <style>
 .pay-table{width:100%;border-collapse:collapse;font-size:13px}
-.pay-table th{text-align:left;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#565c55;padding:10px 12px;border-bottom:1px solid #e4e1d8;white-space:nowrap}
-.pay-table td{padding:12px;border-bottom:1px solid #eee;vertical-align:top}
+.pay-table th{text-align:left;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);padding:10px 12px;border-bottom:1px solid var(--border);white-space:nowrap}
+.pay-table td{padding:12px;border-bottom:1px solid var(--border);vertical-align:top}
 .pill{display:inline-block;padding:3px 10px;border-radius:99px;font-size:11px;font-weight:700;white-space:nowrap}
 .flag{background:#fff4ef;border:1px solid #e2a58f;color:#8a3b1c;border-radius:8px;padding:6px 10px;font-size:12px;margin-top:6px}
-.hist{margin-top:8px;font-size:12px;color:#4a5249}
+.hist{margin-top:8px;font-size:12px;color:var(--text-secondary)}
 .hist li{margin:3px 0}
 .decide{display:grid;gap:6px;min-width:210px}
 .decide input[type=text]{padding:7px 9px;border:1px solid #d8d4c8;border-radius:6px;font-size:12px}
 .decide .row{display:flex;gap:6px;flex-wrap:wrap}
-.decide button{padding:6px 10px;border-radius:6px;border:1px solid #0d3b2e;background:#0d3b2e;color:#fff;font-size:12px;cursor:pointer}
-.decide button.alt{background:#fff;color:#0d3b2e}
-.decide button.bad{background:#fff;color:#8a2b22;border-color:#e0a39b}
-.help{background:#fff;border:1px solid #e4e1d8;border-radius:10px;padding:12px 16px;font-size:13px;color:#4a5249;line-height:1.6;margin-bottom:16px}
+.decide button{padding:6px 10px;border-radius:6px;border:1px solid var(--forest);background:var(--forest);color:#fff;font-size:12px;cursor:pointer}
+.decide button.alt{background:var(--surface-2);color:var(--heading)}
+.decide button.bad{background:var(--surface-2);color:var(--bad-fg);border-color:#e0a39b}
+.help{background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--text-secondary);line-height:1.6;margin-bottom:16px}
 </style>
 <link rel="stylesheet" href="../assets/css/dark.css"><meta name="color-scheme" content="light dark"><script src="../assets/js/se-theme.js"></script><script src="../assets/js/se-i18n.js"></script></head>
 <body>
@@ -158,15 +161,15 @@ $badge = ['confirmed' => ['#e7f3ec', '#1f5a3f', 'Received'], 'pending' => ['#fff
         <table class="pay-table">
             <thead><tr><th>Payment</th><th>Guest and host</th><th>Amount</th><th>Status and history</th><th>Admin decision</th></tr></thead>
             <tbody>
-            <?php if (!$rows): ?><tr><td colspan="5" style="text-align:center;color:#565c55;padding:30px">No payments found.</td></tr><?php endif; ?>
+            <?php if (!$rows): ?><tr><td colspan="5" style="text-align:center;color:var(--text-secondary);padding:30px">No payments found.</td></tr><?php endif; ?>
             <?php foreach ($rows as $r): $b = $badge[$r['payment_status']] ?? $badge['pending']; $hist = $history[(int)$r['payment_id']] ?? []; ?>
             <tr>
                 <td>
                     <strong>Booking <?= h(bookingLabel($r['booking_id'])) ?></strong><br>
                     <?= h($r['title']) ?><br>
-                    <span style="color:#565c55"><?= date('d M', strtotime($r['check_in_date'])) ?> &ndash; <?= date('d M Y', strtotime($r['check_out_date'])) ?></span><br>
-                    <span style="color:#565c55"><?= h($r['payment_method'] ?: 'Method not given') ?> &middot; Ref: <strong><?= h($r['payment_reference'] ?: 'none') ?></strong></span><br>
-                    <span style="color:#565c55;font-size:11px">Submitted <?= date('d M Y, H:i', strtotime($r['payment_date'])) ?></span><br>
+                    <span style="color:var(--text-secondary)"><?= date('d M', strtotime($r['check_in_date'])) ?> &ndash; <?= date('d M Y', strtotime($r['check_out_date'])) ?></span><br>
+                    <span style="color:var(--text-secondary)"><?= h($r['payment_method'] ?: 'Method not given') ?> &middot; Ref: <strong><?= h($r['payment_reference'] ?: 'none') ?></strong></span><br>
+                    <span style="color:var(--text-secondary);font-size:11px">Submitted <?= date('d M Y, H:i', strtotime($r['payment_date'])) ?></span><br>
                     <span style="font-size:11px">
                         <?php if ($r['payment_status'] === 'confirmed'): ?><a href="../receipt.php?as=admin&amp;pid=<?= h(opaqueId('pay', $r['payment_id'])) ?>" target="_blank" rel="noopener">Receipt</a> &middot; <?php endif; ?>
                         <?php if (!empty($r['payment_proof'])): ?><a href="../proof.php?as=admin&amp;type=payment&amp;ref=<?= h(opaqueId('pay', $r['payment_id'])) ?>" target="_blank" rel="noopener">Screenshot</a> &middot; <?php endif; ?>
@@ -191,7 +194,7 @@ $badge = ['confirmed' => ['#e7f3ec', '#1f5a3f', 'Received'], 'pending' => ['#fff
                         <?php endforeach; ?>
                         </ul>
                     </details>
-                    <?php else: ?><div class="hist" style="color:#565c55">No changes recorded yet.</div><?php endif; ?>
+                    <?php else: ?><div class="hist" style="color:var(--text-secondary)">No changes recorded yet.</div><?php endif; ?>
                 </td>
                 <td>
                     <form method="POST" class="decide" onsubmit="return this.note.value.trim().length >= 5 || (alert('Please write a short reason first.'), false);">
@@ -199,7 +202,7 @@ $badge = ['confirmed' => ['#e7f3ec', '#1f5a3f', 'Received'], 'pending' => ['#fff
                         <input type="hidden" name="payment_ref" value="<?= h(opaqueId('pay', $r['payment_id'])) ?>">
                         <input aria-label="Reason (required)" type="text" name="note" maxlength="500" placeholder="Reason (required)">
                         <div class="row">
-                            <?php if ($r['payment_status'] !== 'confirmed'): ?><button type="submit" name="new_status" value="confirmed">Confirm as received</button><?php endif; ?>
+                            <?php if ($r['payment_status'] !== 'confirmed' && !in_array($r['booking_status'], ['cancelled', 'pending'], true)): ?><button type="submit" name="new_status" value="confirmed">Confirm as received</button><?php elseif ($r['payment_status'] !== 'confirmed'): ?><span class="small">Booking <?= h($r['booking_status']) ?>: cannot be marked received</span><?php endif; ?>
                             <?php if ($r['payment_status'] !== 'pending'): ?><button type="submit" name="new_status" value="pending" class="alt">Set to awaiting</button><?php endif; ?>
                             <?php if ($r['payment_status'] !== 'failed'): ?><button type="submit" name="new_status" value="failed" class="bad">Mark failed</button><?php endif; ?>
                         </div>

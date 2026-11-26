@@ -34,7 +34,7 @@ function verifiedHostIds($pdo, array $ids) {
 
 function guestVerifiedBadge() {
     return '<span title="An admin checked this guest\'s identity" style="display:inline-block;margin-left:6px;padding:2px 8px;'
-         . 'border-radius:999px;background:#E1F5EE;color:#0F6E56;font-size:11px;font-weight:600;white-space:nowrap">&#10003; Verified guest</span>';
+         . 'border-radius:999px;background:var(--accent-soft);color:var(--accent-strong);font-size:11px;font-weight:600;white-space:nowrap">&#10003; Verified guest</span>';
 }
 function userVerifiedBadge($role) {
     return $role === 'host' ? hostVerifiedBadge() : guestVerifiedBadge();
@@ -42,7 +42,7 @@ function userVerifiedBadge($role) {
 
 function hostVerifiedBadge() {
     return '<span title="An admin checked this host\'s identity" style="display:inline-block;margin-left:6px;padding:2px 8px;'
-         . 'border-radius:999px;background:#E1F5EE;color:#0F6E56;font-size:11px;font-weight:600;white-space:nowrap">&#10003; Verified host</span>';
+         . 'border-radius:999px;background:var(--accent-soft);color:var(--accent-strong);font-size:11px;font-weight:600;white-space:nowrap">&#10003; Verified host</span>';
 }
 
 /** Store an uploaded ID photo privately. Type comes from the file content. Returns filename or false. */

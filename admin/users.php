@@ -240,44 +240,24 @@ $counts = $pdo->query("
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Users — StayExplore Kenya</title>
     <link rel="stylesheet" href="../assets/css/style.css">
+<link rel="stylesheet" href="../assets/css/ui.css"><script src="../assets/js/ui.js" defer></script>
     <style>
-        
-        .dash-wrap   { display:grid;
-                       grid-template-columns:200px 1fr; flex:1 }
         .sidebar     { background:var(--surface-2);
                        border-right:1px solid var(--border);
                        padding:24px 0; position:sticky;
                        top:52px; height:calc(100vh - 52px);
                        overflow-y:auto }
-        .sidebar-role{ font-size:10px; font-weight:700;
-                       letter-spacing:.08em; color:#b42318;
-                       text-transform:uppercase;
-                       padding:0 20px; margin-bottom:12px }
-        .sidebar-link{ display:flex; align-items:center; gap:10px;
-                       padding:9px 20px; font-size:13px;
-                       color:var(--text-secondary);
-                       text-decoration:none; width:100% }
-        .sidebar-link:hover { color:var(--text-primary);
-                              background:var(--surface-1) }
-        .sidebar-link.active { color:#085041; font-weight:500;
-                               background:#E1F5EE;
-                               border-left:3px solid #126b4e }
         .badge       { font-size:10px; background:#DC2626;
                        color:#fff; border-radius:10px;
                        padding:1px 6px; margin-left:auto }
         .main        { padding:28px }
-        .page-tag    { font-size:11px; font-weight:600;
-                       letter-spacing:.06em; color:#126b4e;
-                       text-transform:uppercase; margin-bottom:8px }
-        .page-title  { font-size:26px; font-weight:400;
-                       margin-bottom:20px }
         .top-bar     { display:flex; gap:10px; margin-bottom:16px;
                        flex-wrap:wrap; align-items:center }
         .search-input { padding:8px 12px; font-size:13px;
                         border:1px solid var(--border-strong);
                         border-radius:6px; background:var(--surface-2);
                         color:var(--text-primary); min-width:220px }
-        .search-input:focus { outline:none; border-color:#126b4e }
+        .search-input:focus { outline:none; border-color:var(--accent) }
         .filter-select { padding:8px 12px; font-size:13px;
                          border:1px solid var(--border-strong);
                          border-radius:6px;
@@ -312,32 +292,28 @@ $counts = $pdo->query("
         .user-email  { font-size:12px; color:var(--text-secondary) }
         .role-badge  { font-size:11px; font-weight:600;
                        padding:2px 8px; border-radius:3px }
-        .role-tourist { background:#E0E7FF; color:#3730A3;
-                        border:1px solid #A5B4FC }
-        .role-host    { background:#FEF3C7; color:#92400E;
-                        border:1px solid #FCD34D }
         .status-pill  { display:inline-block; font-size:11px;
                         font-weight:600; padding:2px 8px;
                         border-radius:3px }
-        .s-active     { background:#E1F5EE; color:#0F6E56;
-                        border:1px solid #9FE1CB }
-        .s-suspended  { background:#FFF8E1; color:#7a5200;
-                        border:1px solid #F9D57C }
-        .s-banned     { background:#FEF2F2; color:#991B1B;
-                        border:1px solid #FECACA }
-        .verified-yes { color:#126b4e; font-size:12px }
-        .verified-no  { color:#b42318; font-size:12px }
+        .s-active     { background:var(--accent-soft); color:var(--accent-strong);
+                        border:1px solid var(--accent-line) }
+        .s-suspended  { background:var(--warn-bg); color:var(--warn-fg);
+                        border:1px solid var(--warn-line) }
+        .s-banned     { background:var(--bad-bg); color:var(--bad-fg);
+                        border:1px solid var(--bad-line) }
+        .verified-yes { color:var(--accent); font-size:12px }
+        .verified-no  { color:var(--bad-fg); font-size:12px }
         .action-cell  { display:flex; gap:6px; flex-wrap:wrap }
         .btn-sm      { padding:5px 10px; font-size:11px;
                        border-radius:3px; cursor:pointer;
                        font-weight:500; border:1px solid;
                        background:none }
-        .btn-suspend { color:#8f4b00; border-color:#F9D57C }
-        .btn-suspend:hover { background:#FFF8E1 }
-        .btn-ban     { color:#b42318; border-color:#FECACA }
-        .btn-ban:hover { background:#FEF2F2 }
-        .btn-restore { color:#0F6E56; border-color:#9FE1CB }
-        .btn-restore:hover { background:#E1F5EE }
+        .btn-suspend { color:var(--warn-fg); border-color:var(--warn-line) }
+        .btn-suspend:hover { background:var(--warn-bg) }
+        .btn-ban     { color:var(--bad-fg); border-color:var(--bad-line) }
+        .btn-ban:hover { background:var(--bad-bg) }
+        .btn-restore { color:var(--accent-strong); border-color:var(--accent-line) }
+        .btn-restore:hover { background:var(--accent-soft) }
         .btn-verify  { color:#1A4DB3; border-color:#B3C5F5 }
         .btn-verify:hover { background:#F0F4FF }
         .inline-form { display:inline }
@@ -348,8 +324,7 @@ $counts = $pdo->query("
         .empty-state { text-align:center; padding:48px;
                        font-size:13px;
                        color:var(--text-secondary) }
-        @media(max-width:900px){
-            .dash-wrap { grid-template-columns:1fr }
+        @media(max-width:1024px){
             .sidebar   { display:none }
         }
     </style>
@@ -374,13 +349,13 @@ $counts = $pdo->query("
         } catch (Throwable $e) { $pendingVerifications = []; }
         ?>
         <?php if ($pendingVerifications): ?>
-        <div id="verification" style="border:1px solid #F0D8A8;background:#FFF9EC;border-radius:8px;padding:18px;margin-bottom:22px">
+        <div id="verification" style="border:1px solid var(--warn-line);background:var(--warn-bg);border-radius:8px;padding:18px;margin-bottom:22px">
             <h2 style="font-size:16px;font-weight:600;margin-bottom:4px">Identity verification requests (<?= count($pendingVerifications) ?>)</h2>
             <p style="font-size:12px;color:var(--text-secondary);margin-bottom:14px">Compare the details with the ID photo. Only admins can see the photo, and it is erased as soon as you decide.</p>
             <?php foreach ($pendingVerifications as $pv): ?>
-            <div style="border-top:1px solid #F0D8A8;padding:14px 0">
+            <div style="border-top:1px solid var(--warn-line);padding:14px 0">
                 <div style="display:flex;gap:18px;flex-wrap:wrap;font-size:13px;margin-bottom:10px">
-                    <div><strong><?= h($pv['full_name']) ?></strong> <span style="font-size:11px;background:#fff;border:1px solid #F0D8A8;border-radius:99px;padding:1px 8px"><?= ($pv['user_role'] ?? 'host') === 'tourist' ? 'Tourist' : 'Host' ?></span><br><span style="color:var(--text-secondary)"><?= h($pv['email']) ?></span></div>
+                    <div><strong><?= h($pv['full_name']) ?></strong> <span style="font-size:11px;background:var(--surface-2);border:1px solid var(--warn-line);border-radius:99px;padding:1px 8px"><?= ($pv['user_role'] ?? 'host') === 'tourist' ? 'Tourist' : 'Host' ?></span><br><span style="color:var(--text-secondary)"><?= h($pv['email']) ?></span></div>
                     <div>Legal name<br><strong><?= h($pv['legal_name']) ?></strong></div>
                     <div><?= h($pv['id_type']) ?><br><strong><?= h($pv['id_number']) ?></strong></div>
                     <div>Property proof<br><strong><?= h($pv['business_ref'] ?: '—') ?></strong></div>
@@ -449,7 +424,7 @@ $counts = $pdo->query("
                     ?'selected':'' ?>>Banned</option>
             </select>
             <button type="submit"
-                    style="padding:8px 16px;background:#085041;
+                    style="padding:8px 16px;background:var(--btn-hover);
                            color:#fff;border:none;border-radius:6px;
                            font-size:13px;cursor:pointer">
                 Search
@@ -518,7 +493,7 @@ $counts = $pdo->query("
                                 <?php if ($idState === 'verified'): ?>
                                     <span class="verified-yes">ID verified</span>
                                 <?php elseif ($idState === 'pending'): ?>
-                                    <a href="#verification" style="font-size:12px;color:#8f4b00">ID review pending</a>
+                                    <a href="#verification" style="font-size:12px;color:var(--warn-fg)">ID review pending</a>
                                 <?php elseif ($idState === 'rejected'): ?>
                                     <span class="verified-no">ID rejected</span>
                                 <?php else: ?>
@@ -543,7 +518,7 @@ $counts = $pdo->query("
                                 </span>
                             <?php endif; ?>
                             <?php if ($u['reports_against'] > 0): ?>
-                            <div style="font-size:11px;color:#b42318">
+                            <div style="font-size:11px;color:var(--bad-fg)">
                                 <?= $u['reports_against'] ?>
                                 report<?= $u['reports_against'] != 1
                                            ? 's' : '' ?> against

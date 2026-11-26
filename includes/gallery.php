@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/upload_helpers.php';
 /**
  * Shared photo helpers: several photos per attraction, plus the slideshow markup used on
  * search cards, stay pages and attraction pages (assets/js/slideshow.js + .se-slider CSS).
@@ -8,6 +9,7 @@ require_once __DIR__ . '/helpers.php';
 
 if (!function_exists('ensureAttractionPhotosTable')) {
     function ensureAttractionPhotosTable($pdo) {
+        if (function_exists('schemaIsUpgraded') && schemaIsUpgraded()) return;   // v9.33: tables are created once by the upgrade, not on every request
         static $done = false;
         if ($done) return;
         $done = true;
@@ -77,7 +79,7 @@ if (!function_exists('saveAttractionPhotos')) {
                 if ($files['size'][$i] > 5 * 1024 * 1024) { $errors[] = h($files['name'][$i]) . ' is over 5MB.'; continue; }
                 $ext = $type === 'image/png' ? 'png' : ($type === 'image/webp' ? 'webp' : 'jpg');
                 $fn = 'att_' . uniqid() . $i . '.' . $ext;
-                if (move_uploaded_file($tmp, rtrim($uploadDir, '/') . '/' . $fn)) $saved[] = $fn;
+                if (move_uploaded_file($tmp, rtrim($uploadDir, '/') . '/' . $fn)) { $saved[] = $fn; if (function_exists('optimizeUploadedImage')) optimizeUploadedImage(rtrim($uploadDir, '/') . '/' . $fn); }
             }
         }
         foreach ($saved as $k => $fn) {
@@ -107,15 +109,15 @@ if (!function_exists('slideshowHtml')) {
      * @param string   $variant 'card' (small, arrows on hover) or 'hero' (large, thumbnails + autoplay)
      * @param string   $overlay extra HTML placed on top of the picture (badges)
      */
-    function slideshowHtml(array $urls, $alt, $variant = 'card', $overlay = '') {
+    function slideshowHtml(array $urls, $alt, $variant = 'card', $overlay = '', $eagerFirst = true) {
         $urls = array_values(array_filter(array_unique($urls)));
         if (!$urls) return '';
         $many = count($urls) > 1;
-        $out  = '<div class="se-slider se-' . h($variant) . '" data-slider' . ($variant === 'hero' ? ' data-autoplay="6000"' : '') . '>';
+        $out  = '<div class="se-slider se-' . h($variant) . '" data-slider' . ($variant === 'hero' ? ' data-autoplay="6000" data-expand' : '') . '>';
         $out .= '<div class="se-track">';
         foreach ($urls as $i => $u) {
             $out .= '<img class="se-slide' . ($i === 0 ? ' is-active' : '') . '" src="' . h($u) . '" alt="' . h($alt) . ($many ? ' — photo ' . ($i + 1) : '')
-                  . '" loading="' . ($i === 0 ? 'eager' : 'lazy') . '" onerror="this.onerror=null;this.style.visibility=\'hidden\'">';
+                  . '" loading="' . ($i === 0 && $eagerFirst ? 'eager' : 'lazy') . '" decoding="async" onerror="this.onerror=null;this.style.visibility=\'hidden\'">';
         }
         $out .= '</div>';
         if ($many) {

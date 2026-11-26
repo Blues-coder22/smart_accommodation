@@ -3,7 +3,7 @@ Stay close to everything you came to see.|||Kaa karibu na kila kitu ulichokuja k
 Find a stay|||Tafuta malazi
 Explore attractions|||Gundua vivutio
 Explore →|||Gundua →
-Ranked, not random|||Yamepangwa, si ya bahati nasibu
+Ranked, not random|||Yamepangwa, si kwa bahati nasibu
 Rating, price and distance combined into one score.|||Ukadiriaji, bei na umbali vimeunganishwa kuwa alama moja.
 Verified reviews|||Maoni yaliyothibitishwa
 Only guests with confirmed bookings can leave reviews.|||Ni wageni wenye uhifadhi uliothibitishwa pekee wanaoweza kutoa maoni.
@@ -13,7 +13,7 @@ Local hosts|||Wenyeji wa hapa
 Supporting Kenyan property owners and communities.|||Tunawaunga mkono wamiliki wa mali na jamii za Kenya.
 Curated for your journey|||Yamechaguliwa kwa safari yako
 Featured Stays|||Malazi Yaliyoangaziwa
-Hand-picked places to unwind, each close to something worth exploring.|||Maeneo yaliyochaguliwa kwa mkono ya kupumzika, kila moja karibu na kitu cha kugundua.
+Hand-picked places to unwind, each close to something worth exploring.|||Maeneo yaliyochaguliwa kwa uangalifu ya kupumzika, kila moja karibu na kitu cha kugundua.
 View all stays →|||Tazama malazi yote →
 New|||Mpya
 View stay|||Tazama malazi
@@ -40,9 +40,9 @@ Host guests and keep every booking in one place.|||Karibisha wageni na uweke kil
 List your property, accept requests yourself and get paid directly by your guests.|||Tangaza mali yako, kubali maombi mwenyewe na ulipwe moja kwa moja na wageni wako.
 How hosting works|||Jinsi kuwa mwenyeji kunavyofanya kazi
 Recommendations|||Mapendekezo
-StayExplore Kenya. Made for journeys worth remembering.|||StayExplore Kenya. Imetengenezwa kwa safari zinazostahili kukumbukwa.
+StayExplore Kenya. Made for journeys worth remembering.|||StayExplore Kenya. Imebuniwa kwa safari zinazostahili kukumbukwa.
 Featured places in Kenya|||Maeneo yaliyoangaziwa nchini Kenya
-Sign in to save this stay|||Ingia ili kuhifadhi malazi haya
+Sign in to save this stay|||Ingia ili uongeze malazi haya kwenye vipendwa
 A welcoming Kenyan host home|||Nyumba ya mwenyeji wa Kenya yenye ukarimu
 StayExplore Kenya — Discover stays and attractions|||StayExplore Kenya — Gundua malazi na vivutio
 About StayExplore Kenya|||Kuhusu StayExplore Kenya
@@ -56,7 +56,7 @@ Our vision|||Maono yetu
 Connect people with places.|||Kuunganisha watu na maeneo.
 What we offer|||Tunachotoa
 One connected travel experience|||Uzoefu mmoja uliounganishwa wa safari
-Smart discovery|||Ugunduzi wa busara
+Smart discovery|||Ugunduzi mahiri
 Accommodation and attraction results are arranged to help you decide with confidence.|||Matokeo ya malazi na vivutio yamepangwa kukusaidia kuamua kwa uhakika.
 Trusted information|||Taarifa za kuaminika
 Verified-booking reviews and listing moderation are designed to make decisions clearer and safer.|||Maoni ya uhifadhi uliothibitishwa na ukaguzi wa matangazo vimebuniwa kufanya maamuzi yawe wazi na salama zaidi.
@@ -80,22 +80,22 @@ Search|||Tafuta
 Start with an accommodation or an attraction. Recommendations are tailored to help you choose.|||Anza na malazi au kivutio. Mapendekezo yamebuniwa kukusaidia kuchagua.
 Choose|||Chagua
 Compare verified listings, nearby attractions, amenities, house rules and guest reviews.|||Linganisha matangazo yaliyothibitishwa, vivutio vya karibu, huduma, sheria za nyumba na maoni ya wageni.
-Book|||Hifadhi
+Book|||Weka nafasi
 Confirm your dates, review the total and complete the payment step.|||Thibitisha tarehe zako, kagua jumla na ukamilishe hatua ya malipo.
 Experience|||Furahia
 Keep your booking details in one place and report platform incidents when necessary.|||Weka maelezo ya uhifadhi wako mahali pamoja na uripoti matukio ya jukwaa inapobidi.
-Review|||Maoni
+Review|||Toa maoni
 Only completed bookings can leave verified reviews, helping future travellers decide.|||Uhifadhi uliokamilika pekee unaweza kutoa maoni yaliyothibitishwa, kuwasaidia wasafiri wa baadaye kuamua.
 Hosts manage listings, availability, bookings, payments, reviews and incident reports.|||Wenyeji husimamia matangazo, upatikanaji, uhifadhi, malipo, maoni na ripoti za matukio.
 Ready to explore?|||Uko tayari kugundua?
 Search stays or attractions and let the recommendation flow guide your next step.|||Tafuta malazi au vivutio na uache mapendekezo yakuongoze hatua inayofuata.
 Behind the scenes|||Nyuma ya pazia
 How scores, distances and review checks work|||Jinsi alama, umbali na ukaguzi wa maoni zinavyofanya kazi
-Smart score (the "match" shown on stays).|||Alama ya busara ("ulinganifu" unaoonyeshwa kwenye malazi).
+Smart score (the "match" shown on stays).|||Alama mahiri ("ulinganifu" unaoonyeshwa kwenye malazi).
 Distance on the map.|||Umbali kwenye ramani.
 Attraction fees.|||Ada za vivutio.
 Review checks.|||Ukaguzi wa maoni.
-Smart score (out of 100).|||Alama ya busara (kati ya 100).
+Smart score (out of 100).|||Alama mahiri (kati ya 100).
 Distance.|||Umbali.
 Booking record|||Rekodi ya uhifadhi
 Print or save as PDF|||Chapisha au hifadhi kama PDF
@@ -103,8 +103,8 @@ Booking and payment record|||Rekodi ya uhifadhi na malipo
 Booking|||Uhifadhi
 Stay|||Malazi
 Status|||Hali
-Check-in|||Kuingia
-Check-out|||Kutoka
+Check-in|||Kuwasili
+Check-out|||Kuondoka
 night|||usiku
 guest|||mgeni
 Guest|||Mgeni
@@ -153,9 +153,9 @@ Conversations (|||Mazungumzo (
 No conversations yet.|||Bado hakuna mazungumzo.
 View listing|||Tazama tangazo
 Say hello. Ask about dates, the area or house details.|||Salimia. Uliza kuhusu tarehe, eneo au maelezo ya nyumba.
-Discuss dates, the area and stay details. Keep payments and passwords out of chat.|||Jadilini tarehe, eneo na maelezo ya malazi. Usiweke malipo wala manenosiri kwenye mazungumzo.
+Discuss dates, the area and stay details. Keep payments and passwords out of chat.|||Jadili tarehe, eneo na maelezo ya malazi. Usishiriki taarifa za malipo wala nenosiri kwenye mazungumzo.
 Select a conversation to read and reply. Messages are saved in the database, so both the tourist and host can see the same conversation.|||Chagua mazungumzo ili kusoma na kujibu. Ujumbe huhifadhiwa kwenye hifadhidata, hivyo mtalii na mwenyeji wote wanaona mazungumzo yale yale.
-Hosts can message guests who have booked one of their listings.|||Wenyeji wanaweza kutuma ujumbe kwa wageni waliohifadhi mojawapo ya matangazo yao.
+Hosts can message guests who have booked one of their listings.|||Wenyeji wanaweza kutuma ujumbe kwa wageni walioweka nafasi kwenye mojawapo ya matangazo yao.
 Host identity (ID) verification|||Uthibitisho wa utambulisho (kitambulisho) wa mwenyeji
 Identity (ID) verification|||Uthibitisho wa utambulisho (kitambulisho)
 You are a verified host|||Wewe ni mwenyeji aliyethibitishwa
@@ -169,25 +169,24 @@ National ID|||Kitambulisho cha Taifa
 Passport|||Pasipoti
 ID or passport number|||Namba ya kitambulisho au pasipoti
 Property proof reference (optional)|||Rejea ya uthibitisho wa mali (hiari)
-Title deed, lease, permit or business no.|||Hati miliki, kukodisha, kibali au namba ya biashara
+Title deed, lease, permit or business no.|||Hati miliki, mkataba wa kupangisha, kibali au namba ya biashara
 Photo of your ID|||Picha ya kitambulisho chako
 I confirm these details are mine and correct, and I agree that an administrator may check them.|||Nathibitisha kuwa taarifa hizi ni zangu na ni sahihi, na nakubali msimamizi azikague.
 ✓ Verified guest|||✓ Mgeni aliyethibitishwa
 ✓ Verified host|||✓ Mwenyeji aliyethibitishwa
 Verified host|||Mwenyeji aliyethibitishwa
 Your verification request is already waiting for review.|||Ombi lako la uthibitisho tayari linasubiri ukaguzi.
-Your verification request was sent. An administrator will review it and email you the result.|||Ombi lako la uthibitisho limetumwa. Msimamizi atalikagua na kukutumia matokeo kwa barua pepe.
 Enter your full legal name as it appears on your ID.|||Weka jina lako kamili rasmi kama linavyoonekana kwenye kitambulisho chako.
 Please confirm that the details are yours and correct.|||Tafadhali thibitisha kuwa taarifa ni zako na ni sahihi.
 Delete account permanently|||Futa akaunti kabisa
 Type DELETE to confirm|||Andika DELETE ili kuthibitisha
 Delete my account permanently|||Futa akaunti yangu kabisa
 Available|||Inapatikana
-Booked|||Imehifadhiwa
+Booked|||Imechukuliwa
 Awaiting confirmation|||Inasubiri uthibitisho
 Not available|||Haipatikani
 Booking and payment rules|||Sheria za uhifadhi na malipo
 Good to know|||Muhimu kujua
 Your host confirms when the money has really arrived.|||Mwenyeji wako anathibitisha pesa zinapofika kweli.
-Photo credits|||Hakimiliki za picha
+Photo credits|||Shukrani za picha
 Photo of|||Picha ya

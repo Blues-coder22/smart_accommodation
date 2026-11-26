@@ -29,6 +29,7 @@ if (!defined('MEDIA_BACKUP_LIMIT'))   define('MEDIA_BACKUP_LIMIT', 40);         
 
 if (!function_exists('ensureMediaTables')) {
     function ensureMediaTables($pdo) {
+        if (function_exists('schemaIsUpgraded') && schemaIsUpgraded()) return;   // v9.33: tables are created once by the upgrade, not on every request
         static $done = false;
         if ($done) return;
         $done = true;

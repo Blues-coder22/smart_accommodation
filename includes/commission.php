@@ -1,6 +1,12 @@
 <?php
 /**
- * Money flow, receipts and payment evidence (v9.21).
+ * v9.33 LAUNCH MODEL (read this first):
+ *   - The guest pays the HOST DIRECTLY, and only AFTER the host has accepted the booking request.
+ *   - The HOST pays StayExplore Kenya its commission separately, by invoice, after an eligible completed stay.
+ *   - The guest is never charged, shown or told about the host's commission. The platform never holds accommodation money.
+ *   The older 'upfront' arrangement below is kept ONLY so bookings made before v9.33 keep their original financial terms.
+ *
+ * Money flow, receipts and payment evidence (v9.21, legacy description).
  *
  * The guest pays TWO things for a booking, each straight to its owner:
  *   1. the HOST'S SHARE (stay + extras, minus the platform commission)  -> to the host      (recorded in `payments`, confirmed by the host)
@@ -20,9 +26,10 @@ require_once __DIR__ . '/functions.php';
 
 if (!defined('COMMISSION_RATE_PERCENT')) define('COMMISSION_RATE_PERCENT', 10);
 if (!defined('SERVICE_FEE_PERCENT')) define('SERVICE_FEE_PERCENT', 0);   // no guest fee at launch; the admin can switch it on later
-if (!defined('COMMISSION_PAY_INSTRUCTIONS')) define('COMMISSION_PAY_INSTRUCTIONS', 'Send this amount by M-Pesa or bank transfer to the StayExplore Kenya account given by the admin, then enter the reference below.');
+if (!defined('COMMISSION_PAY_INSTRUCTIONS')) define('COMMISSION_PAY_INSTRUCTIONS', 'Pay StayExplore Kenya by M-Pesa or bank transfer to the account given by the admin, then report the payment reference below.');
 if (!defined('RECEIPT_SECRET')) define('RECEIPT_SECRET', 'change-this-secret-in-config-php');
 
+if (!function_exists('commissionPayInstructions')) { function commissionPayInstructions() { return siteSettingGet('platform_pay_instructions', COMMISSION_PAY_INSTRUCTIONS); } }
 if (!function_exists('kes')) { function kes($n) { return 'KES ' . number_format((float)$n, 2); } }
 
 if (!function_exists('ensureCommissionTables')) {
@@ -30,6 +37,8 @@ if (!function_exists('ensureCommissionTables')) {
         static $done = false;
         if ($done) return;
         $done = true;
+        $marker = dirname(__DIR__) . '/logs/.schema_v933';          // written after the one-time upgrade, so normal page loads skip all schema checks
+        if (is_file($marker)) return;
         try {
             $pdo->exec("CREATE TABLE IF NOT EXISTS site_settings (
                 setting_key VARCHAR(60) PRIMARY KEY,
@@ -58,7 +67,7 @@ if (!function_exists('ensureCommissionTables')) {
             foreach (['service_fee' => 'DECIMAL(10,2) NOT NULL DEFAULT 0', 'commission_amount' => 'DECIMAL(10,2) NULL DEFAULT NULL', 'commission_rate' => 'DECIMAL(5,2) NULL DEFAULT NULL'] as $col => $def) {
                 if (!$pdo->query("SHOW COLUMNS FROM bookings LIKE '$col'")->fetch()) $pdo->exec("ALTER TABLE bookings ADD COLUMN $col $def");
             }
-            if (!$pdo->query("SHOW COLUMNS FROM bookings LIKE 'commission_mode'")->fetch()) $pdo->exec("ALTER TABLE bookings ADD COLUMN commission_mode VARCHAR(10) NOT NULL DEFAULT 'upfront'");
+            if (!$pdo->query("SHOW COLUMNS FROM bookings LIKE 'commission_mode'")->fetch()) $pdo->exec("ALTER TABLE bookings ADD COLUMN commission_mode VARCHAR(10) NOT NULL DEFAULT 'invoice'");
             $pdo->exec("CREATE TABLE IF NOT EXISTS host_commission_payments (
                 hcp_id INT AUTO_INCREMENT PRIMARY KEY,
                 host_id INT NOT NULL,
@@ -85,6 +94,9 @@ if (!function_exists('ensureCommissionTables')) {
                 if (!$pdo->query("SHOW COLUMNS FROM platform_payments LIKE '$col'")->fetch()) $pdo->exec("ALTER TABLE platform_payments ADD COLUMN $col $def");
             }
             if (!$pdo->query("SHOW COLUMNS FROM payments LIKE 'payment_proof'")->fetch()) $pdo->exec("ALTER TABLE payments ADD COLUMN payment_proof VARCHAR(255) NULL");
+            runSchemaUpgradeV933($pdo);
+            if (!is_dir(dirname($marker))) @mkdir(dirname($marker), 0775, true);
+            @file_put_contents($marker, '9.33 ' . date('c'));
         } catch (Throwable $e) { error_log('ensureCommissionTables: ' . $e->getMessage()); }
     }
 }
@@ -108,7 +120,9 @@ if (!function_exists('siteSettingSet')) {
 if (!function_exists('commissionRatePercent')) { function commissionRatePercent() { return max(0.0, min(50.0, (float)siteSettingGet('commission_rate_percent', COMMISSION_RATE_PERCENT))); } }
 if (!function_exists('serviceFeePercent'))    { function serviceFeePercent()    { return max(0.0, min(50.0, (float)siteSettingGet('service_fee_percent', SERVICE_FEE_PERCENT))); } }
 // ---- v9.28 business-model switches (all in site_settings; the defaults keep the v9.27 behaviour) ----
-if (!function_exists('commissionMode'))     { function commissionMode()     { return siteSettingGet('commission_mode', 'upfront') === 'invoice' ? 'invoice' : 'upfront'; } }
+// v9.33: NEW bookings always use the host-paid invoice model. Older bookings keep the mode stored on their own row (bookings.commission_mode).
+if (!function_exists('commissionMode'))     { function commissionMode()     { return 'invoice'; } }
+if (!function_exists('paymentDeadlineHours')) { function paymentDeadlineHours() { $h = (int)siteSettingGet('payment_deadline_hours', 24); return in_array($h, [12, 24, 48], true) ? $h : 24; } }
 if (!function_exists('commissionBase'))     { function commissionBase()     { return siteSettingGet('commission_base', 'stay_extras') === 'stay_only' ? 'stay_only' : 'stay_extras'; } }
 if (!function_exists('invoiceDueDays'))     { function invoiceDueDays()     { return max(0, min(90, (int)siteSettingGet('invoice_due_days', 7))); } }
 if (!function_exists('blockOverdueHosts'))  { function blockOverdueHosts()  { return siteSettingGet('block_overdue_hosts', '1') === '1'; } }
@@ -248,33 +262,210 @@ if (!function_exists('applyCancellationRefund')) {
     }
 }
 
-// ===================== v9.28: commission invoiced to the host after the stay =====================
+
+// ===================== v9.33: one-time, non-destructive schema upgrade =====================
+if (!function_exists('runSchemaUpgradeV933')) {
+    function runSchemaUpgradeV933($pdo) {
+        $hasCol = function ($t, $c) use ($pdo) { return (bool)$pdo->query("SHOW COLUMNS FROM `$t` LIKE '$c'")->fetch(); };
+        $hasIdx = function ($t, $i) use ($pdo) { return (bool)$pdo->query("SHOW INDEX FROM `$t` WHERE Key_name = '$i'")->fetch(); };
+        $addIdx = function ($t, $i, $cols) use ($pdo, $hasIdx) { try { if (!$hasIdx($t, $i)) $pdo->exec("ALTER TABLE `$t` ADD INDEX `$i` ($cols)"); } catch (Throwable $e) { error_log("index $i: " . $e->getMessage()); } };
+
+        // 1. Booking statuses: add 'accepted' and 'payment_pending'. Existing values are untouched.
+        $type = (string)($pdo->query("SHOW COLUMNS FROM bookings LIKE 'status'")->fetch()['Type'] ?? '');
+        if ($type !== '' && stripos($type, 'payment_pending') === false) {
+            $pdo->exec("ALTER TABLE bookings MODIFY status ENUM('pending','accepted','payment_pending','confirmed','cancelled','completed','no_show') NOT NULL DEFAULT 'pending'");
+            // Old flow: guest sent payment details while the request was still 'pending'. Those are now 'payment_pending' (awaiting the host's check).
+            $pdo->exec("UPDATE bookings b SET b.status = 'payment_pending' WHERE b.status = 'pending' AND EXISTS (SELECT 1 FROM payments p WHERE p.booking_id = b.booking_id)");
+        }
+        foreach (['accepted_at' => 'DATETIME NULL DEFAULT NULL', 'payment_due_at' => 'DATETIME NULL DEFAULT NULL', 'payment_reminder_sent' => 'TINYINT(1) NOT NULL DEFAULT 0'] as $c => $d) {
+            if (!$hasCol('bookings', $c)) $pdo->exec("ALTER TABLE bookings ADD COLUMN `$c` $d");
+        }
+        // New records default to the host-paid model. Rows that already exist keep the value they were created with.
+        $pdo->exec("ALTER TABLE bookings ALTER COLUMN commission_mode SET DEFAULT 'invoice'");
+
+        if (!$hasCol('users', 'payment_instructions')) $pdo->exec("ALTER TABLE users ADD COLUMN payment_instructions VARCHAR(600) NULL");
+
+        // 2. Host commission invoices (one per eligible booking)
+        $pdo->exec("CREATE TABLE IF NOT EXISTS commission_invoices (
+            invoice_id INT AUTO_INCREMENT PRIMARY KEY,
+            invoice_no VARCHAR(40) NOT NULL,
+            host_id INT NOT NULL,
+            booking_id INT NOT NULL,
+            base_amount DECIMAL(10,2) NOT NULL DEFAULT 0,
+            rate DECIMAL(5,2) NULL,
+            amount DECIMAL(10,2) NOT NULL,
+            paid_amount DECIMAL(10,2) NOT NULL DEFAULT 0,
+            status ENUM('unpaid','partial','paid','void') NOT NULL DEFAULT 'unpaid',
+            issued_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            due_date DATE NOT NULL,
+            overdue_notified TINYINT(1) NOT NULL DEFAULT 0,
+            UNIQUE KEY uq_invoice_no (invoice_no), UNIQUE KEY uq_invoice_booking (booking_id),
+            KEY idx_host_status (host_id, status), KEY idx_due (status, due_date)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+        // 3. Launch settings, applied once: invoice model, no guest fee, 24 hour payment deadline.
+        $done = $pdo->query("SELECT 1 FROM site_settings WHERE setting_key = 'schema_version' AND setting_value = '9.33'")->fetchColumn();
+        if (!$done) {
+            $set = $pdo->prepare("INSERT INTO site_settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)");
+            $set->execute(['commission_mode', 'invoice']);
+            $set->execute(['service_fee_percent', '0']);
+            $pdo->prepare("INSERT IGNORE INTO site_settings (setting_key, setting_value) VALUES ('payment_deadline_hours', '24')")->execute();
+            $set->execute(['schema_version', '9.33']);
+        }
+
+        // 3b. Make sure every commission payment is attributable to specific invoices.
+        if (!$hasCol('host_commission_payments', 'proof_note')) $pdo->exec("ALTER TABLE host_commission_payments ADD COLUMN proof_note VARCHAR(300) NULL");
+
+        // 3c. Create every supporting table once, here, so normal page loads (and open transactions) never run DDL.
+        $dir = __DIR__;
+        foreach (['notifications', 'booking_events', 'payment_audit', 'alerts', 'currency', 'login_throttle', 'gallery', 'certificates', 'attraction_reviews', 'attraction_content', 'commons_photos', 'verify_wait', 'review_extras', 'profile_photo', 'onsite_experience', 'media_store'] as $inc) {
+            if (is_file("$dir/$inc.php")) { try { require_once "$dir/$inc.php"; } catch (Throwable $e) { error_log("include $inc: " . $e->getMessage()); } }
+        }
+        foreach (['ensureNotificationsTable', 'ensureBookingEventsTable', 'ensurePaymentAuditTable', 'ensureAlertTables', 'ensureCurrenciesTable', 'ensureLoginAttemptsTable', 'ensureAttractionPhotosTable', 'ensureCertificatesTable', 'ensureAttractionReviewsTable', 'ensureAttractionExtras', 'ensureAttractionPhotoCreditsTable', 'ensureVerifyWaitsTable', 'ensureVerifyCodesTable', 'ensureReviewExtraColumns', 'ensureProfilePhotoColumns', 'ensureOnsiteExperienceColumns', 'ensureMediaTables'] as $fn) {
+            if (function_exists($fn)) { try { $fn($pdo); } catch (Throwable $e) { error_log("$fn: " . $e->getMessage()); } }
+        }
+        if (function_exists('ensureBookingRefColumn')) { try { ensureBookingRefColumn($pdo); } catch (Throwable $e) {} }
+
+        // 4. Indexes for the queries that run most often (each checked first, none is destructive).
+        $addIdx('bookings', 'idx_status_created', 'status, created_at');
+        $addIdx('bookings', 'idx_tourist_status', 'tourist_id, status');
+        $addIdx('bookings', 'idx_status_due', 'status, payment_due_at');
+        $addIdx('bookings', 'idx_status_checkout', 'status, check_out_date');
+        $addIdx('payments', 'idx_payment_status', 'payment_status');
+        $addIdx('reviews', 'idx_acc_published', 'accommodation_id, is_published');
+        $addIdx('accommodations', 'idx_status_created', 'status, created_at');
+        $addIdx('accommodations', 'idx_status_geo', 'status, latitude, longitude');
+        $addIdx('accommodations', 'idx_status_type_price', 'status, property_type, price_per_night');
+        $addIdx('accommodation_photos', 'idx_acc_primary', 'accommodation_id, is_primary, photo_id');
+        $addIdx('amenities', 'idx_acc_amenity', 'accommodation_id, amenity_name');
+        $addIdx('availability', 'idx_acc_date', 'accommodation_id, is_available, `date`');
+        $addIdx('host_commission_payments', 'idx_host_status', 'host_id, status');
+        $addIdx('platform_payments', 'idx_pp_status', 'status');
+    }
+}
+
+// ===================== v9.33: commission invoiced to the host after an eligible completed stay =====================
+if (!function_exists('issueCommissionInvoices')) {
+    /**
+     * Creates an invoice for every booking whose commission has become payable, once. A booking is eligible only when:
+     *   - it was made under the host-paid invoice model and carries a commission amount,
+     *   - the HOST confirmed receiving the guest's accommodation payment (booking is confirmed or completed).
+     * (Changed in v9.34: the commission is worked out the moment the host marks the payment received, instead of after the stay.
+     *  It is still DUE N days after check-out, and the invoice is voided if the booking is later cancelled or the payment reversed.)
+     * Rejected, unpaid, cancelled and no-show bookings never reach this point. Safe to run repeatedly.
+     */
+    function issueCommissionInvoices($pdo, $hostId = null) {
+        ensureCommissionTables($pdo);
+        $days = (int)invoiceDueDays();
+        try {
+            $sql = "INSERT IGNORE INTO commission_invoices (invoice_no, host_id, booking_id, base_amount, rate, amount, issued_at, due_date)
+                SELECT CONCAT('TMP', REPLACE(UUID(), '-', '')), a.host_id, b.booking_id,
+                       CASE WHEN b.commission_rate > 0 THEN ROUND(b.commission_amount * 100 / b.commission_rate, 2) ELSE 0 END,
+                       b.commission_rate, b.commission_amount, NOW(), DATE_ADD(b.check_out_date, INTERVAL $days DAY)
+                FROM bookings b
+                JOIN accommodations a ON a.accommodation_id = b.accommodation_id
+                JOIN payments p ON p.booking_id = b.booking_id AND p.payment_status = 'confirmed'
+                WHERE b.status IN ('confirmed','completed') AND b.commission_mode = 'invoice' AND b.commission_amount > 0
+                  AND NOT EXISTS (SELECT 1 FROM commission_invoices ci WHERE ci.booking_id = b.booking_id)"
+                . ($hostId ? " AND a.host_id = " . (int)$hostId : '');
+            $n = $pdo->exec($sql);
+            if ($n) $pdo->exec("UPDATE commission_invoices SET invoice_no = CONCAT('SEK-', DATE_FORMAT(issued_at, '%Y'), '-', LPAD(invoice_id, 5, '0')) WHERE invoice_no LIKE 'TMP%'");
+            return (int)$n;
+        } catch (Throwable $e) { error_log('issueCommissionInvoices: ' . $e->getMessage()); return 0; }
+    }
+}
+if (!function_exists('syncBookingCommissionInvoice')) {
+    /**
+     * Keeps one booking's commission invoice in step with its status (called from transitionBooking, inside its transaction).
+     *   confirmed / completed  -> invoice exists (created now, or a voided one is reinstated)
+     *   cancelled / no_show / payment_pending (payment reversed) -> an invoice with nothing paid on it is voided
+     * Never throws; commission problems must not block a booking change.
+     */
+    function syncBookingCommissionInvoice($pdo, $bookingId, $newStatus) {
+        try {
+            $bookingId = (int)$bookingId;
+            if (in_array($newStatus, ['confirmed', 'completed'], true)) {
+                $v = $pdo->prepare("UPDATE commission_invoices SET status = 'unpaid' WHERE booking_id = ? AND status = 'void'");
+                $v->execute([$bookingId]);
+                if ($v->rowCount()) return;
+                $days = (int)invoiceDueDays();
+                $pdo->prepare("INSERT IGNORE INTO commission_invoices (invoice_no, host_id, booking_id, base_amount, rate, amount, issued_at, due_date)
+                    SELECT CONCAT('TMP', REPLACE(UUID(), '-', '')), a.host_id, b.booking_id,
+                           CASE WHEN b.commission_rate > 0 THEN ROUND(b.commission_amount * 100 / b.commission_rate, 2) ELSE 0 END,
+                           b.commission_rate, b.commission_amount, NOW(), DATE_ADD(b.check_out_date, INTERVAL $days DAY)
+                    FROM bookings b JOIN accommodations a ON a.accommodation_id = b.accommodation_id
+                    WHERE b.booking_id = ? AND b.commission_mode = 'invoice' AND b.commission_amount > 0")->execute([$bookingId]);
+                $pdo->exec("UPDATE commission_invoices SET invoice_no = CONCAT('SEK-', DATE_FORMAT(issued_at, '%Y'), '-', LPAD(invoice_id, 5, '0')) WHERE invoice_no LIKE 'TMP%'");
+            } elseif (in_array($newStatus, ['cancelled', 'no_show', 'payment_pending', 'accepted'], true)) {
+                $pdo->prepare("UPDATE commission_invoices SET status = 'void' WHERE booking_id = ? AND paid_amount <= 0 AND status IN ('unpaid','partial')")->execute([$bookingId]);
+            }
+        } catch (Throwable $e) { error_log('syncBookingCommissionInvoice: ' . $e->getMessage()); }
+    }
+}
+if (!function_exists('cronIsFresh')) {
+    /** True while the scheduled job (cron/maintenance.php) is running, so pages need not do its work themselves. */
+    function cronIsFresh() { $hb = dirname(__DIR__) . '/logs/.maintenance_heartbeat'; return is_file($hb) && (time() - (int)@filemtime($hb)) < 900; }
+}
 if (!function_exists('hostCommissionLedger')) {
     /**
-     * What one host owes in 'invoice' mode. A booking's commission becomes due when its stay has ended (check-out date passed) and the
-     * booking was confirmed or completed; it must be paid within invoiceDueDays() after check-out. Confirmed payments from the host are
-     * applied to the oldest bookings first. Payments still waiting for the admin's check are shown but do not reduce the balance yet.
-     * Returns ['due','paid','pending','outstanding','overdue','items'=>[...]].
+     * What one host owes, from invoices. Confirmed payments from the host are applied to the oldest invoices first;
+     * payments still waiting for the admin's check are shown but do not reduce the balance yet.
+     * Returns ['due','paid','pending','outstanding','overdue','items'=>[...]] ('due' = total ever invoiced).
      */
     function hostCommissionLedger($pdo, $hostId) {
         ensureCommissionTables($pdo);
-        $q = $pdo->prepare("SELECT b.booking_id, b.check_in_date, b.check_out_date, b.commission_amount, b.commission_rate, a.title
-            FROM bookings b JOIN accommodations a ON a.accommodation_id = b.accommodation_id
-            WHERE a.host_id = ? AND b.commission_mode = 'invoice' AND b.commission_amount > 0 AND b.status IN ('confirmed','completed')
-              AND b.check_out_date <= CURDATE() ORDER BY b.check_out_date ASC, b.booking_id ASC");
+        if (!cronIsFresh()) issueCommissionInvoices($pdo, (int)$hostId);   // with cron running, invoices are issued there
+        $q = $pdo->prepare("SELECT ci.*, b.check_in_date, b.check_out_date, a.title
+            FROM commission_invoices ci JOIN bookings b ON b.booking_id = ci.booking_id JOIN accommodations a ON a.accommodation_id = b.accommodation_id
+            WHERE ci.host_id = ? AND ci.status <> 'void' ORDER BY ci.due_date ASC, ci.invoice_id ASC");
         $q->execute([(int)$hostId]); $items = $q->fetchAll(PDO::FETCH_ASSOC);
         $p = $pdo->prepare("SELECT COALESCE(SUM(CASE WHEN status='confirmed' THEN amount END),0) AS paid, COALESCE(SUM(CASE WHEN status='pending' THEN amount END),0) AS pending FROM host_commission_payments WHERE host_id = ?");
         $p->execute([(int)$hostId]); $pay = $p->fetch(PDO::FETCH_ASSOC);
-        $credit = (float)$pay['paid']; $due = 0.0; $out = 0.0; $overdue = 0.0; $today = date('Y-m-d'); $days = invoiceDueDays();
+        $credit = (float)$pay['paid']; $due = 0.0; $out = 0.0; $overdue = 0.0; $today = date('Y-m-d');
         foreach ($items as &$it) {
-            $amt = (float)$it['commission_amount']; $due += $amt;
+            $amt = (float)$it['amount']; $due += $amt;
             $applied = min($credit, $amt); $credit -= $applied;
-            $it['unpaid'] = $amt - $applied; $it['due_date'] = date('Y-m-d', strtotime($it['check_out_date'] . " +$days days"));
-            $it['overdue'] = $it['unpaid'] > 0 && $it['due_date'] < $today;
+            $it['commission_amount'] = $amt; $it['commission_rate'] = $it['rate'];
+            $it['paid_applied'] = $applied; $it['unpaid'] = $amt - $applied;
+            $it['overdue'] = $it['unpaid'] > 0.004 && $it['due_date'] < $today;
+            $it['state'] = $it['unpaid'] <= 0.004 ? 'paid' : ($applied > 0 ? 'partial' : 'unpaid');
             $out += $it['unpaid']; if ($it['overdue']) $overdue += $it['unpaid'];
         }
         unset($it);
         return ['due' => $due, 'paid' => (float)$pay['paid'], 'pending' => (float)$pay['pending'], 'outstanding' => $out, 'overdue' => $overdue, 'items' => $items];
+    }
+}
+if (!function_exists('syncCommissionInvoiceStatuses')) {
+    /** Writes the allocation computed by hostCommissionLedger() back onto the invoices (called after the admin decides on a payment). */
+    function syncCommissionInvoiceStatuses($pdo, $hostId) {
+        try {
+            $led = hostCommissionLedger($pdo, $hostId);
+            $u = $pdo->prepare("UPDATE commission_invoices SET paid_amount = ?, status = ? WHERE invoice_id = ? AND status <> 'void'");
+            foreach ($led['items'] as $it) $u->execute([round($it['paid_applied'], 2), $it['state'], (int)$it['invoice_id']]);
+        } catch (Throwable $e) { error_log('syncCommissionInvoiceStatuses: ' . $e->getMessage()); }
+    }
+}
+if (!function_exists('hostCommissionSummary')) {
+    /** The numbers shown on the host Commission page and the dashboard. */
+    function hostCommissionSummary($pdo, $hostId) {
+        $l = hostCommissionLedger($pdo, $hostId);
+        $c = $pdo->prepare("SELECT COUNT(*) FROM host_commission_payments WHERE host_id = ? AND status = 'confirmed'"); $c->execute([(int)$hostId]);
+        return ['earned' => $l['due'], 'outstanding' => $l['outstanding'], 'overdue' => $l['overdue'], 'pending_payments' => $l['pending'], 'confirmed_payments' => $l['paid'], 'confirmed_count' => (int)$c->fetchColumn(), 'ledger' => $l];
+    }
+}
+if (!function_exists('commissionPlatformSummary')) {
+    /** Totals across all hosts for the admin dashboard. */
+    function commissionPlatformSummary($pdo) {
+        ensureCommissionTables($pdo); issueCommissionInvoices($pdo);
+        $inv = $pdo->query("SELECT COALESCE(SUM(amount),0) AS generated, COUNT(*) AS n,
+                COALESCE(SUM(CASE WHEN status <> 'void' AND due_date < CURDATE() THEN amount - paid_amount END),0) AS overdue_amount,
+                COALESCE(SUM(CASE WHEN status <> 'void' AND status <> 'paid' AND due_date < CURDATE() THEN 1 END),0) AS overdue_n
+            FROM commission_invoices WHERE status <> 'void'")->fetch(PDO::FETCH_ASSOC);
+        $pay = $pdo->query("SELECT COALESCE(SUM(CASE WHEN status='confirmed' THEN amount END),0) AS confirmed,
+                COALESCE(SUM(CASE WHEN status='pending' THEN amount END),0) AS awaiting, COALESCE(SUM(CASE WHEN status='pending' THEN 1 END),0) AS awaiting_n
+            FROM host_commission_payments")->fetch(PDO::FETCH_ASSOC);
+        return ['generated' => (float)$inv['generated'], 'invoices' => (int)$inv['n'], 'confirmed' => (float)$pay['confirmed'], 'awaiting' => (float)$pay['awaiting'], 'awaiting_n' => (int)$pay['awaiting_n'],
+                'outstanding' => max(0.0, (float)$inv['generated'] - (float)$pay['confirmed']), 'overdue_amount' => (float)$inv['overdue_amount'], 'overdue_n' => (int)$inv['overdue_n']];
     }
 }
 if (!function_exists('hostIsBlockedForCommission')) {
@@ -286,19 +477,18 @@ if (!function_exists('hostIsBlockedForCommission')) {
 }
 
 // ===================== v9.28: recorded host agreement =====================
-if (!defined('HOST_AGREEMENT_VERSION')) define('HOST_AGREEMENT_VERSION', '1');
+if (!defined('HOST_AGREEMENT_VERSION')) define('HOST_AGREEMENT_VERSION', '2');
 if (!function_exists('hostAgreementText')) {
     /** The terms as they stand today, in plain words. A copy is stored with each acceptance, so the host's record shows exactly what was agreed. */
     function hostAgreementText() {
         $rate = pct(commissionRatePercent()); $base = commissionBase() === 'stay_only' ? 'the accommodation (stay) price only' : 'your price for the stay plus any extras you charge';
-        $how = commissionMode() === 'invoice'
-            ? "Guests pay you the full price directly. After each stay ends, the commission on that booking becomes due to StayExplore Kenya and you pay it by M-Pesa or bank transfer within " . invoiceDueDays() . " days of check-out. You report each payment on the Commission page and StayExplore Kenya confirms it."
-            : "The guest pays the commission to StayExplore Kenya together with the booking, so you receive your price minus the commission directly from the guest and owe nothing afterwards.";
-        $block = commissionMode() === 'invoice' && blockOverdueHosts() ? "If commission stays unpaid after its due date, your listings may be paused for new bookings until it is paid." : "";
+        $block = blockOverdueHosts() ? "If commission stays unpaid after its due date, your listings may be paused for new bookings until it is paid." : "";
         $clauses = array_values(array_filter([
-            "Commission. StayExplore Kenya charges a commission of {$rate}% of {$base} on each booking made through the platform. The rate in force when a booking is made is saved on that booking and does not change afterwards.",
-            "How it is paid. $how",
-            "Your money. StayExplore Kenya does not hold or handle the accommodation payment. The guest pays you directly and you confirm receipt yourself. You are responsible for the tax on your own income.",
+            "Guests pay you directly. A guest pays you for the accommodation only after you have accepted their booking request. StayExplore Kenya does not hold or handle that money. You confirm that you received it, and you are responsible for the tax on your own income.",
+            "Your commission. Your agreed platform commission is payable separately to StayExplore Kenya after eligible completed stays. It is {$rate}% of {$base}. The rate in force when a booking is made is saved on that booking and does not change afterwards.",
+            "When commission becomes payable. Commission is charged only on a stay that was completed and whose accommodation payment you confirmed as received. No commission is charged on rejected, unpaid, cancelled or no-show bookings.",
+            "How you pay it. Commission is invoiced to you, and each invoice is due " . invoiceDueDays() . " days after the guest's check-out. You pay by M-Pesa or bank transfer, report the payment and its reference on the Commission page, and StayExplore Kenya confirms it.",
+            "Guests are not involved. Your commission is a private matter between you and StayExplore Kenya. Do not ask guests to pay it or to pay any part of it.",
             "Bookings outside the platform. A guest you first met through StayExplore Kenya is a platform booking. Taking such a booking off the platform to avoid commission breaks this agreement.",
             "Accuracy. Your listing, photos, price and availability must be true and kept up to date, and you will honour confirmed bookings.",
             $block ? "Overdue commission. $block" : "",

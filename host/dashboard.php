@@ -2,6 +2,8 @@
 require_once '../includes/auth.php';
 require_once '../includes/functions.php';
 require_once '../includes/db.php';
+require_once '../includes/commission.php';
+require_once '../includes/booking_workflow.php';
 
 if (session_status() === PHP_SESSION_NONE) session_start();
 
@@ -35,6 +37,9 @@ $stats = $pdo->prepare("
 ");
 $stats->execute([$host_id]);
 $stats = $stats->fetch();
+$comm = hostCommissionSummary($pdo, (int)$host_id);
+$agreementOk = hostAgreementAccepted($pdo, (int)$host_id);
+$awaitingPay = (int)$pdo->query("SELECT COUNT(*) FROM bookings b JOIN accommodations a ON a.accommodation_id = b.accommodation_id WHERE a.host_id = " . (int)$host_id . " AND b.status = 'payment_pending'")->fetchColumn();
 
 // Recent bookings
 $recent = $pdo->prepare("
@@ -123,42 +128,22 @@ foreach ($chart_values as $i => $value) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Host Dashboard — StayExplore Kenya</title>
     <link rel="stylesheet" href="../assets/css/style.css">
+<link rel="stylesheet" href="../assets/css/ui.css"><script src="../assets/js/ui.js" defer></script>
     <style>
-        
-        .dash-wrap  { display:grid;
-                      grid-template-columns:200px 1fr;
-                      flex:1 }
         .sidebar    { background:var(--surface-2);
                       border-right:1px solid var(--border);
                       padding:24px 0; position:sticky;
                       top:52px; height:calc(100vh - 52px);
                       overflow-y:auto }
-        .sidebar-role { font-size:10px; font-weight:700;
-                        letter-spacing:.08em; color:#126b4e;
-                        text-transform:uppercase;
-                        padding:0 20px; margin-bottom:12px }
-        .sidebar-link { display:flex; align-items:center; gap:10px;
-                        padding:9px 20px; font-size:13px;
-                        color:var(--text-secondary); cursor:pointer;
-                        text-decoration:none; border:none;
-                        background:none; width:100%;
-                        text-align:left; position:relative }
-        .sidebar-link:hover { color:var(--text-primary);
-                              background:var(--surface-1) }
-        .sidebar-link.active { color:#085041; font-weight:500;
-                               background:#E1F5EE;
-                               border-left:3px solid #126b4e }
         .badge      { font-size:10px; background:#DC2626;
                       color:#fff; border-radius:10px;
                       padding:1px 6px; margin-left:auto }
         .main       { padding:28px; overflow-y:auto }
         .page-date  { font-size:11px; font-weight:600;
-                      letter-spacing:.06em; color:#126b4e;
+                      letter-spacing:.06em; color:var(--accent);
                       text-transform:uppercase; margin-bottom:6px }
-        .page-title { font-size:26px; font-weight:400;
-                      margin-bottom:4px }
-        .page-sub   { font-size:13px; color:var(--text-secondary);
-                      margin-bottom:24px }
+        .strip-title { font-size:15px; font-weight:600; margin:8px 0 10px; display:flex; justify-content:space-between; align-items:baseline }
+        .strip-title a { font-size:13px; font-weight:400 }
         .stats-grid { display:grid;
                       grid-template-columns:repeat(4,1fr);
                       gap:12px; margin-bottom:24px }
@@ -166,14 +151,14 @@ foreach ($chart_values as $i => $value) {
                       border:1px solid var(--border);
                       border-radius:8px; padding:16px;
                       border-left:3px solid transparent }
-        .stat-card.accent { border-left-color:#126b4e }
+        .stat-card.accent { border-left-color:var(--accent) }
         .stat-label { font-size:10px; font-weight:700;
                       letter-spacing:.06em; color:var(--text-secondary);
                       text-transform:uppercase; margin-bottom:8px }
         .stat-value { font-size:26px; font-weight:500;
                       color:var(--text-primary); margin-bottom:4px }
-        .stat-note  { font-size:12px; color:#126b4e }
-        .stat-note.warn { color:#8f4b00 }
+        .stat-note  { font-size:12px; color:var(--accent) }
+        .stat-note.warn { color:var(--warn-fg) }
         .content-grid { display:grid;
                         grid-template-columns:1fr 300px;
                         gap:20px }
@@ -185,7 +170,7 @@ foreach ($chart_values as $i => $value) {
                        display:flex; justify-content:space-between;
                        align-items:center }
         .card-header h3 { font-size:13px; font-weight:500 }
-        .card-header a  { font-size:12px; color:#126b4e;
+        .card-header a  { font-size:12px; color:var(--accent);
                           text-decoration:none }
         table       { width:100%; border-collapse:collapse;
                       font-size:13px }
@@ -200,13 +185,13 @@ foreach ($chart_values as $i => $value) {
                       color:var(--text-primary) }
         tr:last-child td { border-bottom:none }
         tr:hover td { background:var(--surface-1) }
-        .s-confirmed { color:#0F6E56; font-weight:500 }
-        .s-pending   { color:#8f4b00; font-weight:500 }
+        .s-confirmed { color:var(--accent-strong); font-weight:500 }
+        .s-pending   { color:var(--warn-fg); font-weight:500 }
         .s-completed { color:#1A4DB3; font-weight:500 }
-        .s-cancelled { color:#b42318 }
+        .s-cancelled { color:var(--bad-fg) }
         .chart-heading { padding:18px 18px 0 }
         .chart-eyebrow { font-size:10px; letter-spacing:.13em;
-                         text-transform:uppercase; color:#a3462a;
+                         text-transform:uppercase; color:var(--terracotta);
                          font-weight:700; margin-bottom:8px }
         .chart-heading h2 { font-family:Georgia,'Times New Roman',serif;
                             font-size:29px; font-weight:500;
@@ -219,8 +204,7 @@ foreach ($chart_values as $i => $value) {
         .chart-note { font-size:12px; color:var(--text-secondary) }
         .empty-row  { text-align:center; padding:32px;
                       color:var(--text-secondary); font-size:13px }
-        @media(max-width:900px){
-            .dash-wrap { grid-template-columns:1fr }
+        @media(max-width:1024px){
             .sidebar   { display:none }
             .stats-grid { grid-template-columns:repeat(2,1fr) }
             .content-grid { grid-template-columns:1fr }
@@ -239,7 +223,7 @@ foreach ($chart_values as $i => $value) {
         </div>
         <?php $hvState = getHostVerification($pdo, $host_id); $hvStatus = $hvState['status'] ?? 'unverified'; ?>
         <?php if ($hvStatus !== 'verified'): ?>
-        <div style="border:1px solid #F0D8A8;background:#FFF9EC;border-radius:8px;padding:12px 16px;margin-bottom:18px;font-size:13px">
+        <div style="border:1px solid var(--warn-line);background:var(--warn-bg);border-radius:8px;padding:12px 16px;margin-bottom:18px;font-size:13px">
             <?php if ($hvStatus === 'pending'): ?>
                 <strong>Identity verification pending.</strong> Your email is confirmed; an admin is reviewing your ID.
             <?php elseif ($hvStatus === 'rejected'): ?>
@@ -252,6 +236,12 @@ foreach ($chart_values as $i => $value) {
         <p class="page-sub">
             A clear view of what needs attention today.
         </p>
+        <?php if (!$agreementOk): ?>
+        <div class="alert alert-warning" style="margin-bottom:16px">The host agreement was updated to reflect how commission works. <a href="agreement.php">Read and accept it</a> to add or approve listings.</div>
+        <?php endif; ?>
+        <?php if ($awaitingPay > 0): ?>
+        <div class="alert alert-info" style="margin-bottom:16px"><a href="bookings.php?tab=awaiting"><strong><?= $awaitingPay ?></strong> guest payment<?= $awaitingPay == 1 ? '' : 's' ?> waiting for you to confirm</a>.</div>
+        <?php endif; ?>
 
         <!-- Stats -->
         <div class="stats-grid">
@@ -265,7 +255,7 @@ foreach ($chart_values as $i => $value) {
                 </div>
             </div>
             <div class="stat-card">
-                <div class="stat-label">Pending</div>
+                <div class="stat-label">Awaiting your reply</div>
                 <div class="stat-value">
                     <?= $stats['pending_bookings'] ?>
                 </div>
@@ -293,6 +283,14 @@ foreach ($chart_values as $i => $value) {
                     <?= $stats['total_reviews'] ?> reviews
                 </div>
             </div>
+        </div>
+
+        <h2 class="strip-title">Commission <a href="commission.php">Details</a></h2>
+        <div class="stats-grid">
+            <div class="stat-card"><div class="stat-label">Commission earned</div><div class="stat-value">KES <?= number_format($comm['earned']) ?></div><div class="stat-note">on confirmed payments</div></div>
+            <div class="stat-card"><div class="stat-label">Outstanding</div><div class="stat-value">KES <?= number_format($comm['outstanding']) ?></div><div class="stat-note <?= $comm['overdue'] > 0 ? 'warn' : '' ?>"><?= $comm['overdue'] > 0 ? 'KES ' . number_format($comm['overdue']) . ' overdue' : 'nothing overdue' ?></div></div>
+            <div class="stat-card"><div class="stat-label">Pending verification</div><div class="stat-value">KES <?= number_format($comm['pending_payments']) ?></div><div class="stat-note">reported by you</div></div>
+            <div class="stat-card accent"><div class="stat-label">Confirmed payments</div><div class="stat-value">KES <?= number_format($comm['confirmed_payments']) ?></div><div class="stat-note"><?= (int)$comm['confirmed_count'] ?> payment<?= $comm['confirmed_count'] == 1 ? '' : 's' ?></div></div>
         </div>
 
         <div class="content-grid">
@@ -336,10 +334,10 @@ foreach ($chart_values as $i => $value) {
                                     'pending'   => 's-pending',
                                     'completed' => 's-completed',
                                     'cancelled' => 's-cancelled'
-                                ][$b['status']] ?? '';
+                                ][$b['status']] ?? ($b['status'] === 'accepted' ? 's-confirmed' : 's-pending');
                                 ?>
                                 <span class="<?= $cls ?>">
-                                    <?= ucfirst($b['status']) ?>
+                                    <?= h(bookingStatusLabel($b['status'], 'host')) ?>
                                 </span>
                             </td>
                             <td>

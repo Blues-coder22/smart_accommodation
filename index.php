@@ -5,6 +5,7 @@ require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/includes/profile_photo.php';
 require_once __DIR__ . '/includes/attraction_content.php';
 require_once __DIR__ . '/includes/attraction_reviews.php';
+require_once __DIR__ . '/includes/tourist_nav.php';
 if (session_status() === PHP_SESSION_NONE) session_start();
 
 $base = appBasePath();
@@ -90,14 +91,22 @@ try {
 } catch (Throwable $e) { $newStays = []; }
 $attRatingsHome = attractionRatingsMap($pdo, array_column($homeAttractions, 'attraction_id'));
 
-function homeInsightLabel($category) {
-    $c = strtolower((string)$category);
-    if (strpos($c, 'wild') !== false || strpos($c, 'safari') !== false) return 'Wildlife insight';
-    if (strpos($c, 'park') !== false || strpos($c, 'nature') !== false || strpos($c, 'lake') !== false || strpos($c, 'mountain') !== false) return 'Nature insight';
-    if (strpos($c, 'beach') !== false || strpos($c, 'coast') !== false) return 'Coast insight';
-    if (strpos($c, 'histor') !== false || strpos($c, 'museum') !== false || strpos($c, 'cultur') !== false) return 'Culture insight';
-    return 'Visitor tip';
-}
+// ---- v9.38: pins for the homepage map preview (approved stays and attractions that have coordinates; read-only) ----
+$mapStays = []; $mapAttractions = [];
+try {
+    foreach ($pdo->query("SELECT accommodation_id, title, location_name, price_per_night, latitude, longitude FROM accommodations
+                          WHERE status='approved' AND latitude IS NOT NULL AND longitude IS NOT NULL LIMIT 500")->fetchAll(PDO::FETCH_ASSOC) as $m) {
+        $mapStays[] = ['id' => (int)$m['accommodation_id'], 'name' => (string)$m['title'], 'loc' => (string)$m['location_name'], 'price' => (float)$m['price_per_night'],
+                       'lat' => (float)$m['latitude'], 'lng' => (float)$m['longitude'], 'url' => $base . '/tourist/details.php?id=' . (int)$m['accommodation_id']];
+    }
+} catch (Throwable $e) { $mapStays = []; }
+try {
+    foreach ($pdo->query("SELECT attraction_id, name, category, location_name, latitude, longitude FROM attractions
+                          WHERE latitude IS NOT NULL AND longitude IS NOT NULL LIMIT 500")->fetchAll(PDO::FETCH_ASSOC) as $m) {
+        $mapAttractions[] = ['id' => (int)$m['attraction_id'], 'name' => (string)$m['name'], 'cat' => (string)$m['category'], 'loc' => (string)$m['location_name'],
+                             'lat' => (float)$m['latitude'], 'lng' => (float)$m['longitude'], 'url' => $base . '/tourist/attraction.php?id=' . (int)$m['attraction_id']];
+    }
+} catch (Throwable $e) { $mapAttractions = []; }
 
 // Which featured stays has this tourist saved?
 $savedStays = [];
@@ -194,9 +203,10 @@ $attrUrl   = $base . '/tourist/search.php?type=attraction';
   <link rel="stylesheet" href="assets/css/home.css">
   <link rel="stylesheet" href="assets/css/a11y.css">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Ccircle cx=%2716%27 cy=%2716%27 r=%2716%27 fill=%27%230d3b2e%27/%3E%3Ctext x=%2716%27 y=%2721%27 font-size=%2713%27 fill=%27white%27 text-anchor=%27middle%27 font-family=%27Georgia%27%3ESE%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="assets/css/dark.css"><meta name="color-scheme" content="light dark"><script src="assets/js/se-theme.js"></script><script src="assets/js/se-i18n.js"></script></head>
+<link rel="stylesheet" href="assets/css/dark.css"><link rel="stylesheet" href="assets/css/tourist-home.css"><meta name="color-scheme" content="light dark"><script src="assets/js/se-theme.js"></script><script src="assets/js/se-i18n.js"></script></head>
 <body class="hx">
 
+<?php if ($isTourist): seRenderTouristNav(true); /* v9.38 tourist top bar + drawer */ else: ?>
 <header class="hx-header" id="hxHeader">
   <a class="hx-brand" href="<?= h($base) ?>/index.php" aria-label="StayExplore Kenya home">
     <span class="hx-logo">SE</span>
@@ -204,19 +214,33 @@ $attrUrl   = $base . '/tourist/search.php?type=attraction';
   </a>
   <button class="hx-burger" type="button" id="hxBurger" aria-label="Toggle navigation" aria-expanded="false">☰</button>
   <nav class="hx-nav" aria-label="Main navigation">
+    <div class="nav-panel-top"><a href="<?= h($base) ?>/index.php" class="nav-panel-brand"><span class="hx-logo">SE</span><span>StayExplore<small>KENYA</small></span></a><?php if (isLoggedIn()): ?><span class="nav-panel-hello">Hello, <?= h(trim(explode(' ', trim((string)$userName))[0] ?? '')) ?></span><?php endif; ?></div>
     <a href="<?= h($stayUrl) ?>">Stays</a>
     <a href="<?= h($attrUrl) ?>">Attractions</a>
     <a href="<?= h($base) ?>/how-it-works.html">How it works</a>
     <a href="<?= h($hostUrl) ?>">List your property</a>
   </nav>
   <div class="hx-actions">
-    <?php if (isLoggedIn()): ?>
-      <a class="link" href="<?= h($dashUrl) ?>"><?= h($dashLabel) ?></a>
-      <a class="nav-avatar" href="<?= h($profileUrl) ?>" title="My profile" aria-label="My profile"><?= avatarHtml($_SESSION['user_id'] ?? 0, $userName, currentUserPhotoName($pdo), 40) ?></a>
-      <?php require_once __DIR__ . '/includes/currency.php'; require_once __DIR__ . '/includes/translate.php'; echo languageWidgetHtml() . currencySelectorHtml(h($base)); ?>
-      <?php require_once __DIR__ . '/includes/notifications.php'; $__nc = unreadNotificationCount($GLOBALS['pdo'], (int)($_SESSION['user_id'] ?? 0)); ?>
-    <a class="se-bell" href="<?= h($base) ?>/notifications.php?as=<?= urlencode($_SESSION['role'] ?? '') ?>" aria-label="Notifications<?= $__nc ? ', ' . $__nc . ' unread' : '' ?>" title="Notifications"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg><?php if ($__nc): ?><span class="se-bell-count"><?= $__nc > 99 ? '99+' : $__nc ?></span><?php endif; ?></a>
-      <a class="hx-btn" href="<?= h($base) ?>/logout.php?as=<?= urlencode($_SESSION['role'] ?? '') ?>">Sign out</a>
+    <?php if (isLoggedIn()):
+        $__roleHx = hasRole('host') ? 'host' : (hasRole('admin') ? 'admin' : 'tourist');
+        $__first = trim(explode(' ', trim((string)$userName))[0] ?? '');
+        $__items = [[$profileUrl, 'My profile']];
+        if ($__roleHx === 'tourist') { $__items[] = [$base . '/tourist/favourites.php', 'Favourites']; $__items[] = [$base . '/messages.php', 'Messages']; $__items[] = [$base . '/tourist/support.php', 'Contact support']; }
+        elseif ($__roleHx === 'host') { $__items[] = [$base . '/host/messages.php', 'Messages']; $__items[] = [$base . '/host/commission.php', 'Commission']; $__items[] = [$base . '/host/support.php', 'Contact support']; }
+        else { $__items[] = [$base . '/admin/support.php', 'Support inbox']; }
+        $__items[] = [$base . '/about.html', 'About'];
+        require_once __DIR__ . '/includes/notifications.php'; $__nc = unreadNotificationCount($GLOBALS['pdo'], (int)($_SESSION['user_id'] ?? 0)); ?>
+      <a class="link hx-dash" href="<?= h($dashUrl) ?>"><?= h($dashLabel) ?></a>
+      <a class="se-bell" href="<?= h($base) ?>/notifications.php?as=<?= urlencode($_SESSION['role'] ?? '') ?>" aria-label="Notifications<?= $__nc ? ', ' . $__nc . ' unread' : '' ?>" title="Notifications"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg><?php if ($__nc): ?><span class="se-bell-count"><?= $__nc > 99 ? '99+' : $__nc ?></span><?php endif; ?></a>
+      <div class="acct" data-acct>
+        <button class="acct-btn" type="button" aria-haspopup="true" aria-expanded="false" title="Account menu"><?= avatarHtml($_SESSION['user_id'] ?? 0, $userName, currentUserPhotoName($pdo), 34) ?><span class="acct-name"><?= h($__first) ?></span><span class="acct-caret" aria-hidden="true">▾</span></button>
+        <div class="acct-menu">
+          <div class="acct-head"><strong><?= h($userName) ?></strong><span><?= h(ucfirst($__roleHx)) ?></span></div>
+          <?php foreach ($__items as [$__mh, $__ml]): ?><a href="<?= h($__mh) ?>"><?= h($__ml) ?></a><?php endforeach; ?>
+          <div class="acct-prefs"><?php require_once __DIR__ . '/includes/currency.php'; require_once __DIR__ . '/includes/translate.php'; echo languageWidgetHtml() . currencySelectorHtml(h($base)); ?></div>
+          <a class="acct-out" href="<?= h($base) ?>/logout.php?as=<?= urlencode($_SESSION['role'] ?? '') ?>">Sign out</a>
+        </div>
+      </div>
     <?php else: ?>
       <?php require_once __DIR__ . '/includes/currency.php'; require_once __DIR__ . '/includes/translate.php'; echo languageWidgetHtml() . currencySelectorHtml(h($base)); ?>
       <a class="link" href="<?= h($base) ?>/login.php">Sign in</a>
@@ -224,6 +248,7 @@ $attrUrl   = $base . '/tourist/search.php?type=attraction';
     <?php endif; ?>
   </div>
 </header>
+<?php endif; ?>
 
 <?php if (($_GET['account'] ?? '') === 'closed'): ?>
   <div class="hx-flash">Your account has been closed. Your historical booking and payment records have been retained. Contact the admin if you need help.</div>
@@ -257,6 +282,51 @@ $attrUrl   = $base . '/tourist/search.php?type=attraction';
     <button class="hx-arrow" type="button" id="hxNext" aria-label="Next image"><?= hxIcon('right') ?></button>
   </div>
   <div class="hx-caption" id="hxCaption"><span id="hxCapText"></span><a id="hxCapLink" href="#">Explore →</a></div>
+</section>
+
+<!-- v9.38 Map preview: pins for approved stays and attractions, optional destination, two buttons into the existing Discover pages -->
+<section class="hx-section hm hx-reveal" id="kenyaMap" aria-labelledby="hmHeading">
+  <div class="hx-head">
+    <div><div class="hx-kicker">Search anywhere in Kenya</div><h2 id="hmHeading">Find a stay or an attraction on the map</h2></div>
+    <p>Start from a place you want to visit and see the best stays around it, or start from a stay and see what is nearby. A destination is optional.</p>
+  </div>
+  <form class="hm-search" id="hmForm" role="search" autocomplete="off" novalidate>
+    <div class="hm-box">
+      <label class="sr-only" for="hmInput">Destination (optional)</label>
+      <input id="hmInput" type="search" placeholder="Try “Diani”, “Maasai Mara”, “Nanyuki”… (optional)" aria-label="Destination, optional" role="combobox" aria-expanded="false" aria-controls="hmSuggest" aria-autocomplete="list">
+      <ul id="hmSuggest" role="listbox" hidden></ul>
+    </div>
+    <button class="hx-btn" type="submit"><?= hxIcon('pin') ?> Show on map</button>
+    <button class="hx-btn line" type="button" id="hmLocate">◎ Use my location</button>
+    <label class="hm-radius"><span class="sr-only">Search radius</span><select id="hmRadius" aria-label="Search radius"><option value="25">Within 25 km</option><option value="50">Within 50 km</option><option value="100" selected>Within 100 km</option><option value="250">Within 250 km</option></select></label>
+  </form>
+  <div class="hm-chips" role="group" aria-label="Show on map">
+    <button type="button" class="hm-chip on" data-kind="all" aria-pressed="true">All</button>
+    <button type="button" class="hm-chip" data-kind="attractions" aria-pressed="false"><span class="hm-dot attraction"></span>Attractions</button>
+    <button type="button" class="hm-chip" data-kind="stays" aria-pressed="false"><span class="hm-dot stay"></span>Stays</button>
+  </div>
+  <div class="hm-layout">
+    <div class="hm-mapwrap" id="hmMapWrap" role="region" aria-label="Map of stays and attractions">
+      <div class="hm-bar">
+        <strong>Stays and attractions across Kenya</strong>
+        <span class="hm-bar-actions">
+          <a class="hx-btn sm" data-go="stays" href="<?= h($stayUrl) ?>">Explore Stays</a>
+          <a class="hx-btn sm light" data-go="attractions" href="<?= h($attrUrl) ?>">Discover Attractions</a>
+          <button type="button" class="hx-btn sm line" id="hmClose">✕ Close map</button>
+        </span>
+      </div>
+      <div class="hm-map" id="homeMap" aria-label="Map of attractions and stays across Kenya"><noscript><p class="hm-fail">The map needs JavaScript. Use the buttons to browse stays and attractions.</p></noscript></div>
+      <button type="button" class="hm-expand" id="hmExpand" aria-expanded="false"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg> Expand map</button>
+    </div>
+    <aside class="hm-panel" aria-live="polite">
+      <div class="hm-nearby" id="hmNearby"><h3>Across Kenya</h3><p>Every pin is an approved stay or an attraction. Search a place to see what is around it, or skip the search and open the full lists.</p></div>
+      <div class="hm-cta">
+        <a class="hx-btn hm-big" data-go="stays" href="<?= h($stayUrl) ?>"><?= hxIcon('building') ?> Explore Stays</a>
+        <a class="hx-btn hm-big line" data-go="attractions" href="<?= h($attrUrl) ?>"><?= hxIcon('compass') ?> Discover Attractions</a>
+        <p class="hm-cta-note">No destination needed. Add one above and we pass it on.</p>
+      </div>
+    </aside>
+  </div>
 </section>
 
 <!-- Benefits -->
@@ -331,13 +401,10 @@ $attrUrl   = $base . '/tourist/search.php?type=attraction';
       if ($homeAttractions) {
         foreach ($homeAttractions as $a) {
           $ex = $attExtras[(int)$a['attraction_id']] ?? [];
-          $teaser = attractionTeaser($a, $ex);
           $cards[] = [
             'img'   => homeImagePath($a['photo_path'] ?? '', 'kenya-lake-shore.jpg', 'attractions'),
             'name'  => $a['name'], 'kicker' => trim(($a['location_name'] ?: 'Kenya') . ' · ' . ($a['category'] ?: 'Attraction')),
             'title' => attractionBlurb($a, $ex),
-            'label' => $teaser['label'] === 'Kenya fact' ? 'Kenya fact' : homeInsightLabel($a['category']),
-            'text'  => $teaser['text'],
             'open'  => $base . '/tourist/attraction.php?id=' . (int)$a['attraction_id'],
             'stays' => $base . '/tourist/search.php?type=accommodation&attraction_id=' . (int)$a['attraction_id'],
             'near'  => (int)$a['stays_near'],
@@ -346,7 +413,7 @@ $attrUrl   = $base . '/tourist/search.php?type=attraction';
         }
       } else {
         foreach (array_slice($destinationFallbacks, 0, 3) as $a) {
-          $cards[] = ['img' => $a['image'], 'name' => $a['name'], 'kicker' => $a['where'] . ' · ' . $a['category'], 'title' => $a['tagline'], 'label' => '', 'text' => '',
+          $cards[] = ['img' => $a['image'], 'name' => $a['name'], 'kicker' => $a['where'] . ' · ' . $a['category'], 'title' => $a['tagline'],
                       'open' => $attrUrl . '&location=' . rawurlencode($a['name']), 'stays' => '', 'near' => 0];
         }
       }
@@ -358,9 +425,6 @@ $attrUrl   = $base . '/tourist/search.php?type=attraction';
         <div class="copy">
           <div class="hx-att-kicker"><?= h($c['kicker']) ?></div>
           <h3><a href="<?= h($c['open']) ?>"><?= h($c['title']) ?></a></h3>
-          <?php if ($c['text'] !== ''): ?>
-          <p class="hx-insight"><span><?= h($c['label']) ?></span> <?= h($c['text']) ?></p>
-          <?php endif; ?>
           <div class="hx-att-links">
             <a href="<?= h($c['open']) ?>">Explore <?= h($c['name']) ?></a>
             <?php if (!empty($c['rating'])): ?><span aria-hidden="true">·</span> <span><?= h(attractionRatingLabel($c['rating'])) ?></span><?php endif; ?>
@@ -384,7 +448,7 @@ $attrUrl   = $base . '/tourist/search.php?type=attraction';
   <div class="hx-row">
     <?php foreach ($seasonNow as $a): ?>
     <article class="hx-stay">
-      <div class="hx-stay-photo"><a href="<?= h($base . '/tourist/attraction.php?id=' . (int)$a['attraction_id']) ?>"><img src="<?= h(homeImagePath($a['photo_path'] ?? '', 'kenya-lake-shore.jpg', 'attractions')) ?>" alt="<?= h($a['name']) ?>" loading="lazy" onerror="this.onerror=null;this.src='assets/kenya-lake-shore.jpg';"></a><span class="hx-new" style="background:#0d3b2e">In season</span></div>
+      <div class="hx-stay-photo"><a href="<?= h($base . '/tourist/attraction.php?id=' . (int)$a['attraction_id']) ?>"><img src="<?= h(homeImagePath($a['photo_path'] ?? '', 'kenya-lake-shore.jpg', 'attractions')) ?>" alt="<?= h($a['name']) ?>" loading="lazy" onerror="this.onerror=null;this.src='assets/kenya-lake-shore.jpg';"></a><span class="hx-new" style="background:var(--forest)">In season</span></div>
       <div class="hx-stay-body">
         <h3><a href="<?= h($base . '/tourist/attraction.php?id=' . (int)$a['attraction_id']) ?>"><?= h($a['name']) ?></a></h3>
         <p class="hx-stay-desc">Best time: <?= h($a['best_time']) ?></p>
@@ -444,6 +508,12 @@ $attrUrl   = $base . '/tourist/search.php?type=attraction';
 </footer>
 
 <script src="assets/js/home.js"></script>
+<script src="assets/js/leaflet-loader.js"></script>
+<script src="assets/js/map-pins.js"></script>
+<script>window.SE_HOME_MAP = <?= json_encode(['stayUrl' => $stayUrl, 'attrUrl' => $attrUrl, 'stays' => $mapStays, 'attractions' => $mapAttractions], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) ?>;</script>
+<script src="assets/js/home-map.js" defer></script>
+<?php if (!$isTourist): ?><script src="assets/js/nav.js" defer></script><?php endif; ?>
+<?php if (isLoggedIn() && !$isTourist): ?><script>window.SE_LIVE={base:<?= json_encode($base) ?>,role:<?= json_encode((string)($_SESSION['role'] ?? '')) ?>};</script><script src="assets/js/live.js" defer></script><?php endif; ?>
 <script src="assets/js/polish.js" defer></script>
 </body>
 </html>

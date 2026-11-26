@@ -172,43 +172,19 @@ if ($pickTitles) [$pickedCommons, $pickedCommonsError] = commonsInfoForTitles($p
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manage Attractions — StayExplore Kenya</title>
     <link rel="stylesheet" href="../assets/css/style.css">
-    <link rel="stylesheet"
-          href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="../assets/css/ui.css"><script src="../assets/js/ui.js" defer></script>
+    <script src="../assets/js/leaflet-loader.js"></script>
 <script src="../assets/js/map-pins.js"></script>
     <style>
-        
-        .dash-wrap   { display:grid;
-                       grid-template-columns:200px 1fr; flex:1 }
         .sidebar     { background:var(--surface-2);
                        border-right:1px solid var(--border);
                        padding:24px 0; position:sticky;
                        top:52px; height:calc(100vh - 52px);
                        overflow-y:auto }
-        .sidebar-role{ font-size:10px; font-weight:700;
-                       letter-spacing:.08em; color:#b42318;
-                       text-transform:uppercase;
-                       padding:0 20px; margin-bottom:12px }
-        .sidebar-link{ display:flex; align-items:center; gap:10px;
-                       padding:9px 20px; font-size:13px;
-                       color:var(--text-secondary);
-                       text-decoration:none; width:100% }
-        .sidebar-link:hover { color:var(--text-primary);
-                              background:var(--surface-1) }
-        .sidebar-link.active { color:#085041; font-weight:500;
-                               background:#E1F5EE;
-                               border-left:3px solid #126b4e }
         .main        { padding:28px }
         .page-layout { display:grid;
                        grid-template-columns:1fr 340px;
                        gap:24px; align-items:start }
-        .page-tag    { font-size:11px; font-weight:600;
-                       letter-spacing:.06em; color:#126b4e;
-                       text-transform:uppercase; margin-bottom:8px }
-        .page-title  { font-size:26px; font-weight:400;
-                       margin-bottom:4px }
-        .page-sub    { font-size:13px; color:var(--text-secondary);
-                       margin-bottom:20px }
         .form-card   { background:var(--surface-2);
                        border:1px solid var(--border);
                        border-radius:8px; padding:24px;
@@ -234,7 +210,7 @@ if ($pickTitles) [$pickedCommons, $pickedCommonsError] = commonsInfoForTitles($p
         .form-group input:focus,
         .form-group select:focus,
         .form-group textarea:focus { outline:none;
-                                     border-color:#126b4e }
+                                     border-color:var(--accent) }
         .form-row    { display:grid;
                        grid-template-columns:1fr 1fr; gap:10px }
         #map         { height:200px; border-radius:6px;
@@ -242,10 +218,7 @@ if ($pickTitles) [$pickedCommons, $pickedCommonsError] = commonsInfoForTitles($p
                        margin-top:6px }
         .map-hint    { font-size:11px; color:var(--text-secondary);
                        margin-top:4px }
-        .existing-photo { width:100%; height:80px; object-fit:cover;
-                          border-radius:6px; margin-bottom:8px;
-                          border:1px solid var(--border) }
-        .btn-save    { width:100%; padding:10px; background:#085041;
+        .btn-save    { width:100%; padding:10px; background:var(--btn-hover);
                        color:#fff; border:none; border-radius:6px;
                        font-size:13px; font-weight:500; cursor:pointer }
         .btn-save:hover { background:#0a6350 }
@@ -271,7 +244,7 @@ if ($pickTitles) [$pickedCommons, $pickedCommonsError] = commonsInfoForTitles($p
                        transition:border-color .15s }
         .att-row:hover { border-color:var(--border-strong) }
         .att-thumb   { width:64px; height:52px; border-radius:4px;
-                       background:#EEEDFE; color:#4f5f57; overflow:hidden;
+                       background:#EEEDFE; color:var(--text-secondary); overflow:hidden;
                        display:flex; align-items:center;
                        justify-content:center; font-size:20px;
                        flex-shrink:0 }
@@ -286,22 +259,17 @@ if ($pickTitles) [$pickedCommons, $pickedCommonsError] = commonsInfoForTitles($p
                        border:1px solid var(--border-strong);
                        background:none; text-decoration:none;
                        display:inline-block }
-        .btn-edit:hover { border-color:#126b4e; color:#126b4e }
+        .btn-edit:hover { border-color:var(--accent); color:var(--accent) }
         .btn-del     { padding:5px 12px; font-size:11px;
                        border-radius:3px; cursor:pointer;
-                       color:#b42318; border:1px solid #FECACA;
+                       color:var(--bad-fg); border:1px solid var(--bad-line);
                        background:none }
-        .btn-del:hover { background:#FEF2F2 }
-        .empty-cat   { font-size:13px; color:var(--text-secondary);
-                       padding:12px; text-align:center;
-                       border:0.5px dashed var(--border);
-                       border-radius:6px }
+        .btn-del:hover { background:var(--bad-bg) }
         .count-badge { font-size:11px; background:var(--surface-1);
                        border:1px solid var(--border);
                        border-radius:10px; padding:1px 8px;
                        color:var(--text-secondary) }
-        @media(max-width:1000px){
-            .dash-wrap { grid-template-columns:1fr }
+        @media(max-width:1024px){
             .sidebar   { display:none }
             .page-layout { grid-template-columns:1fr }
             .form-card { position:static }
@@ -317,7 +285,7 @@ if ($pickTitles) [$pickedCommons, $pickedCommonsError] = commonsInfoForTitles($p
 
         <div class="page-tag">Admin</div>
         <h1 class="page-title">Attractions</h1>
-<div style="margin:12px 0 18px"><a class="btn btn-outline" href="osm_attractions.php">Find attractions on the map</a> <span style="font-size:12px;color:#666">Add new places for review before travellers see them.</span></div>
+<div style="margin:12px 0 18px"><a class="btn btn-outline" href="osm_attractions.php">Find attractions on the map</a> <span style="font-size:12px;color:var(--text-secondary)">Add new places for review before travellers see them.</span></div>
         <p class="page-sub">
             Add and manage attractions.
             These appear in search results and
@@ -361,9 +329,9 @@ if ($pickTitles) [$pickedCommons, $pickedCommonsError] = commonsInfoForTitles($p
                             <div class="att-thumb">
                                 <?php if ($att['photo_path']): ?>
                                     <img src="../uploads/attractions/<?= h($att['photo_path']) ?>"
-                                         alt="<?= h($att['name']) ?>">
+                                         alt="<?= h($att['name']) ?>" loading="lazy" decoding="async">
                                 <?php else: ?>
-                                    <span style="font-size:12px;color:#4f5f57">No photo</span>
+                                    <span style="font-size:12px;color:var(--text-secondary)">No photo</span>
                                 <?php endif; ?>
                             </div>
                             <div>
@@ -414,7 +382,7 @@ if ($pickTitles) [$pickedCommons, $pickedCommonsError] = commonsInfoForTitles($p
                         <div class="category-label">Other</div>
                         <?php foreach ($other as $att): ?>
                         <div class="att-row">
-                            <div class="att-thumb"><span style="font-size:12px;color:#4f5f57">No photo</span></div>
+                            <div class="att-thumb"><span style="font-size:12px;color:var(--text-secondary)">No photo</span></div>
                             <div>
                                 <div class="att-name">
                                     <?= h($att['name']) ?>
@@ -555,7 +523,7 @@ if ($pickTitles) [$pickedCommons, $pickedCommonsError] = commonsInfoForTitles($p
                             <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px;margin-bottom:10px">
                                 <?php foreach ($existingPhotos as $pi => $pn): ?>
                                 <label style="display:block;font-size:11px;color:var(--text-secondary);cursor:pointer">
-                                    <img src="../uploads/attractions/<?= h($pn) ?>" alt="Photo <?= $pi + 1 ?>" style="width:100%;height:80px;object-fit:cover;border-radius:8px;display:block;margin-bottom:4px">
+                                    <img src="../uploads/attractions/<?= h($pn) ?>" alt="Photo <?= $pi + 1 ?>" style="width:100%;height:80px;object-fit:cover;border-radius:8px;display:block;margin-bottom:4px" loading="lazy" decoding="async">
                                     <input type="checkbox" name="remove_photos[]" value="<?= h($pn) ?>"> Remove<?= $pi === 0 ? ' (cover)' : '' ?>
                                 </label>
                                 <?php endforeach; ?>
@@ -568,7 +536,7 @@ if ($pickTitles) [$pickedCommons, $pickedCommonsError] = commonsInfoForTitles($p
                                 <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px">
                                 <?php foreach ($pickedCommons as $cp): ?>
                                     <label style="display:block;font-size:11px;color:var(--text-secondary);cursor:pointer">
-                                        <img src="<?= h($cp['thumb']) ?>" alt="Photo suggestion by <?= h($cp['artist']) ?>" style="width:100%;height:86px;object-fit:cover;border-radius:8px;display:block;margin-bottom:4px">
+                                        <img src="<?= h($cp['thumb']) ?>" alt="Photo suggestion by <?= h($cp['artist']) ?>" style="width:100%;height:86px;object-fit:cover;border-radius:8px;display:block;margin-bottom:4px" loading="lazy" decoding="async">
                                         <input type="checkbox" name="commons_titles[]" value="<?= h($cp['title']) ?>" checked>
                                         <?= h($cp['artist']) ?> &middot; <?= h($cp['license']) ?>
                                     </label>
@@ -576,7 +544,7 @@ if ($pickTitles) [$pickedCommons, $pickedCommonsError] = commonsInfoForTitles($p
                                 </div>
                             </div>
                             <?php elseif ($pickedCommonsError): ?>
-                            <p style="font-size:12px;color:#8a2b22;margin:0 0 10px"><?= h($pickedCommonsError) ?></p>
+                            <p style="font-size:12px;color:var(--bad-fg);margin:0 0 10px"><?= h($pickedCommonsError) ?></p>
                             <?php endif; ?>
                             <input aria-label="Photos" type="file" name="photos[]" multiple accept="image/jpeg,image/png,image/webp">
                             <p style="font-size:11px;color:var(--text-secondary);margin:6px 0 0">
@@ -599,7 +567,7 @@ if ($pickTitles) [$pickedCommons, $pickedCommonsError] = commonsInfoForTitles($p
                             <p class="map-hint">
                                 Click to pin exact location.
                                 <span id="coordDisplay"
-                                      style="color:#126b4e">
+                                      style="color:var(--accent)">
                                     <?php if ($editing): ?>
                                         <?= number_format(
                                             $editing['latitude'], 4) ?>,
@@ -632,7 +600,7 @@ if ($pickTitles) [$pickedCommons, $pickedCommonsError] = commonsInfoForTitles($p
         </div>
     <?php appShellEnd(); ?>
 
-<script>
+<script type="text/se-leaflet" data-target="map">
 // Init map
 const initLat = <?= $editing['latitude']
     ?? ($_POST['latitude'] ?? ($prefill['lat'] ?? -1.2921)) ?>;

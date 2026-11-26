@@ -67,14 +67,9 @@ $att_favs = $att_favs->fetchAll();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Favourites — StayExplore Kenya</title>
     <link rel="stylesheet" href="../assets/css/style.css">
+<link rel="stylesheet" href="../assets/css/ui.css"><script src="../assets/js/ui.js" defer></script>
     <style>
-        .page-wrap  { max-width:1100px; margin:0 auto; padding:32px 24px }
-        .page-tag   { font-size:11px; font-weight:600; letter-spacing:.06em;
-                      color:#126b4e; text-transform:uppercase;
-                      margin-bottom:8px }
-        .page-title { font-size:28px; font-weight:400; margin-bottom:4px }
-        .page-sub   { font-size:14px; color:var(--text-secondary);
-                      margin-bottom:28px }
+        
         .section-title { font-size:15px; font-weight:500;
                          margin-bottom:14px; color:var(--text-primary) }
         .fav-grid   { display:grid;
@@ -85,7 +80,7 @@ $att_favs = $att_favs->fetchAll();
                       border:1px solid var(--border);
                       border-radius:8px; overflow:hidden;
                       position:relative }
-        .fav-img    { height:150px; background:#E1F5EE;
+        .fav-img    { height:150px; background:var(--accent-soft);
                       display:flex; align-items:center;
                       justify-content:center; font-size:32px;
                       position:relative; overflow:hidden }
@@ -99,19 +94,18 @@ $att_favs = $att_favs->fetchAll();
                       justify-content:center; cursor:pointer;
                       font-size:13px; color:var(--text-secondary);
                       z-index:2 }
-        .remove-btn:hover { border-color:#DC2626; color:#b42318 }
+        .remove-btn:hover { border-color:#DC2626; color:var(--bad-fg) }
         .fav-body   { padding:14px }
         .fav-title  { font-size:13px; font-weight:500; margin-bottom:3px }
         .fav-loc    { font-size:12px; color:var(--text-secondary);
                       margin-bottom:8px }
         .fav-meta   { display:flex; justify-content:space-between;
                       align-items:center; margin-bottom:10px }
-        .fav-price  { font-size:13px; font-weight:500; color:#0F6E56 }
+        .fav-price  { font-size:13px; font-weight:500; color:var(--accent-strong) }
         .fav-rating { font-size:12px; color:var(--text-secondary) }
         .fav-cat    { font-size:11px; color:#534AB7; background:#EEEDFE;
                       padding:2px 7px; border-radius:3px;
                       border:1px solid #AFA9EC }
-        .fav-fee    { font-size:13px; font-weight:500; color:#0F6E56 }
         .fav-saved  { font-size:11px; color:var(--text-secondary);
                       margin-bottom:10px }
         .btn-view   { display:block; text-align:center; padding:8px;
@@ -119,9 +113,9 @@ $att_favs = $att_favs->fetchAll();
                       border-radius:4px; font-size:12px; font-weight:500;
                       color:var(--text-secondary); cursor:pointer;
                       text-decoration:none; transition:.15s }
-        .btn-view:hover { border-color:#126b4e; color:#126b4e }
-        .btn-view-green { background:#085041; color:#fff;
-                          border-color:#085041 }
+        .btn-view:hover { border-color:var(--accent); color:var(--accent) }
+        .btn-view-green { background:var(--btn-hover); color:#fff;
+                          border-color:var(--accent-strong) }
         .btn-view-green:hover { background:#0a6350; color:#fff }
         .empty-state { text-align:center; padding:48px 20px;
                        border:0.5px dashed var(--border);
@@ -164,7 +158,7 @@ $att_favs = $att_favs->fetchAll();
             </p>
             <a href="../index.php"
                style="display:inline-block;padding:8px 20px;
-                      background:#085041;color:#fff;
+                      background:var(--btn-hover);color:#fff;
                       border-radius:6px;font-size:13px;
                       font-weight:500;text-decoration:none">
                 Find accommodation
@@ -177,9 +171,9 @@ $att_favs = $att_favs->fetchAll();
                 <div class="fav-img">
                     <?php if ($f['primary_photo']): ?>
                         <img src="../uploads/accommodations/<?= h($f['primary_photo']) ?>"
-                             alt="<?= h($f['title']) ?>">
+                             alt="<?= h($f['title']) ?>" loading="lazy" decoding="async">
                     <?php else: ?>
-                        <span style="font-size:12px;color:#8a948e">No photo</span>
+                        <span style="font-size:12px;color:var(--text-tertiary)">No photo</span>
                     <?php endif; ?>
 
                     <!-- Remove button -->
@@ -276,7 +270,7 @@ $att_favs = $att_favs->fetchAll();
             </p>
             <a href="../tourist/search.php?type=attraction"
                style="display:inline-block;padding:8px 20px;
-                      background:#085041;color:#fff;
+                      background:var(--btn-hover);color:#fff;
                       border-radius:6px;font-size:13px;
                       font-weight:500;text-decoration:none">
                 Explore attractions
@@ -289,9 +283,9 @@ $att_favs = $att_favs->fetchAll();
                 <div class="fav-img att">
                     <?php if ($f['photo_path']): ?>
                         <img src="../uploads/attractions/<?= h($f['photo_path']) ?>"
-                             alt="<?= h($f['name']) ?>">
+                             alt="<?= h($f['name']) ?>" loading="lazy" decoding="async">
                     <?php else: ?>
-                        <span style="font-size:12px;color:#8a948e">No photo</span>
+                        <span style="font-size:12px;color:var(--text-tertiary)">No photo</span>
                     <?php endif; ?>
 
                     <!-- Remove button -->

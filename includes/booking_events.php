@@ -2,6 +2,7 @@
 /** Notes on a booking that an admin may need later (for example why it was completed early). Created automatically. */
 if (!function_exists('ensureBookingEventsTable')) {
     function ensureBookingEventsTable($pdo) {
+        if (function_exists('schemaIsUpgraded') && schemaIsUpgraded()) return;   // v9.33: tables are created once by the upgrade, not on every request
         static $done = false;
         if ($done) return;
         $done = true;

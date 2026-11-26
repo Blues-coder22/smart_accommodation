@@ -36,7 +36,6 @@ All|||Yote
 bookings found.|||uhifadhi umepatikana.
 Dates|||Tarehe
 Print record|||Chapisha rekodi
-Message tourist|||Tuma ujumbe kwa mtalii
 Rate guest|||Kadiria mgeni
 Confirm booking|||Thibitisha uhifadhi
 Release dates|||Achilia tarehe
@@ -45,8 +44,6 @@ Record no-show|||Rekodi kutokuja
 Flag tourist|||Weka alama kwa mtalii
 Submit flag|||Wasilisha alama
 Cancel|||Ghairi
-The tourist has not submitted payment details yet.|||Mtalii bado hajawasilisha maelezo ya malipo.
-Booking confirmed. The tourist has been notified.|||Uhifadhi umethibitishwa. Mtalii amearifiwa.
 Tourist has been flagged for admin review.|||Mtalii amewekewa alama kwa ukaguzi wa msimamizi.
 Property title|||Kichwa cha mali
 Maximum guests|||Wageni wengi zaidi
@@ -148,16 +145,15 @@ Select dates and mark them as available or unavailable.|||Chagua tarehe na uziwe
 You have no approved listings. Add a listing first to manage availability.|||Huna matangazo yaliyoidhinishwa. Weka tangazo kwanza ili kusimamia upatikanaji.
 Property:|||Mali:
 Today|||Leo
-Booked (confirmed)|||Imehifadhiwa (imethibitishwa)
-Booked (awaiting your confirmation)|||Imehifadhiwa (inasubiri uthibitisho wako)
+Booked (confirmed)|||Imechukuliwa (imethibitishwa)
+Booked (awaiting your confirmation)|||Imechukuliwa (inasubiri uthibitisho wako)
 Update availability|||Sasisha upatikanaji
 No dates selected|||Hakuna tarehe zilizochaguliwa
 Mark as available|||Weka kuwa inapatikana
-Tourists can book these dates|||Watalii wanaweza kuhifadhi tarehe hizi
 Mark as unavailable|||Weka kuwa haipatikani
-Block these dates from booking|||Zuia tarehe hizi kuhifadhiwa
+Block these dates from booking|||Zuia tarehe hizi zisiwekewe nafasi
 Update selected dates|||Sasisha tarehe zilizochaguliwa
-Booked dates cannot be changed. Past dates are locked.|||Tarehe zilizohifadhiwa haziwezi kubadilishwa. Tarehe zilizopita zimefungwa.
+Booked dates cannot be changed. Past dates are locked.|||Tarehe zilizochukuliwa haziwezi kubadilishwa. Tarehe zilizopita zimefungwa.
 Availability updated successfully.|||Upatikanaji umesasishwa.
 Host overview|||Muhtasari wa mwenyeji
 Manage listings|||Simamia matangazo
@@ -210,7 +206,5 @@ You are currently signed in as|||Kwa sasa umeingia kama
 Submitted|||Imewasilishwa
 . Guests see a "Verified host" badge on your listings. For your privacy your ID number and photo were erased once an administrator checked them.|||. Wageni wanaona nembo ya "Mwenyeji aliyethibitishwa" kwenye matangazo yako. Kwa faragha yako, namba na picha ya kitambulisho chako vilifutwa baada ya msimamizi kuvikagua.
 . An administrator will review it and email you the result.|||. Msimamizi atalikagua na kukutumia matokeo kwa barua pepe.
-Verification helps protect guests and hosts. An administrator checks your ID, then your listings show a "Verified host" badge. Only administrators can see your ID photo, and it is erased as soon as they decide.|||Uthibitisho husaidia kulinda wageni na wenyeji. Msimamizi hukagua kitambulisho chako, kisha matangazo yako huonyesha nembo ya "Mwenyeji aliyethibitishwa". Ni wasimamizi pekee wanaoweza kuona picha ya kitambulisho chako, na hufutwa mara tu wanapofanya uamuzi.
 JPG, PNG or WebP, up to 4MB. Make sure all four corners and the text are readable.|||JPG, PNG au WebP, hadi 4MB. Hakikisha pembe zote nne na maandishi yanasomeka.
 . Hosts see a "Verified guest" badge next to your name, which can help your booking requests get accepted. For your privacy your ID number and photo were erased once an administrator checked them.|||. Wenyeji wanaona nembo ya "Mgeni aliyethibitishwa" karibu na jina lako, inayoweza kusaidia maombi yako ya uhifadhi kukubaliwa. Kwa faragha yako, namba na picha ya kitambulisho chako vilifutwa baada ya msimamizi kuvikagua.
-Verification is optional and helps protect guests and hosts. An administrator checks your ID, then a "Verified guest" badge appears next to your name. Only administrators can see your ID photo, and it is erased as soon as they decide.|||Uthibitisho ni hiari na husaidia kulinda wageni na wenyeji. Msimamizi hukagua kitambulisho chako, kisha nembo ya "Mgeni aliyethibitishwa" huonekana karibu na jina lako. Ni wasimamizi pekee wanaoweza kuona picha ya kitambulisho chako, na hufutwa mara tu wanapofanya uamuzi.

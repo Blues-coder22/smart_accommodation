@@ -17,7 +17,7 @@ $booking_id  = bookingIdFromRef($_GET['ref'] ?? '');
 // Validate target exists
 $target_name = '';
 
-if ($report_type === 'listing' && $target_id) {
+if (in_array($report_type, ['listing','host'], true) && $target_id) {
     $stmt = $pdo->prepare("
         SELECT title FROM accommodations WHERE accommodation_id = ?
     ");
@@ -87,6 +87,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
+    // v9.34: a guest can report a host's conduct. It is filed against the stay (so the admin sees the host and the listing) with a clear label.
+    if ($type === 'host') {
+        $type = 'listing'; $incident_t = 'host_conduct';
+        $description = '[Host conduct report] ' . $description;
+    }
     // Only these report types exist for tourists.
     if (!in_array($type, ['listing', 'incident', 'review', 'tourist'], true)) {
         $errors[] = 'Please choose a valid report type.';
@@ -192,14 +197,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Report — StayExplore Kenya</title>
     <link rel="stylesheet" href="../assets/css/style.css">
+<link rel="stylesheet" href="../assets/css/ui.css"><script src="../assets/js/ui.js" defer></script>
     <style>
-        .page-wrap   { max-width:760px; margin:0 auto; padding:32px 24px }
-        .page-tag    { font-size:11px; font-weight:600; letter-spacing:.06em;
-                       color:#b42318; text-transform:uppercase;
-                       margin-bottom:8px }
-        .page-title  { font-size:28px; font-weight:400; margin-bottom:4px }
-        .page-sub    { font-size:14px; color:var(--text-secondary);
-                       margin-bottom:28px }
+        
         .report-layout { display:grid;
                          grid-template-columns:1fr 260px;
                          gap:20px; align-items:start }
@@ -223,7 +223,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .form-group input:focus,
         .form-group select:focus,
         .form-group textarea:focus { outline:none;
-                                     border-color:#126b4e }
+                                     border-color:var(--accent) }
         .file-input  { border:0.5px dashed var(--border-strong);
                        padding:16px; text-align:center;
                        border-radius:6px; cursor:pointer }
@@ -236,20 +236,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                        border-radius:8px; padding:18px;
                        margin-bottom:12px }
         .side-card.urgent { border-color:#DC2626;
-                            background:#FEF2F2 }
+                            background:var(--bad-bg) }
         .side-card h4 { font-size:13px; font-weight:600;
                         margin-bottom:6px }
         .side-card p  { font-size:13px; color:var(--text-secondary);
                         line-height:1.5 }
-        .side-card.urgent h4 { color:#b42318 }
+        .side-card.urgent h4 { color:var(--bad-fg) }
         .emergency-num { font-size:18px; font-weight:700;
-                         color:#b42318; margin:6px 0 }
+                         color:var(--bad-fg); margin:6px 0 }
         .success-state { text-align:center; padding:40px 20px }
         .success-icon  { width:52px; height:52px;
-                         background:#E1F5EE; border-radius:50%;
+                         background:var(--accent-soft); border-radius:50%;
                          display:flex; align-items:center;
                          justify-content:center; margin:0 auto 16px;
-                         border:1px solid #9FE1CB }
+                         border:1px solid var(--accent-line) }
         .success-icon svg { width:22px; height:22px; stroke:#126b4e }
         @media(max-width:768px){
             .report-layout { grid-template-columns:1fr }
@@ -260,7 +260,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <?php include '../includes/header.php'; ?>
 
-<div class="page-wrap">
+<div class="page-wrap narrow">
 
     <div class="page-tag">Safety and support</div>
     <h1 class="page-title">Report a listing or incident</h1>
@@ -297,7 +297,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </p>
                 <a href="bookings.php"
                    style="display:inline-block;padding:10px 24px;
-                          background:#085041;color:#fff;border-radius:6px;
+                          background:var(--btn-hover);color:#fff;border-radius:6px;
                           font-size:14px;font-weight:500;
                           text-decoration:none">
                     Back to my bookings
@@ -338,6 +338,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <?= $report_type==='listing'
                                     ?'selected':'' ?>>
                                 Listing misrepresentation
+                            </option>
+                            <option value="host" <?= $report_type==='host' ? 'selected' : '' ?>>
+                                Report a host (behaviour, scam, harassment)
                             </option>
                             <option value="incident"
                                 <?= $report_type==='incident'

@@ -68,34 +68,14 @@ $pstats = $pdo->query("
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Profile — StayExplore Kenya</title>
     <link rel="stylesheet" href="../assets/css/style.css">
+<link rel="stylesheet" href="../assets/css/ui.css"><script src="../assets/js/ui.js" defer></script>
     <style>
-        
-        .dash-wrap   { display:grid;
-                       grid-template-columns:200px 1fr; flex:1 }
         .sidebar     { background:var(--surface-2);
                        border-right:1px solid var(--border);
                        padding:24px 0; position:sticky;
                        top:52px; height:calc(100vh - 52px);
                        overflow-y:auto }
-        .sidebar-role{ font-size:10px; font-weight:700;
-                       letter-spacing:.08em; color:#b42318;
-                       text-transform:uppercase;
-                       padding:0 20px; margin-bottom:12px }
-        .sidebar-link{ display:flex; align-items:center; gap:10px;
-                       padding:9px 20px; font-size:13px;
-                       color:var(--text-secondary);
-                       text-decoration:none; width:100% }
-        .sidebar-link:hover { color:var(--text-primary);
-                              background:var(--surface-1) }
-        .sidebar-link.active { color:#085041; font-weight:500;
-                               background:#E1F5EE;
-                               border-left:3px solid #126b4e }
         .main        { padding:28px; max-width:680px }
-        .page-tag    { font-size:11px; font-weight:600;
-                       letter-spacing:.06em; color:#126b4e;
-                       text-transform:uppercase; margin-bottom:8px }
-        .page-title  { font-size:26px; font-weight:400;
-                       margin-bottom:20px }
         .profile-header { display:flex; align-items:center;
                           gap:20px; background:var(--surface-2);
                           border:1px solid var(--border);
@@ -113,8 +93,8 @@ $pstats = $pdo->query("
                         margin-bottom:6px }
         .profile-role { font-size:11px; font-weight:600;
                         padding:2px 9px; border-radius:3px;
-                        background:#FEF2F2; color:#991B1B;
-                        border:1px solid #FECACA;
+                        background:var(--bad-bg); color:var(--bad-fg);
+                        border:1px solid var(--bad-line);
                         display:inline-block }
         .stats-row   { display:grid;
                        grid-template-columns:repeat(4,1fr);
@@ -124,7 +104,7 @@ $pstats = $pdo->query("
                        border-radius:8px; padding:12px;
                        text-align:center }
         .stat-num    { font-size:20px; font-weight:500;
-                       color:#085041 }
+                       color:var(--accent-strong) }
         .stat-label  { font-size:11px; color:var(--text-secondary);
                        margin-top:2px }
         .form-card   { background:var(--surface-2);
@@ -145,18 +125,17 @@ $pstats = $pdo->query("
                             color:var(--text-primary);
                             background:var(--surface-2) }
         .form-group input:focus { outline:none;
-                                  border-color:#126b4e }
+                                  border-color:var(--accent) }
         .form-row    { display:grid;
                        grid-template-columns:1fr 1fr; gap:12px }
-        .btn-save    { padding:9px 22px; background:#085041;
+        .btn-save    { padding:9px 22px; background:var(--btn-hover);
                        color:#fff; border:none; border-radius:6px;
                        font-size:13px; font-weight:500; cursor:pointer }
-        .success-msg { background:#E1F5EE; border:1px solid #9FE1CB;
+        .success-msg { background:var(--accent-soft); border:1px solid var(--accent-line);
                        border-radius:6px; padding:10px 14px;
-                       font-size:13px; color:#0F6E56;
+                       font-size:13px; color:var(--accent-strong);
                        margin-bottom:14px }
-        @media(max-width:900px){
-            .dash-wrap { grid-template-columns:1fr }
+        @media(max-width:1024px){
             .sidebar   { display:none }
             .stats-row { grid-template-columns:repeat(2,1fr) }
             .form-row  { grid-template-columns:1fr }
@@ -176,7 +155,7 @@ $pstats = $pdo->query("
             <div class="avatar">
                 <?php if ($user['profile_photo']): ?>
                     <img src="<?= h(profilePhotoUrl($user['user_id'], $user['profile_photo'])) ?>"
-                         alt="Your profile photo">
+                         alt="Your profile photo" loading="lazy" decoding="async">
                 <?php else: ?>
                     <?= strtoupper(substr($user['full_name'],0,1)) ?>
                 <?php endif; ?>
@@ -215,7 +194,7 @@ $pstats = $pdo->query("
             <div class="stat-chip">
                 <div class="stat-num"
                      style="<?= $pstats['open_reports'] > 0
-                         ? 'color:#b42318' : '' ?>">
+                         ? 'color:var(--bad-fg)' : '' ?>">
                     <?= $pstats['open_reports'] ?>
                 </div>
                 <div class="stat-label">Open reports</div>

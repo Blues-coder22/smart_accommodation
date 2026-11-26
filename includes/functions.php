@@ -37,11 +37,13 @@ function haversineSql($latCol, $lngCol, $latParam, $lngParam, $lat2Param) {
 
 // True if the stay cannot be booked for these nights: another booking overlaps, or the host blocked a night.
 // Dates are 'Y-m-d' strings; check-out day itself is not a night.
-function isStayUnavailable($pdo, $accommodation_id, $check_in, $check_out) {
+// Statuses that keep the dates held: awaiting host, accepted (awaiting payment), payment under check, confirmed.
+if (!defined('BOOKING_HOLD_SQL')) define('BOOKING_HOLD_SQL', "'pending','accepted','payment_pending','confirmed'");
+function isStayUnavailable($pdo, $accommodation_id, $check_in, $check_out, $excludeBookingId = 0) {
     $stmt = $pdo->prepare("
         SELECT
           (SELECT COUNT(*) FROM bookings
-            WHERE accommodation_id = ? AND status IN ('pending','confirmed')
+            WHERE accommodation_id = ? AND status IN ('pending','accepted','payment_pending','confirmed') AND booking_id <> " . (int)$excludeBookingId . "
               AND NOT (check_out_date <= ? OR check_in_date >= ?))
         +
           (SELECT COUNT(*) FROM availability
@@ -90,7 +92,7 @@ function accommodationFilterSql(array $filters, array &$params) {
         $sql .= " AND NOT EXISTS (
                     SELECT 1 FROM bookings bk
                     WHERE bk.accommodation_id = a.accommodation_id
-                    AND bk.status IN ('pending','confirmed')
+                    AND bk.status IN ('pending','accepted','payment_pending','confirmed')
                     AND NOT (bk.check_out_date <= :f_ci1 OR bk.check_in_date >= :f_co1))
                   AND NOT EXISTS (
                     SELECT 1 FROM availability av
@@ -135,12 +137,19 @@ function getNearbyAccommodations($lat, $lng, $radius = 10, $filters = []) {
         FROM accommodations a
         WHERE a.status = 'approved'
         AND a.latitude IS NOT NULL AND a.longitude IS NOT NULL
+        AND a.latitude BETWEEN :bb_lat1 AND :bb_lat2 AND a.longitude BETWEEN :bb_lng1 AND :bb_lng2
     ";
 
+    // v9.33: bounding box first. Anything outside the radius cannot match the haversine test below, so the rating and
+    // booking subqueries now run only for nearby listings instead of every approved listing in the country.
+    $dLat = $radius / 111.0;
+    $dLng = $radius / max(0.01, 111.0 * cos(deg2rad(max(-89.0, min(89.0, (float)$lat)))));
     $params = [
         ':lat'  => $lat,
         ':lng'  => $lng,
-        ':lat2' => $lat
+        ':lat2' => $lat,
+        ':bb_lat1' => $lat - $dLat, ':bb_lat2' => $lat + $dLat,
+        ':bb_lng1' => $lng - $dLng, ':bb_lng2' => $lng + $dLng,
     ];
 
     // Same filters as every other search path
@@ -229,9 +238,12 @@ function getNearbyAttractions($lat, $lng, $radius = 10) {
 // published a sealed review later, so without this a review written early would stay hidden forever.
 // Flagged reviews are never published here: those are decided by an admin.
 // Runs at most once every 5 minutes (a timestamp file avoids hitting the database on every page).
-function publishDueReviews($pdo) {
+function publishDueReviews($pdo, $force = false) {
     $stamp = __DIR__ . '/../logs/.review_sweep';
-    if (is_file($stamp) && (time() - filemtime($stamp)) < 300) return 0;
+    if (!$force && is_file($stamp) && (time() - filemtime($stamp)) < 300) return 0;
+    // v9.33: while the cron job is running (heartbeat fresh) page loads skip this sweep; cron calls it with $force.
+    $hb = __DIR__ . '/../logs/.maintenance_heartbeat';
+    if (!$force && is_file($hb) && (time() - filemtime($hb)) < 900) return 0;
     $dir = dirname($stamp);
     if (!is_dir($dir)) @mkdir($dir, 0775, true);
     @touch($stamp);

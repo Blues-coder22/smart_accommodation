@@ -225,37 +225,17 @@ if ($reviewing) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Listing Approvals — StayExplore Kenya</title>
     <link rel="stylesheet" href="../assets/css/style.css">
+<link rel="stylesheet" href="../assets/css/ui.css"><script src="../assets/js/ui.js" defer></script>
     <style>
-        
-        .dash-wrap   { display:grid;
-                       grid-template-columns:200px 1fr; flex:1 }
         .sidebar     { background:var(--surface-2);
                        border-right:1px solid var(--border);
                        padding:24px 0; position:sticky;
                        top:52px; height:calc(100vh - 52px);
                        overflow-y:auto }
-        .sidebar-role{ font-size:10px; font-weight:700;
-                       letter-spacing:.08em; color:#b42318;
-                       text-transform:uppercase;
-                       padding:0 20px; margin-bottom:12px }
-        .sidebar-link{ display:flex; align-items:center; gap:10px;
-                       padding:9px 20px; font-size:13px;
-                       color:var(--text-secondary);
-                       text-decoration:none; width:100% }
-        .sidebar-link:hover { color:var(--text-primary);
-                              background:var(--surface-1) }
-        .sidebar-link.active { color:#085041; font-weight:500;
-                               background:#E1F5EE;
-                               border-left:3px solid #126b4e }
         .badge       { font-size:10px; background:#DC2626;
                        color:#fff; border-radius:10px;
                        padding:1px 6px; margin-left:auto }
         .main        { padding:28px }
-        .page-tag    { font-size:11px; font-weight:600;
-                       letter-spacing:.06em; color:#126b4e;
-                       text-transform:uppercase; margin-bottom:8px }
-        .page-title  { font-size:26px; font-weight:400;
-                       margin-bottom:20px }
         .filter-tabs { display:flex; gap:6px; margin-bottom:20px;
                        flex-wrap:wrap }
         .filter-tab  { padding:6px 14px; font-size:12px;
@@ -263,8 +243,8 @@ if ($reviewing) {
                        color:var(--text-secondary);
                        border:1px solid var(--border);
                        display:flex; align-items:center; gap:6px }
-        .filter-tab.active { background:#085041; color:#fff;
-                             border-color:#085041 }
+        .filter-tab.active { background:var(--btn-hover); color:#fff;
+                             border-color:var(--accent-strong) }
         .tab-count   { font-size:11px }
         .listing-row { background:var(--surface-2);
                        border:1px solid var(--border);
@@ -272,10 +252,10 @@ if ($reviewing) {
                        grid-template-columns:100px 1fr auto;
                        gap:16px; align-items:start;
                        padding:16px; margin-bottom:10px }
-        .listing-row.highlight { border-color:#126b4e;
+        .listing-row.highlight { border-color:var(--accent);
                                  background:#F0FAF6 }
         .listing-thumb { width:100px; height:76px; border-radius:6px;
-                         background:#E1F5EE; overflow:hidden;
+                         background:var(--accent-soft); overflow:hidden;
                          display:flex; align-items:center;
                          justify-content:center; font-size:28px }
         .listing-thumb img { width:100%; height:100%;
@@ -296,33 +276,33 @@ if ($reviewing) {
         .status-pill   { display:inline-block; font-size:11px;
                          font-weight:600; padding:3px 9px;
                          border-radius:3px }
-        .s-pending     { background:#FFF8E1; color:#7a5200;
-                         border:1px solid #F9D57C }
-        .s-approved    { background:#E1F5EE; color:#0F6E56;
-                         border:1px solid #9FE1CB }
-        .s-rejected    { background:#FEF2F2; color:#991B1B;
-                         border:1px solid #FECACA }
+        .s-pending     { background:var(--warn-bg); color:var(--warn-fg);
+                         border:1px solid var(--warn-line) }
+        .s-approved    { background:var(--accent-soft); color:var(--accent-strong);
+                         border:1px solid var(--accent-line) }
+        .s-rejected    { background:var(--bad-bg); color:var(--bad-fg);
+                         border:1px solid var(--bad-line) }
         .s-suspended   { background:#F5F3FF; color:#5B21B6;
                          border:1px solid #C4B5FD }
         .listing-actions { display:flex; flex-direction:column;
                            gap:6px; align-items:flex-end;
                            flex-shrink:0 }
-        .btn-approve   { padding:7px 14px; background:#085041;
+        .btn-approve   { padding:7px 14px; background:var(--btn-hover);
                          color:#fff; border:none; border-radius:4px;
                          font-size:12px; font-weight:500;
                          cursor:pointer; width:100%;
                          text-align:center }
         .btn-reject    { padding:7px 14px; background:none;
-                         color:#b42318; border:1px solid #FECACA;
+                         color:var(--bad-fg); border:1px solid var(--bad-line);
                          border-radius:4px; font-size:12px;
                          font-weight:500; cursor:pointer;
                          width:100%; text-align:center }
         .btn-suspend   { padding:7px 14px; background:none;
-                         color:#8f4b00; border:1px solid #F9D57C;
+                         color:var(--warn-fg); border:1px solid var(--warn-line);
                          border-radius:4px; font-size:12px;
                          font-weight:500; cursor:pointer;
                          width:100%; text-align:center }
-        .btn-restore   { padding:7px 14px; background:#085041;
+        .btn-restore   { padding:7px 14px; background:var(--btn-hover);
                          color:#fff; border:none; border-radius:4px;
                          font-size:12px; font-weight:500;
                          cursor:pointer; width:100%;
@@ -391,8 +371,7 @@ if ($reviewing) {
                          border-top:1px solid var(--border) }
         .empty-state   { text-align:center; padding:48px;
                          color:var(--text-secondary); font-size:14px }
-        @media(max-width:900px){
-            .dash-wrap { grid-template-columns:1fr }
+        @media(max-width:1024px){
             .sidebar   { display:none }
         }
     </style>
@@ -426,7 +405,7 @@ if ($reviewing) {
                 as $ph): ?>
             <img src="../uploads/accommodations/<?= h(
                 $ph['photo_path']) ?>"
-                 alt="Property photo">
+                 alt="Property photo" loading="lazy" decoding="async">
             <?php endforeach; ?>
         </div>
         <?php else: ?>
@@ -580,9 +559,9 @@ if ($reviewing) {
                     ?>
                     <?php if ($thumb): ?>
                         <img src="../uploads/accommodations/<?= h($thumb) ?>"
-                             alt="<?= h($l['title']) ?>">
+                             alt="<?= h($l['title']) ?>" loading="lazy" decoding="async">
                     <?php else: ?>
-                        <span style="font-size:12px;color:#8a948e">No photo</span>
+                        <span style="font-size:12px;color:var(--text-tertiary)">No photo</span>
                     <?php endif; ?>
                 </div>
 

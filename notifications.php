@@ -33,8 +33,9 @@ $home = ['admin' => 'admin/dashboard.php', 'host' => 'host/dashboard.php'][$role
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Notifications — StayExplore Kenya</title>
     <link rel="stylesheet" href="assets/css/style.css">
+<link rel="stylesheet" href="assets/css/ui.css"><script src="assets/js/ui.js" defer></script>
     <link rel="stylesheet" href="assets/css/finance.css">
-    <style>.nt-wrap{max-width:760px;margin:28px auto;padding:0 16px}.nt-item{display:block;background:#fff;border:1px solid #e4ddcf;border-radius:8px;padding:12px 16px;margin:0 0 10px;text-decoration:none;color:inherit}.nt-item.unread{border-left:4px solid #126b4e;background:#f3f8f5}.nt-item strong{display:block}.nt-time{font-size:12px;color:#565c55}</style>
+    <style>.nt-wrap{max-width:760px;margin:28px auto;padding:0 16px}.nt-item{display:block;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:12px 16px;margin:0 0 10px;text-decoration:none;color:inherit}.nt-item.unread{border-left:4px solid var(--accent);background:#f3f8f5}.nt-item strong{display:block}.nt-time{font-size:12px;color:var(--text-secondary)}</style>
 <link rel="stylesheet" href="assets/css/dark.css"><meta name="color-scheme" content="light dark"><script src="assets/js/se-theme.js"></script><script src="assets/js/se-i18n.js"></script></head>
 <body>
 <main class="nt-wrap" id="main-content">
@@ -49,5 +50,6 @@ $home = ['admin' => 'admin/dashboard.php', 'host' => 'host/dashboard.php'][$role
         </a>
     <?php endforeach; ?>
 </main>
+<script>window.SE_LIVE={base:<?= json_encode($base) ?>,role:<?= json_encode($role) ?>};document.addEventListener("se:live",function(e){if(e.detail&&e.detail.unread>(window.__seUnread||0)&&window.__seReady)location.reload();window.__seUnread=e.detail?e.detail.unread:0;window.__seReady=true;});</script><script src="<?= h($base) ?>/assets/js/live.js" defer></script>
 </body>
 </html>

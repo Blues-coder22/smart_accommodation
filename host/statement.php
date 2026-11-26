@@ -25,6 +25,7 @@ foreach ($rows as $r) { if ($r['payment_status'] === 'confirmed') { $tConf += (f
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Payment statement — StayExplore Kenya</title>
     <link rel="stylesheet" href="../assets/css/style.css">
+<link rel="stylesheet" href="../assets/css/ui.css"><script src="../assets/js/ui.js" defer></script>
     <link rel="stylesheet" href="../assets/css/finance.css">
 </head>
 <body>
@@ -36,11 +37,11 @@ foreach ($rows as $r) { if ($r['payment_status'] === 'confirmed') { $tConf += (f
             <div><label class="fin-field" for="t">To</label><input class="fin-input" style="max-width:170px" type="date" id="t" name="to" value="<?= h($to) ?>"></div>
             <button class="fin-btn" type="submit">Show</button><button class="fin-btn ghost" type="button" onclick="window.print()">Print or save as PDF</button>
         </form>
-        <p class="page-sub">Payments from guests to <strong><?= h($_SESSION['full_name'] ?? 'you') ?></strong> entered between <?= h($from) ?> and <?= h($to) ?>. Printed <?= h(date('j M Y, H:i')) ?>. Amounts are what the guest pays you (your price minus the platform commission).</p>
+        <p class="page-sub">Payments from guests to <strong><?= h($_SESSION['full_name'] ?? 'you') ?></strong> entered between <?= h($from) ?> and <?= h($to) ?>. Printed <?= h(date('j M Y, H:i')) ?>. Amounts are what each guest pays you directly. Your platform commission is invoiced separately on the Commission page.</p>
         <div class="fin-cards">
             <div class="fin-card accent"><div class="fin-label">Confirmed received</div><div class="fin-value"><?= kes($tConf) ?></div></div>
             <div class="fin-card warn"><div class="fin-label">Waiting for you to confirm</div><div class="fin-value"><?= kes($tPend) ?></div></div>
-            <div class="fin-card"><div class="fin-label">Commission on these (paid by guests)</div><div class="fin-value"><?= kes($tComm) ?></div></div>
+            <div class="fin-card"><div class="fin-label">Commission on these (invoiced to you separately)</div><div class="fin-value"><?= kes($tComm) ?></div></div>
         </div>
         <div class="fin-box"><div class="fin-scroll"><table class="fin-table">
             <thead><tr><th>Entered</th><th>Booking</th><th>Guest</th><th>Method / reference</th><th>Status</th><th class="num">Amount</th></tr></thead><tbody>

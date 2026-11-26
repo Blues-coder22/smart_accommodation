@@ -14,11 +14,11 @@ label,.field label,.form-group label,.filter-group label,.tourist-search .filter
 .bc-dow{font-size:12px}
 input,select,textarea{font-size:15px}
 .btn,button.btn,.btn-save{font-size:14.5px;min-height:42px}
-@media(max-width:760px){
+@media(max-width:768px){
   .public-nav .public-links a,.public-nav .public-actions a,.btn,button,select,input:not([type=checkbox]):not([type=radio]){min-height:44px}
   .public-nav .public-links{font-size:15px}
 }
-@media(max-width:760px){.public-nav .nav-toggle{width:44px;height:44px;font-size:20px}}
+@media(max-width:768px){.public-nav .nav-toggle{width:44px;height:44px;font-size:20px}}
 
 /* Keyboard focus: a clear ring on everything that can be tabbed to, including form fields */
 :focus-visible,
@@ -28,7 +28,7 @@ input:not([type=checkbox]):not([type=radio]):focus-visible,select:focus-visible,
   outline:3px solid #b8532f!important;outline-offset:2px!important;
 }
 .public-nav :focus-visible,.app-sidebar :focus-visible,.dash-wrap>.sidebar :focus-visible{outline-color:#ffd9a8!important}
-.skip-link{position:absolute;left:-999px;top:8px;background:#0d3b2e;color:#fff;padding:10px 14px;border-radius:8px;z-index:9999}
+.skip-link{position:absolute;left:-999px;top:8px;background:var(--forest);color:#fff;padding:10px 14px;border-radius:8px;z-index:9999}
 .skip-link:focus{left:8px}
 
 /* =========================================================
@@ -63,9 +63,9 @@ button:not(:disabled):active,.btn:active,.btn-sm:active{transform:translateY(1px
 
 /* v9.26: currency selector, language picker, converted prices; hide Google's own toolbar */
 .se-cur,.se-lang{display:inline-flex;align-items:center;margin:0 6px}
-.se-cur select,.se-lang select{padding:5px 8px;border:1px solid #c9bfae;border-radius:6px;background:#fff;color:#1f241f;font:inherit;font-size:13px;cursor:pointer}
+.se-cur select,.se-lang select{padding:5px 8px;border:1px solid #c9bfae;border-radius:6px;background:var(--surface-2);color:var(--ink);font:inherit;font-size:13px;cursor:pointer}
 .se-lang select{max-width:130px}
-.money{border-bottom:1px dotted currentColor;cursor:help}.money-approx{font-size:.85em;color:#565c55;font-weight:400}
+.money{border-bottom:1px dotted currentColor;cursor:help}.money-approx{font-size:.85em;color:var(--text-secondary);font-weight:400}
 .goog-te-banner-frame,.skiptranslate>iframe,#goog-gt-tt,.goog-te-balloon-frame{display:none!important}body{top:0!important}
 .goog-text-highlight{background:none!important;box-shadow:none!important}
 .bc-past{opacity:1;color:#5f6862;text-decoration:line-through;text-decoration-color:#9aa39d}

@@ -187,52 +187,30 @@ $counts = $pdo->query("
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Review Moderation — StayExplore Kenya</title>
     <link rel="stylesheet" href="../assets/css/style.css">
+<link rel="stylesheet" href="../assets/css/ui.css"><script src="../assets/js/ui.js" defer></script>
     <style>
-        
-        .dash-wrap   { display:grid;
-                       grid-template-columns:200px 1fr; flex:1 }
         .sidebar     { background:var(--surface-2);
                        border-right:1px solid var(--border);
                        padding:24px 0; position:sticky;
                        top:52px; height:calc(100vh - 52px);
                        overflow-y:auto }
-        .sidebar-role{ font-size:10px; font-weight:700;
-                       letter-spacing:.08em; color:#b42318;
-                       text-transform:uppercase;
-                       padding:0 20px; margin-bottom:12px }
-        .sidebar-link{ display:flex; align-items:center; gap:10px;
-                       padding:9px 20px; font-size:13px;
-                       color:var(--text-secondary);
-                       text-decoration:none; width:100% }
-        .sidebar-link:hover { color:var(--text-primary);
-                              background:var(--surface-1) }
-        .sidebar-link.active { color:#085041; font-weight:500;
-                               background:#E1F5EE;
-                               border-left:3px solid #126b4e }
         .badge       { font-size:10px; background:#DC2626;
                        color:#fff; border-radius:10px;
                        padding:1px 6px; margin-left:auto }
         .main        { padding:28px }
-        .page-tag    { font-size:11px; font-weight:600;
-                       letter-spacing:.06em; color:#126b4e;
-                       text-transform:uppercase; margin-bottom:8px }
-        .page-title  { font-size:26px; font-weight:400;
-                       margin-bottom:4px }
-        .page-sub    { font-size:13px; color:var(--text-secondary);
-                       margin-bottom:20px }
         .filter-tabs { display:flex; gap:6px; margin-bottom:20px }
         .filter-tab  { padding:6px 14px; font-size:12px;
                        border-radius:4px; text-decoration:none;
                        color:var(--text-secondary);
                        border:1px solid var(--border);
                        display:flex; align-items:center; gap:6px }
-        .filter-tab.active { background:#085041; color:#fff;
-                             border-color:#085041 }
+        .filter-tab.active { background:var(--btn-hover); color:#fff;
+                             border-color:var(--accent-strong) }
         .review-card { background:var(--surface-2);
                        border:1px solid var(--border);
                        border-radius:8px; padding:20px;
                        margin-bottom:12px }
-        .review-card.flagged { border-color:#F9D57C }
+        .review-card.flagged { border-color:var(--warn-line) }
         .review-top  { display:flex; justify-content:space-between;
                        align-items:flex-start; margin-bottom:12px }
         .reviewer    { font-size:14px; font-weight:500;
@@ -246,18 +224,18 @@ $counts = $pdo->query("
                        line-height:1.6; margin-bottom:14px;
                        padding:12px; background:var(--surface-1);
                        border-radius:6px; border:1px solid var(--border) }
-        .suspicion-box { background:#FFF8E1;
-                         border:1px solid #F9D57C;
+        .suspicion-box { background:var(--warn-bg);
+                         border:1px solid var(--warn-line);
                          border-radius:6px; padding:12px 14px;
                          margin-bottom:14px }
         .suspicion-box h4 { font-size:12px; font-weight:600;
-                            color:#7a5200; margin-bottom:8px;
+                            color:var(--warn-fg); margin-bottom:8px;
                             text-transform:uppercase;
                             letter-spacing:.04em }
         .score-row   { display:flex; justify-content:space-between;
                        align-items:center; margin-bottom:4px }
-        .score-label { font-size:12px; color:#7a5200 }
-        .score-val   { font-size:14px; font-weight:700; color:#7a5200 }
+        .score-label { font-size:12px; color:var(--warn-fg) }
+        .score-val   { font-size:14px; font-weight:700; color:var(--warn-fg) }
         .score-bar   { height:4px; background:#F9D57C;
                        border-radius:2px; margin-top:6px }
         .score-fill  { height:100%; background:#8f4b00;
@@ -278,31 +256,30 @@ $counts = $pdo->query("
         .consist-label { color:var(--text-secondary) }
         .consist-val   { font-weight:500 }
         .review-actions { display:flex; gap:8px; flex-wrap:wrap }
-        .btn-publish { padding:7px 16px; background:#085041;
+        .btn-publish { padding:7px 16px; background:var(--btn-hover);
                        color:#fff; border:none; border-radius:4px;
                        font-size:12px; font-weight:500; cursor:pointer }
         .btn-remove  { padding:7px 16px; background:none;
-                       color:#8f4b00; border:1px solid #F9D57C;
+                       color:var(--warn-fg); border:1px solid var(--warn-line);
                        border-radius:4px; font-size:12px;
                        font-weight:500; cursor:pointer }
         .btn-delete  { padding:7px 16px; background:none;
-                       color:#b42318; border:1px solid #FECACA;
+                       color:var(--bad-fg); border:1px solid var(--bad-line);
                        border-radius:4px; font-size:12px;
                        font-weight:500; cursor:pointer }
         .pub-badge   { display:inline-block; font-size:11px;
                        font-weight:600; padding:3px 9px;
                        border-radius:3px }
-        .b-flagged   { background:#FFF8E1; color:#7a5200;
-                       border:1px solid #F9D57C }
-        .b-published { background:#E1F5EE; color:#0F6E56;
-                       border:1px solid #9FE1CB }
+        .b-flagged   { background:var(--warn-bg); color:var(--warn-fg);
+                       border:1px solid var(--warn-line) }
+        .b-published { background:var(--accent-soft); color:var(--accent-strong);
+                       border:1px solid var(--accent-line) }
         .b-removed   { background:#F5F3FF; color:#5B21B6;
                        border:1px solid #C4B5FD }
         .empty-state { text-align:center; padding:48px;
                        font-size:14px;
                        color:var(--text-secondary) }
-        @media(max-width:900px){
-            .dash-wrap { grid-template-columns:1fr }
+        @media(max-width:1024px){
             .sidebar   { display:none }
         }
     </style>
@@ -383,8 +360,8 @@ $counts = $pdo->query("
                 <div class="review-top">
                     <div>
                         <div style="display:flex;gap:28px;flex-wrap:wrap">
-                            <div><div style="font-size:11px;color:#4f5f57;margin-bottom:3px">Host (wrote this)</div><?= personChipHtml($g['host_uid'], $g['host_name'], $g['host_photo'], 40, 'Host') ?></div>
-                            <div><div style="font-size:11px;color:#4f5f57;margin-bottom:3px">About the guest</div><?= personChipHtml($g['tourist_uid'], $g['tourist_name'], $g['tourist_photo'], 40, 'Tourist') ?></div>
+                            <div><div style="font-size:11px;color:var(--text-secondary);margin-bottom:3px">Host (wrote this)</div><?= personChipHtml($g['host_uid'], $g['host_name'], $g['host_photo'], 40, 'Host') ?></div>
+                            <div><div style="font-size:11px;color:var(--text-secondary);margin-bottom:3px">About the guest</div><?= personChipHtml($g['tourist_uid'], $g['tourist_name'], $g['tourist_photo'], 40, 'Tourist') ?></div>
                         </div>
                         <div class="review-prop" style="margin-top:8px"><?= h($g['property_title']) ?> &middot; <?= date('d M', strtotime($g['check_in_date'])) ?> &ndash; <?= date('d M Y', strtotime($g['check_out_date'])) ?></div>
                     </div>
@@ -397,7 +374,7 @@ $counts = $pdo->query("
                     <?php for ($i = 1; $i <= 5; $i++): ?><span class="star <?= $i <= $g['rating'] ? 'filled' : '' ?>">&#9733;</span><?php endfor; ?>
                     <span style="font-size:12px;color:var(--text-secondary);margin-left:6px"><?= (int)$g['rating'] ?> / 5</span>
                 </div>
-                <div class="review-text"><?= $g['review_text'] !== null && $g['review_text'] !== '' ? nl2br(h($g['review_text'])) : '<em style="color:#565c55">No written comment.</em>' ?></div>
+                <div class="review-text"><?= $g['review_text'] !== null && $g['review_text'] !== '' ? nl2br(h($g['review_text'])) : '<em style="color:var(--text-secondary)">No written comment.</em>' ?></div>
                 <div class="review-actions">
                     <form method="POST" style="margin:0">
                         <input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
@@ -438,8 +415,8 @@ $counts = $pdo->query("
                 <div class="review-top">
                     <div>
                         <div style="display:flex;gap:28px;flex-wrap:wrap">
-                            <div><div style="font-size:11px;color:#4f5f57;margin-bottom:3px">Guest (wrote this)</div><?= personChipHtml($r['tourist_id'], $r['full_tourist_name'], $r['tourist_photo'], 40, 'Tourist') ?></div>
-                            <div><div style="font-size:11px;color:#4f5f57;margin-bottom:3px">Host of the stay</div><?= personChipHtml($r['host_id'], $r['host_name'], $r['host_photo'], 40, 'Host') ?></div>
+                            <div><div style="font-size:11px;color:var(--text-secondary);margin-bottom:3px">Guest (wrote this)</div><?= personChipHtml($r['tourist_id'], $r['full_tourist_name'], $r['tourist_photo'], 40, 'Tourist') ?></div>
+                            <div><div style="font-size:11px;color:var(--text-secondary);margin-bottom:3px">Host of the stay</div><?= personChipHtml($r['host_id'], $r['host_name'], $r['host_photo'], 40, 'Host') ?></div>
                         </div>
                         <div class="review-prop">
                             <?= h(
@@ -484,7 +461,7 @@ $counts = $pdo->query("
                 </div>
 
                 <!-- Risk score (0-100): a guide for what to check first -->
-                <?php $risk = $r['risk']; $rc = ['low' => ['#E1F5EE', '#0F6E56'], 'medium' => ['#FFF3D6', '#7a5200'], 'high' => ['#FDECEC', '#A12B2B']][$risk['level']]; ?>
+                <?php $risk = $r['risk']; $rc = ['low' => ['var(--accent-soft)', 'var(--accent-strong)'], 'medium' => ['#FFF3D6', '#7a5200'], 'high' => ['#FDECEC', '#A12B2B']][$risk['level']]; ?>
                 <div style="margin:8px 0 4px">
                     <span title="<?= h($risk['reasons'] ? implode("\n", $risk['reasons']) : 'No risk signals found') ?>"
                           style="display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:600;background:<?= $rc[0] ?>;color:<?= $rc[1] ?>">
@@ -505,8 +482,8 @@ $counts = $pdo->query("
                 </div>
 
                 <?php if (!empty($r['host_reply'])): ?>
-                <div style="margin-top:10px;padding:10px 12px;background:#e8f8f3;border-left:3px solid #126b4e;border-radius:0 6px 6px 0;font-size:13px">
-                    <strong>Host reply</strong> <?= !empty($r['host_reply_hidden']) ? '<span style="color:#a12b2b;font-size:12px">(hidden from public)</span>' : '' ?><br>
+                <div style="margin-top:10px;padding:10px 12px;background:#e8f8f3;border-left:3px solid var(--accent);border-radius:0 6px 6px 0;font-size:13px">
+                    <strong>Host reply</strong> <?= !empty($r['host_reply_hidden']) ? '<span style="color:var(--bad-fg);font-size:12px">(hidden from public)</span>' : '' ?><br>
                     <?= nl2br(h($r['host_reply'])) ?>
                     <form method="POST" style="margin:8px 0 0">
                         <input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
@@ -535,7 +512,7 @@ $counts = $pdo->query("
                                  ($r['suspicion_score']/8)*100) ?>%">
                         </div>
                     </div>
-                    <div style="font-size:12px;color:#7a5200;
+                    <div style="font-size:12px;color:var(--warn-fg);
                                 margin-top:8px">
                         <?php
                         $account_age = floor(
@@ -591,14 +568,14 @@ $counts = $pdo->query("
                               style="<?= abs($r['rating']
                                   - $r['prop_avg_rating']) >= 2
                                   && $r['other_prop_reviews'] > 0
-                                  ? 'color:#b42318' : '' ?>">
+                                  ? 'color:var(--bad-fg)' : '' ?>">
                             <?= $r['rating'] ?> / 5
                             <?php if (
                                 abs($r['rating']
                                     - $r['prop_avg_rating']) >= 2
                                 && $r['other_prop_reviews'] > 0): ?>
                                 <span style="font-size:11px;
-                                             color:#b42318">
+                                             color:var(--bad-fg)">
                                     (<?= $r['rating']
                                         > $r['prop_avg_rating']
                                         ? 'significantly higher'

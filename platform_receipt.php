@@ -29,6 +29,7 @@ $back = hasRole('admin') ? 'admin/revenue.php' : 'tourist/bookings.php';
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Receipt <?= h(receiptNumber($id, true)) ?> — StayExplore Kenya</title>
     <link rel="stylesheet" href="assets/css/style.css">
+<link rel="stylesheet" href="assets/css/ui.css"><script src="assets/js/ui.js" defer></script>
     <link rel="stylesheet" href="assets/css/finance.css">
     <style>
         body{background:#f6f1e7}
@@ -42,7 +43,7 @@ $back = hasRole('admin') ? 'admin/revenue.php' : 'tourist/bookings.php';
         .rc-foot{font-size:12px;color:#565c55;border-top:1px solid #e4ddcf;padding-top:12px;margin-top:18px;line-height:1.5}
         .rc-bar{max-width:720px;margin:16px auto 0;display:flex;gap:10px;flex-wrap:wrap;padding:0 8px}
         @media print{body{background:#fff}.rc-sheet{border:0;margin:0;padding:0;max-width:none}.rc-bar{display:none}}
-        @media(max-width:560px){.rc-sheet{padding:20px}.rc-grid{grid-template-columns:1fr}}
+        @media(max-width:768px){.rc-sheet{padding:20px}.rc-grid{grid-template-columns:1fr}}
     </style>
 </head>
 <body>

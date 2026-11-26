@@ -2,6 +2,7 @@
 require_once '../includes/auth.php';
 require_once '../includes/functions.php';
 require_once '../includes/db.php';
+require_once '../includes/upload_helpers.php';
 require_once '../includes/currency.php';
 require_once '../includes/booking_holds.php';
 expireStaleBookingRequests($pdo);   // releases dates held by unpaid or unanswered requests
@@ -148,6 +149,23 @@ if ($type === 'accommodation') {
     // Default sort = smart_score (already applied in getNearbyAccommodations)
 }
 
+// v9.33: controlled result loading. The whole matching set stays on the map, but only one page of cards is built.
+$allAccommodations = $accommodations;
+$totalAccommodations = count($allAccommodations);
+$perPage    = 12;
+$totalPages = max(1, (int)ceil($totalAccommodations / $perPage));
+$pageNo     = min($totalPages, max(1, (int)($_GET['page'] ?? 1)));
+$accommodations = array_slice($allAccommodations, ($pageNo - 1) * $perPage, $perPage);
+$pagePhotos = [];
+if ($accommodations) {   // one query for every card on the page, instead of one per card
+    $ids = array_map('intval', array_column($accommodations, 'accommodation_id'));
+    $in  = implode(',', array_fill(0, count($ids), '?'));
+    $pq  = $pdo->prepare("SELECT accommodation_id, photo_path FROM accommodation_photos WHERE accommodation_id IN ($in) ORDER BY is_primary DESC, photo_id ASC");
+    $pq->execute($ids);
+    foreach ($pq->fetchAll(PDO::FETCH_ASSOC) as $pr) { if (count($pagePhotos[$pr['accommodation_id']] ?? []) < 6) $pagePhotos[$pr['accommodation_id']][] = $pr['photo_path']; }
+}
+function searchPageUrl($n) { $q = $_GET; $q['page'] = $n; return 'search.php?' . http_build_query($q); }
+
 // Fetch attractions
 $near_stay = null;
 if ($type === 'attraction') {
@@ -238,10 +256,9 @@ $property_types = $pdo->query("
         — StayExplore Kenya
     </title>
     <link rel="stylesheet" href="../assets/css/style.css">
+<link rel="stylesheet" href="../assets/css/ui.css"><script src="../assets/js/ui.js" defer></script>
     <link rel="stylesheet" href="../assets/css/attractions.css">
-    <link rel="stylesheet"
-          href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="../assets/js/leaflet-loader.js"></script>
     <style>
         .search-layout { display: grid;
                          grid-template-columns: 280px 1fr;
@@ -252,35 +269,35 @@ $property_types = $pdo->query("
                          box-shadow: 0 1px 6px rgba(0,0,0,0.06);
                          position: sticky; top: 80px; }
         .filters-panel h3 { font-size: 16px; font-weight: 700;
-                            color: #085041; margin-bottom: 16px; }
+                            color:var(--accent-strong); margin-bottom: 16px; }
         .filter-group { margin-bottom: 20px; }
         .filter-group label { font-size: 13px; font-weight: 600;
-                              color: #444; display: block;
+                              color:#444; display: block;
                               margin-bottom: 6px; }
         .filter-group input:not([type=checkbox]):not([type=radio]),
         .filter-group select { width: 100%; padding: 8px 12px;
-                               border: 1px solid #ddd; border-radius: 6px;
+                               border:1px solid var(--border); border-radius: 6px;
                                font-size: 13px; }
         /* Amenity check-boxes: the rule above used to stretch every checkbox to 100% width with a border,
            which drew the broken line. They now match the frontend's .check rows. */
         .filter-group .amenity-options { display: grid; gap: 2px; }
         .filter-group label.amenity-check { display: flex; align-items: center; gap: 9px;
                                margin: 0; padding: 6px 0; font-size: 12px; font-weight: 400;
-                               color: #4a5249; cursor: pointer;
-                               border-bottom: 1px solid #eef0ea; }
+                               color:var(--text-secondary); cursor: pointer;
+                               border-bottom:1px solid #eef0ea; }
         .filter-group label.amenity-check:last-child { border-bottom: 0; }
         .filter-group label.amenity-check input[type=checkbox] { width: 16px; height: 16px; flex: 0 0 16px;
                                margin: 0; padding: 0; border: 0; accent-color: #0d3b2e; }
         .price-range { display: flex; gap: 8px; align-items: center; }
         .price-range input { flex: 1; }
-        .price-range span { color: #666; font-size: 13px; }
+        .price-range span { color:var(--text-secondary); font-size: 13px; }
         .results-header { display: flex; justify-content: space-between;
                           align-items: center; margin-bottom: 16px; }
-        .results-count { font-size: 14px; color: #666; }
-        .sort-select { padding: 8px 12px; border: 1px solid #ddd;
+        .results-count { font-size: 14px; color:var(--text-secondary); }
+        .sort-select { padding: 8px 12px; border:1px solid var(--border);
                        border-radius: 6px; font-size: 13px; }
         #map { height: 320px; border-radius: 10px;
-               border: 1px solid #ddd; margin-bottom: 20px;
+               border:1px solid var(--border); margin-bottom: 20px;
                position: relative; z-index: 0; isolation: isolate; }
         .results-grid { display: grid;
                         grid-template-columns: repeat(
@@ -290,25 +307,25 @@ $property_types = $pdo->query("
                     overflow: hidden; border:1px solid #e7e9e3;
                     box-shadow: 0 3px 12px rgba(0,0,0,0.045);
                     transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease; cursor: pointer; }
-        .acc-card.acc-card-hl { outline: 3px solid #16866b; outline-offset: 2px; }
+        .acc-card.acc-card-hl { outline:3px solid #16866b; outline-offset: 2px; }
         .acc-card:hover { transform:translateY(-5px); border-color:#c8d7cc; box-shadow: 0 16px 32px rgba(13,59,46,0.13); }
-        .acc-card img { display:block; width: 100%; height: 205px; object-fit: contain; background:#f0eee7; }
+        .acc-card img { display:block; width: 100%; height: 205px; object-fit: contain; background:var(--soft); }
         .acc-card-body { padding: 14px; }
         .acc-card-title { font-size: 15px; font-weight: 600;
-                          margin-bottom: 4px; color: #085041; }
-        .acc-card-location { font-size: 12px; color: #565c55;
+                          margin-bottom: 4px; color:var(--accent-strong); }
+        .acc-card-location { font-size: 12px; color:var(--text-secondary);
                              margin-bottom: 8px; }
         .acc-card-meta { display: flex; justify-content: space-between;
                          align-items: center; margin-bottom: 8px; }
-        .acc-price { font-size: 15px; font-weight: 700; color: #0f6e56; }
-        .acc-rating { font-size: 12px; color: #666; }
-        .smart-badge { font-size: 11px; background: #e8f8f3;
-                       color: #085041; padding: 2px 8px;
+        .acc-price { font-size: 15px; font-weight: 700; color:var(--accent-strong); }
+        .acc-rating { font-size: 12px; color:var(--text-secondary); }
+        .smart-badge { font-size: 11px; background:#e8f8f3;
+                       color:var(--accent-strong); padding: 2px 8px;
                        border-radius: 10px; margin-bottom: 10px;
                        display: inline-block; }
-        .no-results { text-align: center; padding: 60px 20px; color: #666; }
-        .osm-live-results { background:#fff;border:1px solid #e4e9e6;border-radius:10px;padding:16px;margin:0 0 20px; }
-        .osm-live-results h3 { margin:0 0 12px;color:#085041;font-size:17px; }
+        .no-results { text-align: center; padding: 60px 20px; color:var(--text-secondary); }
+        .osm-live-results { background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:16px;margin:0 0 20px; }
+        .osm-live-results h3 { margin:0 0 12px;color:var(--accent-strong);font-size:17px; }
         .osm-live-grid { display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px; }
         .osm-live-card { border:1px solid #e2e7e4;border-radius:8px;padding:12px;min-width:0; }
         .osm-live-card strong { display:block;color:#164e3d;overflow-wrap:anywhere; }
@@ -317,34 +334,22 @@ $property_types = $pdo->query("
         .osm-live-card button { border:0;background:#eaf5ef;color:#155b43;border-radius:6px;padding:7px 9px;cursor:pointer; }
         .osm-attribution { color:#6d7772;font-size:11px;margin:12px 0 0; }
         .no-results h3 { font-size: 18px; margin-bottom: 8px; }
-        .search-bar-top { background: #085041; padding: 16px 24px; }
-        .search-bar-top form { display: flex; gap: 10px;
-                               max-width: 1400px; margin: 0 auto; }
-        .search-bar-top input,
-        .search-bar-top select { flex: 1; padding: 10px 14px;
-                                  border: none; border-radius: 6px;
-                                  font-size: 14px; }
-        .search-bar-top button { background: #126b4e; color: white;
-                                  border: none; padding: 10px 20px;
-                                  border-radius: 6px; cursor: pointer;
-                                  font-size: 14px; white-space: nowrap; }
         .att-card { background: white; border-radius: 14px;
                     overflow: hidden; border:1px solid #e7e9e3;
                     box-shadow: 0 3px 12px rgba(0,0,0,0.045);
                     transition: transform .25s ease, box-shadow .25s ease; }
         .att-card:hover { transform:translateY(-5px); box-shadow:0 16px 32px rgba(13,59,46,.13); }
-        .att-card img { display:block; width: 100%; height: 205px; object-fit: contain; background:#f0eee7; }
+        .att-card img { display:block; width: 100%; height: 205px; object-fit: contain; background:var(--soft); }
         .att-card-body { padding: 14px; }
         .att-card-title { font-size: 15px; font-weight: 600;
-                          color: #085041; margin-bottom: 4px; }
-        .att-card-location { font-size: 12px; color: #565c55;
+                          color:var(--accent-strong); margin-bottom: 4px; }
+        .att-card-location { font-size: 12px; color:var(--text-secondary);
                              margin-bottom: 8px; }
         .att-card-footer { display: flex;
                            justify-content: space-between;
                            align-items: center; }
-        .att-price { font-size: 14px; font-weight: 700; color: #0f6e56; }
-        .category-badge { font-size: 11px; background: #eeedfe;
-                          color: #3c3489; padding: 2px 8px;
+        .category-badge { font-size: 11px; background:#eeedfe;
+                          color:#3c3489; padding: 2px 8px;
                           border-radius: 10px; }
         @media (max-width: 768px) {
             .search-layout { grid-template-columns: 1fr; }
@@ -352,28 +357,28 @@ $property_types = $pdo->query("
         }
             .disc-head { max-width:1400px; margin:0 auto; padding:28px 24px 0; }
         .disc-head-row { display:flex; justify-content:space-between; align-items:flex-end; gap:16px; flex-wrap:wrap; }
-        .disc-eyebrow { font-size:11px; letter-spacing:.14em; text-transform:uppercase; font-weight:700; color:#a3462a; }
+        .disc-eyebrow { font-size:11px; letter-spacing:.14em; text-transform:uppercase; font-weight:700; color:var(--terracotta); }
         .disc-head h1 { margin:4px 0 6px; font-size:42px; line-height:1.05; }
-        .disc-sub { margin:0; color:#565c55; font-size:14px; }
-        .disc-tabs { display:flex; gap:6px; margin-top:22px; border-bottom:1px solid #e4e1d8; }
-        .disc-tab { padding:10px 20px; font-size:14px; font-weight:600; color:#565c55; border-bottom:3px solid transparent; margin-bottom:-1px; text-decoration:none; }
-        .disc-tab.active { color:#0d3b2e; border-bottom-color:#a3462a; }
+        .disc-sub { margin:0; color:var(--text-secondary); font-size:14px; }
+        .disc-tabs { display:flex; gap:6px; margin-top:22px; border-bottom:1px solid var(--border); }
+        .disc-tab { padding:10px 20px; font-size:14px; font-weight:600; color:var(--text-secondary); border-bottom:3px solid transparent; margin-bottom:-1px; text-decoration:none; }
+        .disc-tab.active { color:var(--heading); border-bottom-color:#a3462a; }
         #mapBox[hidden] { display:none; }
         #mapBox { margin-bottom:18px; }
-        .explainer { background:#fff; border:1px solid #e4e1d8; border-radius:12px; padding:0; margin-bottom:16px; }
-        .explainer summary { cursor:pointer; padding:12px 16px; font-size:13px; font-weight:600; color:#0d3b2e; list-style:none; }
+        .explainer { background:var(--surface-2); border:1px solid var(--border); border-radius:12px; padding:0; margin-bottom:16px; }
+        .explainer summary { cursor:pointer; padding:12px 16px; font-size:13px; font-weight:600; color:var(--heading); list-style:none; }
         .explainer summary::-webkit-details-marker { display:none; }
         .explainer summary::after { content:'+'; float:right; font-size:18px; line-height:1; }
         .explainer[open] summary::after { content:'\2212'; }
-        .explainer .ex-body { padding:0 16px 14px; font-size:13px; color:#4a5249; line-height:1.6; }
+        .explainer .ex-body { padding:0 16px 14px; font-size:13px; color:var(--text-secondary); line-height:1.6; }
         .explainer .ex-body p { margin:0 0 8px; }
-        .near-banner { background:#eef4f1; border:1px solid #cfdcd5; border-radius:10px; padding:12px 16px; font-size:14px; color:#0d3b2e; margin-bottom:16px; display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:space-between; }
+        .near-banner { background:#eef4f1; border:1px solid var(--border); border-radius:10px; padding:12px 16px; font-size:14px; color:var(--heading); margin-bottom:16px; display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:space-between; }
         .acc-card-actions { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:10px; }
         .acc-card-actions .btn { text-align:center; padding:9px 8px; font-size:13px; }
         .att-media { position:relative; }
         .att-media > .att-card-emoji, .att-media > .att-card-fee { z-index:4; }
         .att-media .att-teaser { pointer-events:none; z-index:2; }
-        .near-km-tag { color:#0d3b2e; font-weight:700; font-size:12px; margin-bottom:6px; }
+        .near-km-tag { color:var(--heading); font-weight:700; font-size:12px; margin-bottom:6px; }
     </style>
 <link rel="stylesheet" href="../assets/css/dark.css"><meta name="color-scheme" content="light dark"><script src="../assets/js/se-theme.js"></script><script src="../assets/js/se-i18n.js"></script></head>
 <body class="tourist-search">
@@ -534,7 +539,7 @@ $property_types = $pdo->query("
 
             <a href="search.php?type=<?= $type ?>"
                style="display:block;text-align:center;margin-top:10px;
-                      font-size:13px;color:#666">
+                      font-size:13px;color:var(--text-secondary)">
                 Reset Filters
             </a>
         </form>
@@ -557,8 +562,8 @@ $property_types = $pdo->query("
         <div class="results-header">
             <div class="results-count">
                 <?php if ($type === 'accommodation'): ?>
-                    <?= count($accommodations) ?> accommodation
-                    <?= count($accommodations) == 1 ? '' : 's' ?> found
+                    <?= (int)$totalAccommodations ?> accommodation
+                    <?= $totalAccommodations == 1 ? '' : 's' ?> found<?php if ($totalPages > 1): ?> &middot; page <?= (int)$pageNo ?> of <?= (int)$totalPages ?><?php endif; ?>
                     <?= $location ? "near <strong>" . 
                         h($location) . "</strong>" : '' ?>
                 <?php else: ?>
@@ -621,17 +626,15 @@ $property_types = $pdo->query("
                 </div>
             <?php else: ?>
                 <div class="results-grid">
-                    <?php foreach ($accommodations as $acc):
-                        $ps = $pdo->prepare("SELECT photo_path FROM accommodation_photos WHERE accommodation_id = ? ORDER BY is_primary DESC, photo_id ASC LIMIT 6");
-                        $ps->execute([$acc['accommodation_id']]);
+                    <?php foreach ($accommodations as $cardIx => $acc):
                         $urls = [];
-                        foreach ($ps->fetchAll(PDO::FETCH_COLUMN) as $pp) $urls[] = searchAccommodationPhotoUrl($pp);
+                        foreach (($pagePhotos[$acc['accommodation_id']] ?? []) as $pp) $urls[] = thumbUrlIfExists(searchAccommodationPhotoUrl($pp));
                         if (!$urls) $urls[] = searchAccommodationPhotoUrl('');
                         $score100 = (int)round(min(1, max(0, (float)$acc['smart_score'])) * 100);
                         $detailsUrl = 'details.php?id=' . (int)$acc['accommodation_id'];
                     ?>
                     <div class="acc-card" data-acc-id="<?= (int)$acc['accommodation_id'] ?>" onclick="if(!event.target.closest('a,button'))window.location='<?= h($detailsUrl) ?>'">
-                        <?= slideshowHtml($urls, $acc['title'], 'card') ?>
+                        <?= slideshowHtml($urls, $acc['title'], 'card', '', $cardIx < 3) ?>
                         <div class="acc-card-body">
                             <?php if (!empty($acc['created_at']) && strtotime($acc['created_at']) > strtotime('-14 days')): ?><span class="smart-badge" style="background:#a3462a;color:#fff;margin:0 6px 4px 0">New</span><?php endif; ?>
                             <div class="smart-badge" style="margin:0 0 4px">Smart score <?= $score100 ?> <a href="#how-scores" title="How is this worked out?" style="font-weight:400">(how?)</a></div>
@@ -640,9 +643,9 @@ $property_types = $pdo->query("
                                 <?php if (!empty($verifiedHosts[(int)($acc['host_id'] ?? 0)])) echo hostVerifiedBadge(); ?>
                             </div>
                             <?php if ((int)$acc['total_bookings'] >= 0 && (float)$acc['avg_rating'] > 0): ?>
-                            <div class="acc-rating" style="margin:2px 0 4px"><?= str_repeat('&#9733;', (int)round($acc['avg_rating'])) ?><span style="color:#d6d3c8"><?= str_repeat('&#9733;', 5 - (int)round($acc['avg_rating'])) ?></span> <span style="font-size:12px;color:#565c55"><?= number_format($acc['avg_rating'], 1) ?></span></div>
+                            <div class="acc-rating" style="margin:2px 0 4px"><?= str_repeat('&#9733;', (int)round($acc['avg_rating'])) ?><span style="color:#d6d3c8"><?= str_repeat('&#9733;', 5 - (int)round($acc['avg_rating'])) ?></span> <span style="font-size:12px;color:var(--text-secondary)"><?= number_format($acc['avg_rating'], 1) ?></span></div>
                             <?php else: ?>
-                            <div class="acc-rating" style="margin:2px 0 4px;font-size:12px;color:#565c55">New listing, no reviews yet</div>
+                            <div class="acc-rating" style="margin:2px 0 4px;font-size:12px;color:var(--text-secondary)">New listing, no reviews yet</div>
                             <?php endif; ?>
                             <div class="acc-card-location">
                                 <?= h($acc['location_name']) ?>
@@ -651,7 +654,7 @@ $property_types = $pdo->query("
                                 <?php endif; ?>
                             </div>
                             <div class="acc-card-meta">
-                                <div class="acc-price"><?= moneyHtml($acc['price_per_night']) ?> <span style="font-size:11px;font-weight:400;color:#666">/night</span></div>
+                                <div class="acc-price"><?= moneyHtml($acc['price_per_night']) ?> <span style="font-size:11px;font-weight:400;color:var(--text-secondary)">/night</span></div>
                             </div>
                             <div class="acc-card-actions">
                                 <a href="<?= h($detailsUrl) ?>" class="btn btn-primary">View stay</a>
@@ -661,6 +664,13 @@ $property_types = $pdo->query("
                     </div>
                     <?php endforeach; ?>
                 </div>
+                <?php if ($totalPages > 1): ?>
+                <nav class="pager" aria-label="Result pages">
+                    <?php if ($pageNo > 1): ?><a class="btn btn-outline" href="<?= h(searchPageUrl($pageNo - 1)) ?>" rel="prev">&larr; Previous</a><?php else: ?><span></span><?php endif; ?>
+                    <span class="pager-info">Page <?= (int)$pageNo ?> of <?= (int)$totalPages ?></span>
+                    <?php if ($pageNo < $totalPages): ?><a class="btn btn-outline" href="<?= h(searchPageUrl($pageNo + 1)) ?>" rel="next">Next &rarr;</a><?php else: ?><span></span><?php endif; ?>
+                </nav>
+                <?php endif; ?>
             <?php endif; ?>
 
         <!-- Attraction Results -->
@@ -721,7 +731,7 @@ $property_types = $pdo->query("
 <script src="../assets/js/osm-nearby.js"></script>
 <script src="../assets/js/map-pins.js"></script>
 <script src="../assets/js/directions.js"></script>
-<script>
+<script type="text/se-leaflet" data-target="mapBox" data-trigger="#toggleMap">
 const map = L.map('map').setView([<?= $lat ?>, <?= $lng ?>], <?= ($location !== '' || isset($_GET['lat'], $_GET['lng']) || isset($_GET['search_lat'], $_GET['search_lng']) || $attraction_id) ? 12 : 10 ?>);
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -750,7 +760,7 @@ SEPins.legend(map, ['stay', 'attraction', 'place']);
 <?php if ($type === 'accommodation'): ?>
 // Plot accommodation pins (kept by id so a result card and its pin can find each other)
 const stayMarkers = {};
-<?php foreach ($accommodations as $acc): ?>
+<?php foreach ($allAccommodations as $acc): ?>
 <?php if ($acc['latitude'] && $acc['longitude']): ?>
 stayMarkers[<?= (int)$acc['accommodation_id'] ?>] = L.marker(
     [<?= $acc['latitude'] ?>, <?= $acc['longitude'] ?>],

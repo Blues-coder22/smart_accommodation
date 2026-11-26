@@ -137,33 +137,34 @@ if ($submitted) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Where to go — StayExplore Kenya</title>
     <link rel="stylesheet" href="../assets/css/style.css">
+<link rel="stylesheet" href="../assets/css/ui.css"><script src="../assets/js/ui.js" defer></script>
     <style>
         .dc-wrap { max-width: 1000px; margin: 0 auto; padding: 32px 20px 60px; }
-        .dc-form { background: var(--surface-2, #fff); border: 1px solid var(--border, #e4ddcf); border-radius: 12px; padding: 20px; margin: 18px 0 28px; display: grid; gap: 18px; }
+        .dc-form { background:var(--surface-2, var(--surface-2)); border:1px solid var(--border, var(--border)); border-radius: 12px; padding: 20px; margin: 18px 0 28px; display: grid; gap: 18px; }
         .dc-form fieldset { border: 0; padding: 0; margin: 0; }
         .dc-form legend { font-weight: 600; margin-bottom: 8px; font-size: 14px; }
         .dc-checks { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 8px; }
-        .dc-checks label { display: flex; gap: 8px; align-items: center; border: 1px solid var(--border, #e4ddcf); border-radius: 8px; padding: 9px 11px; cursor: pointer; font-size: 14px; }
+        .dc-checks label { display: flex; gap: 8px; align-items: center; border:1px solid var(--border, var(--border)); border-radius: 8px; padding: 9px 11px; cursor: pointer; font-size: 14px; }
         .dc-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; }
         .dc-row label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 5px; }
-        .dc-row select, .dc-row input { width: 100%; padding: 10px; border: 1px solid var(--border-strong, #c9c3b2); border-radius: 8px; font: inherit; }
-        .dc-hint { font-size: 12px; color: #565c55; margin-top: 4px; }
+        .dc-row select, .dc-row input { width: 100%; padding: 10px; border:1px solid var(--border-strong, #c9c3b2); border-radius: 8px; font: inherit; }
+        .dc-hint { font-size: 12px; color:var(--text-secondary); margin-top: 4px; }
         .dc-results { display: grid; gap: 16px; }
-        .dc-card { display: grid; grid-template-columns: 200px 1fr; gap: 0; background: var(--surface-2, #fff); border: 1px solid var(--border, #e4ddcf); border-radius: 12px; overflow: hidden; }
-        .dc-card img { width: 100%; height: 100%; min-height: 170px; object-fit: cover; background: #f0eee7; display: block; }
+        .dc-card { display: grid; grid-template-columns: 200px 1fr; gap: 0; background:var(--surface-2, var(--surface-2)); border:1px solid var(--border, var(--border)); border-radius: 12px; overflow: hidden; }
+        .dc-card img { width: 100%; height: 100%; min-height: 170px; object-fit: cover; background:var(--soft); display: block; }
         .dc-body { padding: 16px; }
         .dc-top { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
         .dc-name { font-size: 18px; font-weight: 600; margin: 0 0 2px; }
-        .dc-loc { font-size: 13px; color: #565c55; margin-bottom: 8px; }
-        .dc-score { flex: none; text-align: center; background: #e6f5ef; color: #0f6e56; border-radius: 10px; padding: 6px 10px; font-weight: 700; font-size: 18px; line-height: 1.1; }
+        .dc-loc { font-size: 13px; color:var(--text-secondary); margin-bottom: 8px; }
+        .dc-score { flex: none; text-align: center; background:#e6f5ef; color:var(--accent-strong); border-radius: 10px; padding: 6px 10px; font-weight: 700; font-size: 18px; line-height: 1.1; }
         .dc-score small { display: block; font-size: 10px; font-weight: 600; letter-spacing: .04em; }
         .dc-why { margin: 8px 0 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 6px; }
-        .dc-why li { font-size: 12px; background: #eef4f1; color: #0d3b2e; border-radius: 999px; padding: 3px 10px; }
-        .dc-notes { margin: 8px 0 0; padding: 0; list-style: none; font-size: 12px; color: #6b5b2a; }
+        .dc-why li { font-size: 12px; background:#eef4f1; color:var(--heading); border-radius: 999px; padding: 3px 10px; }
+        .dc-notes { margin: 8px 0 0; padding: 0; list-style: none; font-size: 12px; color:#6b5b2a; }
         .dc-notes li { margin: 2px 0; }
         .dc-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
-        .dc-empty { border: 1px dashed var(--border, #e4ddcf); border-radius: 12px; padding: 28px; text-align: center; }
-        @media (max-width: 640px) { .dc-card { grid-template-columns: 1fr; } .dc-card img { height: 170px; } }
+        .dc-empty { border:1px dashed var(--border, var(--border)); border-radius: 12px; padding: 28px; text-align: center; }
+        @media (max-width: 768px) { .dc-card { grid-template-columns: 1fr; } .dc-card img { height: 170px; } }
     </style>
 <link rel="stylesheet" href="../assets/css/dark.css"><meta name="color-scheme" content="light dark"><script src="../assets/js/se-theme.js"></script><script src="../assets/js/se-i18n.js"></script></head>
 <body>

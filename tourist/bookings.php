@@ -4,6 +4,8 @@ require_once '../includes/functions.php';
 require_once '../includes/db.php';
 require_once '../includes/notifications.php';
 require_once '../includes/booking_rules.php';
+require_once '../includes/booking_workflow.php';
+require_once '../includes/booking_countdown.php';
 ensureCommissionTables($pdo);
 require_once '../includes/booking_holds.php';
 expireStaleBookingRequests($pdo);   // releases dates held by unpaid or unanswered requests
@@ -25,11 +27,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'cance
     $owned = $check->fetch();
     if (!$owned) {
         setFlash('error', 'Booking not found.');
-    } elseif (!in_array($owned['status'], ['pending','confirmed'], true) || $owned['check_in_date'] <= date('Y-m-d')) {
+    } elseif (!in_array($owned['status'], ['pending','accepted','payment_pending','confirmed'], true) || $owned['check_in_date'] <= date('Y-m-d')) {
         setFlash('error', 'This booking can no longer be cancelled online. Please contact support if you need help.');
     } else {
-        $upd = $pdo->prepare("UPDATE bookings SET status = 'cancelled' WHERE booking_id = ? AND tourist_id = ? AND status IN ('pending','confirmed')");
-        $upd->execute([$cancelId, (int)$_SESSION['user_id']]);
+        $cx = transitionBooking($pdo, $cancelId, 'cancelled', 'tourist', (int)$_SESSION['user_id'], ['event' => 'guest_cancelled', 'note' => 'Cancelled by the guest']);
+        $upd = new class($cx['ok']) { public $ok; function __construct($o) { $this->ok = $o; } function rowCount() { return $this->ok ? 1 : 0; } };
         if ($upd->rowCount()) {
             $late = isLateCancellation($owned['check_in_date']);
             notifyUserOfBooking($pdo, $cancelId, 'host', 'Booking cancelled by the guest', bookingLabel($cancelId) . ' was cancelled' . ($late ? ' (late cancellation)' : '') . '. The dates are open again.', 'host/bookings.php');
@@ -91,20 +93,23 @@ $cancelled  = [];
 $today      = date('Y-m-d');
 
 foreach ($all_bookings as $b) {
-    if ($b['status'] === 'cancelled') {
+    if (in_array($b['status'], ['cancelled', 'no_show'], true)) {
         $cancelled[] = $b;
     } elseif ($b['status'] === 'completed' || ($b['status'] === 'confirmed' && $b['check_out_date'] < $today)) {
-        // Only a host-confirmed stay can be automatically marked completed.
-        if ($b['status'] !== 'completed') {
-            $pdo->prepare("UPDATE bookings SET status = 'completed' WHERE booking_id = ? AND status = 'confirmed'")->execute([$b['booking_id']]);
-            $b['status'] = 'completed';
-        }
+        // Display only: the scheduled job (cron/maintenance.php) performs the real status change.
         $completed[] = $b;
     } else {
         $upcoming[] = $b;
     }
 }
 
+// v9.34: ?ref=BK-XXXX (from a notification) opens the tab that holds that booking and highlights it.
+$focusRef = strtoupper(preg_replace('/^BK-/i', '', trim((string)($_GET['ref'] ?? ''))));
+if ($focusRef !== '' && !isset($_GET['tab'])) {
+    foreach (['cancelled' => $cancelled, 'completed' => $completed, 'upcoming' => $upcoming] as $tn => $list) {
+        foreach ($list as $bb) { if (strtoupper((string)bookingRef($bb['booking_id'])) === $focusRef) { $tab = $tn; break 2; } }
+    }
+}
 $current = $tab === 'completed' ? $completed 
          : ($tab === 'cancelled' ? $cancelled : $upcoming);
 ?>
@@ -115,14 +120,11 @@ $current = $tab === 'completed' ? $completed
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Bookings — StayExplore Kenya</title>
     <link rel="stylesheet" href="../assets/css/style.css">
-    <style>
-        .page-wrap  { max-width:900px; margin:0 auto; padding:32px 24px }
-        .page-tag   { font-size:11px; font-weight:600; letter-spacing:.06em;
-                      color:#126b4e; text-transform:uppercase;
-                      margin-bottom:8px }
-        .page-title { font-size:28px; font-weight:400; margin-bottom:4px }
-        .page-sub   { font-size:14px; color:var(--text-secondary);
-                      margin-bottom:24px }
+<link rel="stylesheet" href="../assets/css/ui.css"><script src="../assets/js/ui.js" defer></script>
+ <style>
+        .bk-focus{outline:2px solid var(--accent,#16866b);outline-offset:4px;border-radius:10px;animation:bkpulse 2.4s ease 2}
+        @keyframes bkpulse{0%,100%{background:transparent}50%{background:rgba(22,134,107,.12)}}
+        
         .tabs       { display:flex; gap:0; border-bottom:1px solid var(--border);
                       margin-bottom:24px }
         .tab-btn    { padding:10px 20px; font-size:13px; font-weight:500;
@@ -130,8 +132,8 @@ $current = $tab === 'completed' ? $completed
                       cursor:pointer; border-bottom:2px solid transparent;
                       margin-bottom:-1px; text-decoration:none;
                       display:inline-block }
-        .tab-btn.active { color:#085041;
-                          border-bottom-color:#085041 }
+        .tab-btn.active { color:var(--accent-strong);
+                          border-bottom-color:var(--accent-strong) }
         .tab-count  { font-size:11px; background:var(--surface-1);
                       border:1px solid var(--border); border-radius:10px;
                       padding:1px 7px; margin-left:6px;
@@ -145,7 +147,7 @@ $current = $tab === 'completed' ? $completed
                        transition:border-color .15s }
         .booking-row:hover { border-color:var(--border-strong) }
         .booking-thumb { width:80px; height:64px; border-radius:6px;
-                         background:#E1F5EE; overflow:hidden;
+                         background:var(--accent-soft); overflow:hidden;
                          display:flex; align-items:center;
                          justify-content:center; font-size:24px;
                          flex-shrink:0 }
@@ -160,26 +162,26 @@ $current = $tab === 'completed' ? $completed
                          margin-bottom:6px }
         .booking-ref   { font-size:11px; color:var(--text-secondary);
                          margin-bottom:8px }
+        .pay-by { font-size:11px; color:var(--text-secondary); margin-top:5px }
+        .s-accepted { background:var(--info-bg); color:var(--info-fg) }
         .status-badge  { display:inline-block; font-size:11px;
                          font-weight:600; padding:3px 8px;
                          border-radius:3px }
-        .s-confirmed   { background:#E1F5EE; color:#0F6E56;
-                         border:1px solid #9FE1CB }
-        .s-pending     { background:#FFF8E1; color:#7a5200;
-                         border:1px solid #F9D57C }
+        .s-confirmed   { background:var(--accent-soft); color:var(--accent-strong);
+                         border:1px solid var(--accent-line) }
+        .s-pending     { background:var(--warn-bg); color:var(--warn-fg);
+                         border:1px solid var(--warn-line) }
         .s-completed   { background:#F0F4FF; color:#1A4DB3;
                          border:1px solid #B3C5F5 }
-        .s-cancelled   { background:#FEF2F2; color:#991B1B;
-                         border:1px solid #FECACA }
-        .s-no-show     { background:#FDF2F8; color:#86198F;
-                         border:1px solid #F0ABFC }
+        .s-cancelled   { background:var(--bad-bg); color:var(--bad-fg);
+                         border:1px solid var(--bad-line) }
         .row-actions   { display:flex; gap:8px; margin-top:10px;
                          justify-content:flex-end }
         .btn-sm        { padding:6px 12px; font-size:12px;
                          border-radius:4px; cursor:pointer;
                          font-weight:500; text-decoration:none;
                          display:inline-block; border:1px solid var(--border) }
-        .btn-sm-primary{ background:#085041; color:#fff; border-color:#085041 }
+        .btn-sm-primary{ background:var(--btn-hover); color:#fff; border-color:var(--accent-strong) }
         .btn-sm-outline{ background:none; color:var(--text-secondary) }
         .empty-state   { text-align:center; padding:60px 20px }
         .empty-state h3{ font-size:16px; font-weight:500;
@@ -241,16 +243,20 @@ $current = $tab === 'completed' ? $completed
         </div>
 
     <?php else: ?>
+        <?php if ($tab === 'cancelled'): ?>
+        <div class="notice-box" style="margin-bottom:16px">Cancelled, declined and expired bookings are kept here, with the reason and any refund. Refunds for money you paid your host directly are settled with your host: open <a href="../messages.php">Messages</a> to follow up, or <a href="../support.php">contact StayExplore support</a> if you need help.</div>
+        <?php endif; ?>
         <?php foreach ($current as $b): ?>
-        <div class="booking-row">
+        <?php $isFocus = ($focusRef !== '' && strtoupper((string)bookingRef($b['booking_id'])) === $focusRef); ?>
+        <div class="booking-row<?= $isFocus ? ' bk-focus' : '' ?>" id="bk-<?= h(bookingRef($b['booking_id'])) ?>">
 
             <!-- Thumbnail -->
             <div class="booking-thumb">
                 <?php if ($b['primary_photo']): ?>
                     <img src="../uploads/accommodations/<?= h($b['primary_photo']) ?>"
-                         alt="<?= h($b['title']) ?>">
+                         alt="<?= h($b['title']) ?>" loading="lazy" decoding="async">
                 <?php else: ?>
-                    <span style="font-size:12px;color:#8a948e">No photo</span>
+                    <span style="font-size:12px;color:var(--text-tertiary)">No photo</span>
                 <?php endif; ?>
             </div>
 
@@ -269,6 +275,7 @@ $current = $tab === 'completed' ? $completed
                     &middot;
                     <?= $b['num_guests'] ?> guest<?= $b['num_guests']>1?'s':'' ?>
                 </div>
+                <?php if ($tab === 'upcoming') echo bookingCountdownHtml($b['check_in_date'], $b['status']); ?>
             </div>
 
             <!-- Right -->
@@ -277,39 +284,27 @@ $current = $tab === 'completed' ? $completed
                     KES <?= number_format($b['total_amount']) ?>
                 </div>
                 <?php $bbr = bookingPriceBreakdown($b); if ($bbr['extra'] > 0): ?>
-                <div style="font-size:11px;color:#4f5f57;margin-top:2px">incl. KES <?= number_format($bbr['extra']) ?> host tour/guide</div>
+                <div style="font-size:11px;color:var(--text-secondary);margin-top:2px">incl. KES <?= number_format($bbr['extra']) ?> host tour/guide</div>
                 <?php endif; ?>
                 <div style="font-size:11px;margin-top:3px"><a href="../booking_record.php?as=tourist&amp;ref=<?= h(bookingRef($b['booking_id'])) ?>" target="_blank" rel="noopener">Print booking record</a></div>
                 <?php if ($b['status'] === 'cancelled' && $b['refund_due'] !== null && (float)$b['refund_due'] > 0): ?><div style="font-size:12px;color:#7a4300;margin-top:3px"><?= $b['pp_state'] === 'refunded' ? 'Refunded by StayExplore Kenya: KES ' . number_format((float)$b['refunded_amount']) : 'Refund due from StayExplore Kenya: KES ' . number_format((float)$b['refund_due']) ?></div><?php endif; ?>
-                <?php if ($bbr['service_fee'] > 0): ?><div style="font-size:11px;color:#4f5f57;margin-top:2px">incl. KES <?= number_format($bbr['service_fee']) ?> service fee</div><?php endif; ?>
+                <?php if ($bbr['service_fee'] > 0): ?><div style="font-size:11px;color:var(--text-secondary);margin-top:2px">incl. KES <?= number_format($bbr['service_fee']) ?> service fee</div><?php endif; ?>
                 <div class="booking-ref">
                     <?= h(bookingLabel($b['booking_id'])) ?>
                 </div>
 
                 <!-- Status badge -->
-                <?php
-                $badge_class = [
-                    'confirmed' => 's-confirmed',
-                    'pending'   => 's-pending',
-                    'completed' => 's-completed',
-                    'cancelled' => 's-cancelled',
-                    'no_show'   => 's-no-show'
-                ][$b['status']] ?? 's-pending';
-
-                $badge_label = [
-                    'confirmed' => 'Confirmed',
-                    'pending'   => 'Pending',
-                    'completed' => 'Completed',
-                    'cancelled' => 'Cancelled',
-                    'no_show'   => 'No show'
-                ][$b['status']] ?? ucfirst($b['status']);
-                ?>
+                <?php $badge_class = bookingStatusClass($b['status']); $badge_label = bookingStatusLabel($b['status'], 'tourist'); ?>
                 <div>
                     <span class="status-badge <?= $badge_class ?>">
                         <?= $badge_label ?>
                     </span>
-                    <?php if (!empty($b['payment_status'])): ?>
-                        <div style="font-size:11px;color:var(--text-secondary);margin-top:5px">Payment: <?= h($b['payment_status'] === 'confirmed' ? 'Reviewed' : ucfirst($b['payment_status']), ENT_QUOTES, 'UTF-8') ?><?php if ($b['payment_status'] === 'confirmed' && !empty($b['payment_id'])): ?> &middot; <a href="../receipt.php?as=tourist&amp;pid=<?= h(opaqueId('pay', $b['payment_id'])) ?>" target="_blank" rel="noopener">Host receipt</a><?php endif; ?><?php if (!empty($b['pp_id'])): ?> &middot; <a href="../platform_receipt.php?as=tourist&amp;ref=<?= h(opaqueId('plat', $b['pp_id'])) ?>" target="_blank" rel="noopener">StayExplore receipt</a><?php endif; ?></div>
+                    <?php if ($b['status'] === 'accepted' && !empty($b['payment_due_at'])): ?>
+                        <div class="pay-by">Pay before <?= h(date('j M, H:i', strtotime($b['payment_due_at']))) ?></div>
+                    <?php elseif ($b['status'] === 'payment_pending'): ?>
+                        <div class="pay-by">Host is checking your payment</div>
+                    <?php elseif ($b['status'] === 'pending'): ?>
+                        <div class="pay-by">You pay only after the host accepts</div>
                     <?php endif; ?>
                 </div>
 
@@ -323,7 +318,10 @@ $current = $tab === 'completed' ? $completed
                         </a>
                     <?php endif; ?>
 
-                    <?php if ($b['status'] === 'confirmed' || $b['status'] === 'pending'): ?>
+                    <?php if ($b['status'] === 'accepted'): ?>
+                        <a href="payment.php?ref=<?= h(bookingRef($b['booking_id'])) ?>" class="btn-sm btn-sm-primary">Pay your host</a>
+                    <?php endif; ?>
+                    <?php if (in_array($b['status'], ['pending', 'accepted', 'payment_pending', 'confirmed'], true)): ?>
                         <a href="confirmation.php?ref=<?= h(bookingRef($b['booking_id'])) ?>" class="btn-sm btn-sm-outline">View details</a>
                         <?php if ($b['check_in_date'] > date('Y-m-d')): ?>
                         <form method="post" style="display:inline" onsubmit="return confirm('<?= isLateCancellation($b['check_in_date']) ? 'Cancel this booking? It is closer than ' . (int)freeCancelHours() . ' hours to check-in, so any refund is up to your host. This cannot be undone.' : 'Cancel this booking? This cannot be undone.' ?>');">
@@ -353,5 +351,6 @@ $current = $tab === 'completed' ? $completed
 
 <?php include '../includes/footer.php'; ?>
 
+<script>(function(){var f=document.querySelector('.bk-focus');if(f)f.scrollIntoView({block:'center',behavior:'smooth'});})();</script>
 </body>
 </html>

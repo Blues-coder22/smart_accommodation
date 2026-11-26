@@ -1,0 +1,28 @@
+# StayExplore Kenya - Apache settings (v9.33). Safe to delete if your host does not allow .htaccess; the site still works.
+Options -Indexes
+
+# Hide logs, dumps and environment files from direct download
+<FilesMatch "(\.log|\.sql|\.env|\.md|\.py|\.example|composer\.(json|lock))$">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+  <IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+  </IfModule>
+</FilesMatch>
+
+# Smaller downloads
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/plain text/css application/javascript text/javascript application/json image/svg+xml
+</IfModule>
+
+# Browser caching for static files. CSS and JS are revalidated (so an update shows quickly); images are cached longer.
+<IfModule mod_headers.c>
+  <FilesMatch "\.(css|js)$">
+    Header set Cache-Control "public, max-age=3600, must-revalidate"
+  </FilesMatch>
+  <FilesMatch "\.(png|jpe?g|webp|gif|svg|ico|woff2?)$">
+    Header set Cache-Control "public, max-age=2592000"
+  </FilesMatch>
+</IfModule>

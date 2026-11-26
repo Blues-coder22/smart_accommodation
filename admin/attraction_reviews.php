@@ -32,11 +32,12 @@ $rows = $pdo->query("SELECT r.*, a.name AS attraction_name, u.full_name, u.email
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Attraction ratings — StayExplore Kenya</title>
     <link rel="stylesheet" href="../assets/css/style.css">
+<link rel="stylesheet" href="../assets/css/ui.css"><script src="../assets/js/ui.js" defer></script>
     <style>
-        .rt-card{background:var(--surface-2,#fff);border:1px solid var(--border,#ddd);border-radius:8px;padding:16px 20px;margin-bottom:12px}
+        .rt-card{background:var(--surface-2,var(--surface-2));border:1px solid var(--border,var(--border));border-radius:8px;padding:16px 20px;margin-bottom:12px}
         .rt-card.hidden{opacity:.65;border-style:dashed}
         .rt-actions{display:flex;gap:8px;margin-top:10px}
-        .rt-actions button{padding:6px 14px;font-size:13px;border-radius:4px;border:1px solid var(--border-strong,#bbb);background:#fff;cursor:pointer}
+        .rt-actions button{padding:6px 14px;font-size:13px;border-radius:4px;border:1px solid var(--border-strong,#bbb);background:var(--surface-2);cursor:pointer}
         .rt-actions .danger{color:#b91c1c;border-color:#b91c1c}
     </style>
 <link rel="stylesheet" href="../assets/css/dark.css"><meta name="color-scheme" content="light dark"><script src="../assets/js/se-theme.js"></script><script src="../assets/js/se-i18n.js"></script></head>

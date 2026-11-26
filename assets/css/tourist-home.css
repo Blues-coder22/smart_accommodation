@@ -1,0 +1,112 @@
+/* StayExplore Kenya v9.38 - homepage: map preview section and attraction cards. Loaded after home.css and dark.css. */
+
+/* ---------- Popular attractions: text on the photo, photo kept clear ---------- */
+.hx-att-layout{gap:22px}
+.hx-att-feature,.hx-att-card{border-radius:16px;background:#16382d;box-shadow:0 2px 10px rgba(13,40,30,.08)}
+.hx-att-feature{min-height:440px}.hx-att-card{min-height:340px}
+/* only the bottom of the picture is shaded, just enough for the words to read */
+.hx-att-feature::after,.hx-att-card::after{background:linear-gradient(180deg,rgba(6,20,14,0) 0,rgba(6,20,14,0) 52%,rgba(6,20,14,.62) 82%,rgba(6,20,14,.82) 100%)}
+.hx-att-feature .copy,.hx-att-card .copy{left:26px;right:26px;bottom:22px;max-width:620px}
+.hx-att-kicker{margin-bottom:6px;font-size:11px;color:#f2c3ad;text-shadow:0 1px 6px rgba(0,0,0,.55)}
+.hx-att-feature h3,.hx-att-card h3{margin:0 0 10px;color:#fff;text-shadow:0 1px 8px rgba(0,0,0,.55);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.hx-att-feature h3{font-size:clamp(24px,2.6vw,32px)}.hx-att-card h3{font-size:clamp(20px,2vw,24px)}
+.hx-att-links{font-size:14px;text-shadow:0 1px 6px rgba(0,0,0,.6)}
+html .hx-att-feature .hx-att-links a,html .hx-att-card .hx-att-links a,html[data-theme="dark"] .hx-att-links a,html[data-theme="dark"] .hx-att-feature h3 a,html[data-theme="dark"] .hx-att-card h3 a{color:#fff!important}
+html[data-theme="dark"] .hx-att-kicker{color:#f2c3ad!important}
+@media(max-width:768px){.hx-att-feature{min-height:360px}.hx-att-card{min-height:300px}.hx-att-feature .copy,.hx-att-card .copy{left:18px;right:18px;bottom:18px}}
+
+/* ---------- Map preview ---------- */
+.hm{--hm-green:#0d3b2e;--hm-green2:#14634a;--hm-line:var(--hx-line,#e4ddcf);--hm-paper:var(--hx-paper,#fffdf9);--hm-muted:var(--hx-muted,#565c55);--hm-soft:#eef3ee;padding-top:64px}
+html[data-theme="dark"] .hm{--hm-soft:#1b2620;--hm-paper:#161e19;--hm-line:#2a3730;--hm-muted:#a9b6af}
+.hm .hx-head{margin-bottom:22px}
+.hm .hx-head h2{font-size:clamp(32px,4.2vw,50px)}
+.hm .sr-only{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.hm-search{display:flex;flex-wrap:wrap;gap:10px;align-items:stretch}
+.hm-box{position:relative;flex:1 1 320px;min-width:0}
+.hm-box input{width:100%;height:100%;min-height:48px;padding:11px 16px;border:1px solid var(--hm-line);border-radius:10px;background:var(--hm-paper);color:inherit;font:inherit;font-size:15px}
+.hm-box input:focus{outline:2px solid var(--hm-green2);outline-offset:1px;border-color:var(--hm-green2)}
+.hm-search .hx-btn{min-height:48px;padding:0 20px;white-space:nowrap}
+.hm-radius select{min-height:48px;padding:0 12px;border:1px solid var(--hm-line);border-radius:10px;background:var(--hm-paper);color:inherit;font:inherit;font-size:14px;cursor:pointer}
+#hmSuggest{position:absolute;left:0;right:0;top:calc(100% + 6px);z-index:600;margin:0;padding:6px;list-style:none;background:var(--hm-paper);color:inherit;border:1px solid var(--hm-line);border-radius:12px;box-shadow:0 14px 34px rgba(13,40,30,.18);max-height:340px;overflow:auto}
+#hmSuggest li{display:flex;gap:10px;align-items:center;padding:9px 10px;border-radius:8px;cursor:pointer}
+#hmSuggest li.on,#hmSuggest li:hover{background:var(--hm-soft)}
+#hmSuggest li strong{display:block;font-size:14px}
+#hmSuggest small,.hm-near-item small{display:block;font-size:12.5px;color:var(--hm-muted)}
+#hmSuggest .hm-sugg-note{cursor:default;display:block;font-size:13px;color:var(--hm-muted)}
+#hmSuggest .hm-sugg-note:hover{background:none}
+#hmSuggest .hm-sugg-note a{font-weight:700;color:var(--hm-green2)}
+.hm-chips{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0 14px}
+.hm-chip{display:inline-flex;align-items:center;gap:8px;padding:8px 16px;border:1px solid var(--hm-line);border-radius:999px;background:var(--hm-paper);color:inherit;font:inherit;font-size:13.5px;font-weight:600;cursor:pointer;transition:background .18s,color .18s,border-color .18s}
+.hm-chip:hover{border-color:var(--hm-green2)}
+.hm-chip.on{background:var(--hm-green);color:#fff;border-color:var(--hm-green)}
+html[data-theme="dark"] .hm-chip.on{background:#2f7658;border-color:#2f7658}
+.hm-dot{display:inline-block;width:11px;height:11px;border-radius:50%;flex:none;background:#d99a1f}
+.hm-dot.stay{background:#0d3b2e}.hm-dot.attraction{background:#c8562f}.hm-dot.place{background:#2a6fdb}
+html[data-theme="dark"] .hm-dot.stay{background:#3fcf86}
+.hm-chip.on .hm-dot{box-shadow:0 0 0 2px rgba(255,255,255,.85)}
+
+.hm-layout{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(300px,1fr);gap:20px;align-items:stretch}
+.hm-mapwrap{position:relative;height:480px;border-radius:16px;overflow:hidden;border:1px solid var(--hm-line);background:#e6ece3;z-index:1}
+.hm-map{position:absolute;inset:0;z-index:1;background:#e6ece3}
+.hm-map.tiles-offline{background:linear-gradient(135deg,#e8e8dc,#c9d4c9)}
+.hm-map.tiles-offline::after{content:"Map tiles need an internet connection. Pins still show.";position:absolute;left:10px;bottom:34px;z-index:500;background:rgba(255,255,255,.92);color:#1c2a24;padding:4px 8px;border-radius:6px;font-size:11px}
+.hm-fail{margin:0;padding:22px;color:#1c2a24;font-size:14px}
+.hm-expand{position:absolute;top:12px;right:12px;z-index:700;display:inline-flex;align-items:center;gap:8px;padding:9px 14px;border:1px solid rgba(13,59,46,.18);border-radius:10px;background:rgba(255,255,255,.96);color:#0d3b2e;font:600 13px var(--hx-sans,system-ui);cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.18);transition:background .18s,transform .18s}
+.hm-expand:hover{background:#fff;transform:translateY(-1px)}
+.hm-expand:focus-visible{outline:2px solid #0f7a52;outline-offset:2px}
+.hm-bar{display:none}
+.hm .leaflet-container{font-family:inherit;border-radius:0}
+.hm .leaflet-popup-content a{color:#0d3b2e}
+
+/* side panel: what is near the chosen place + the two main buttons */
+.hm-panel{height:480px;display:flex;flex-direction:column;gap:18px;padding:22px;border:1px solid var(--hm-line);border-radius:16px;background:var(--hm-paper);box-shadow:0 1px 3px rgba(13,40,30,.05);min-width:0}
+.hm-nearby{flex:1;min-height:0;overflow:auto;padding-right:2px}
+.hm-nearby h3{margin:0 0 8px;font:600 21px var(--hx-sans,system-ui);letter-spacing:-.01em}
+.hm-nearby p{margin:0;color:var(--hm-muted);font-size:14.5px}
+.hm-note{margin:0 0 8px;color:var(--hm-muted);font-size:13.5px}
+.hm-near-sec{margin-top:14px}
+.hm-near-sec h4{margin:0 0 4px;font:700 11.5px var(--hx-sans,system-ui);letter-spacing:.12em;text-transform:uppercase;color:var(--hx-terra,#a3462a)}
+.hm-near-item{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--hm-line);color:inherit;text-decoration:none}
+.hm-near-item:hover strong{text-decoration:underline}
+.hm-near-item strong{display:block;font-size:14.5px}
+.hm-km{margin-left:auto;font-size:12.5px;font-weight:700;color:var(--hm-green2);white-space:nowrap}
+.hm-clear{margin-top:12px;padding:0;border:0;background:none;color:var(--hm-green2);font:600 13.5px var(--hx-sans,system-ui);text-decoration:underline;cursor:pointer}
+.hm-cta{display:grid;gap:12px;padding-top:18px;border-top:1px solid var(--hm-line)}
+.hm .hx-btn.hm-big{min-height:56px;padding:0 22px;font-size:16px;border-radius:12px;justify-content:center;gap:10px;width:100%}
+.hm .hx-btn.hm-big .i{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.hm .hx-btn.hm-big.line{background:transparent;color:var(--hm-green)!important;border:2px solid var(--hm-green)}
+.hm .hx-btn.hm-big.line:hover{background:var(--hm-green);color:#fff!important}
+html[data-theme="dark"] .hm .hx-btn.hm-big{background:#2f7658;border-color:#2f7658}
+html[data-theme="dark"] .hm .hx-btn.hm-big.line{background:transparent;color:#e6f2ea!important;border-color:#5a8f77}
+html[data-theme="dark"] .hm .hx-btn.hm-big.line:hover{background:#2f7658}
+.hm-cta-note{margin:0;text-align:center;font-size:12.5px;color:var(--hm-muted)}
+
+/* expanded map: full-screen view of the same map */
+html.hm-locked,html.hm-locked body{overflow:hidden}
+.hm-mapwrap.expanded{position:fixed;inset:0;z-index:2600;height:auto;border-radius:0;border:0}
+.hm-mapwrap.expanded .hm-bar{display:flex;position:absolute;top:0;left:0;right:0;z-index:700;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 16px;background:rgba(255,255,255,.97);color:#1c2a24;border-bottom:1px solid #dfe6e1;box-shadow:0 6px 20px rgba(0,0,0,.12)}
+.hm-mapwrap.expanded .hm-bar strong{font:600 16px var(--hx-sans,system-ui)}
+.hm-bar-actions{display:flex;gap:8px;flex-wrap:wrap}
+.hm-bar .hx-btn.sm{min-height:40px;padding:0 16px;font-size:14px}
+.hm-bar .hx-btn.light{background:#fff;color:#0d3b2e!important;border:1px solid #0d3b2e}
+.hm-bar .hx-btn.line{background:#fff;color:#1c2a24!important;border-color:#cfd8d2}
+.hm-mapwrap.expanded .hm-map{top:66px}
+.hm-mapwrap.expanded .hm-expand{display:none}
+
+@media(max-width:900px){
+  .hm-layout{grid-template-columns:1fr}
+  .hm-mapwrap{height:360px}
+  .hm-panel{height:auto}
+  .hm-nearby{max-height:none}
+  .hm-mapwrap.expanded{height:auto}
+  .hm-mapwrap.expanded .hm-bar{padding:10px 12px}
+  .hm-mapwrap.expanded .hm-bar strong{display:none}
+  .hm-mapwrap.expanded .hm-map{top:62px}
+}
+@media(max-width:560px){
+  .hm{padding-top:44px}
+  .hm-search .hx-btn,.hm-radius,.hm-radius select{flex:1 1 100%;width:100%}
+  .hm-search .hx-btn{justify-content:center}
+  .hm-panel{padding:18px}
+  .hm-bar-actions{width:100%}.hm-bar-actions .hx-btn{flex:1 1 auto;justify-content:center}
+}

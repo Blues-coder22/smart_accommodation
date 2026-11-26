@@ -19,13 +19,30 @@
         <section class="card pad grid">
           <div class="eyebrow">Send us a message</div>
           <h2>How can we help?</h2>
-          <p class="small">Your email app will open so you can send a message directly to the StayExplore support team.</p>
-          <a class="btn" href="mailto:support@stayexplore.co.ke?subject=StayExplore%20Kenya%20support">Email support</a>
+          <p class="small">Pick how you want to write. The message is addressed to the StayExplore support team and is sent from your own email account, so replies come straight back to you.</p>
+          <div id="mailChoices" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:10px">
+            <a class="btn" id="mailApp" href="mailto:support@stayexplore.co.ke?subject=StayExplore%20Kenya%20support">Open my email app</a>
+            <a class="btn" id="mailGmail" target="_blank" rel="noopener" href="https://mail.google.com/mail/?view=cm&amp;fs=1&amp;to=support@stayexplore.co.ke&amp;su=StayExplore%20Kenya%20support">Open in Gmail</a>
+            <a class="btn" id="mailOutlook" target="_blank" rel="noopener" href="https://outlook.live.com/mail/0/deeplink/compose?to=support@stayexplore.co.ke&amp;subject=StayExplore%20Kenya%20support">Open in Outlook</a>
+            <a class="btn" href="tourist/support.php">Message support inside the app</a>
+          </div>
+          <p class="small" style="margin-top:10px">Signed-in guests and hosts can write to support from <strong>Contact support</strong> in their account menu and see the answer live, with no email needed. Hosts: <a href="host/support.php">host support</a>.</p>
+          <script>
+          (function () {   // use the support address the admin has configured
+            fetch('api/public_support.php').then(function (r) { return r.json(); }).then(function (d) {
+              if (!d || !d.email) return; var to = encodeURIComponent(d.email), su = encodeURIComponent('StayExplore Kenya support');
+              document.getElementById('mailApp').href = 'mailto:' + d.email + '?subject=' + su;
+              document.getElementById('mailGmail').href = 'https://mail.google.com/mail/?view=cm&fs=1&to=' + to + '&su=' + su;
+              document.getElementById('mailOutlook').href = 'https://outlook.live.com/mail/0/deeplink/compose?to=' + to + '&subject=' + su;
+              var m = document.getElementById('mailShown'); if (m) m.textContent = d.email;
+            }).catch(function () {});
+          })();
+          </script>
         </section>
         <aside class="card pad">
           <div class="eyebrow">Support</div>
           <h3>StayExplore Kenya</h3>
-          <p class="small">Nairobi, Kenya<br>support@stayexplore.co.ke</p>
+          <p class="small">Nairobi, Kenya<br><span id="mailShown">support@stayexplore.co.ke</span></p>
           <p class="small">Looking for quick answers? Visit the <a class="home-link" href="help.html">Help centre</a>.</p>
         </aside>
       </div>

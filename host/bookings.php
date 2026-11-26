@@ -5,8 +5,9 @@ require_once '../includes/db.php';
 require_once '../includes/notifications.php';
 require_once '../includes/commission.php';
 ensureCommissionTables($pdo);
+require_once '../includes/booking_workflow.php';
 require_once '../includes/booking_holds.php';
-expireStaleBookingRequests($pdo);   // releases dates held by unpaid or unanswered requests
+expireStaleBookingRequests($pdo);   // safety net only: the scheduled job (cron/maintenance.php) normally does this
 require_once '../includes/booking_events.php';
 ensureBookingEventsTable($pdo);
 require_once '../includes/email.php';
@@ -38,110 +39,90 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($booking) {
         switch ($action) {
-            case 'confirm':
-                if ($booking['status'] === 'pending') {
-                    $pay = $pdo->prepare("SELECT payment_id, payment_status FROM payments WHERE booking_id = ? ORDER BY payment_id DESC LIMIT 1");
-                    $pay->execute([$booking_id]);
-                    $payment = $pay->fetch();
-                    $ppq = $pdo->prepare("SELECT status FROM platform_payments WHERE booking_id = ?"); $ppq->execute([$booking_id]); $ppStatus = $ppq->fetchColumn();
-                    if (!$payment) {
-                        setFlash('error', 'The guest has not submitted payment details yet.');
-                    } elseif ($ppStatus === 'rejected') {
-                        setFlash('error', 'The guest\'s payment to StayExplore Kenya was not accepted. Wait for them to correct it before you confirm this booking.');
-                    } else {
-                        $pdo->beginTransaction();
-                        $pdo->prepare("UPDATE bookings SET status = 'confirmed' WHERE booking_id = ? AND status = 'pending'")->execute([$booking_id]);
-                        // Booking acceptance and payment verification are separate decisions.
-                        // The payment remains pending until the host verifies it in Payments.
-                        $pdo->commit();
-                        sendEmail($booking['tourist_email'], 'Booking confirmed — StayExplore Kenya', '<p>Your host has confirmed booking ' . bookingLabel((string)$booking_id) . ' for <strong>' . h($booking['title'], ENT_QUOTES, 'UTF-8') . '</strong>.</p>');
-                        notifyUserOfBooking($pdo, $booking_id, 'tourist', 'Booking confirmed', 'Your host confirmed ' . bookingLabel($booking_id) . '. Have your payment details ready if you have not paid yet.', 'tourist/bookings.php');
-                        setFlash('success', 'Booking confirmed. The guest has been notified.');
-                    }
-                }
+            case 'accept':
+                // Step 3: the host accepts the request. The guest is now invited to pay, within the payment deadline.
+                $r = hostAcceptBooking($pdo, $booking_id, $host_id);
+                setFlash($r['ok'] ? 'success' : 'error', $r['ok'] ? 'Booking accepted. The guest was notified and has ' . (int)paymentDeadlineHours() . ' hours to pay you directly.' : $r['error']);
                 break;
 
             case 'decline':
-                // "Release dates": the host declines a pending request. A short note to the guest is optional.
-                if ($booking['status'] === 'pending') {
-                    $note = mb_substr(trim((string)($_POST['note'] ?? '')), 0, 300);
-                    $up = $pdo->prepare("UPDATE bookings SET status = 'cancelled' WHERE booking_id = ? AND status = 'pending'");
-                    $up->execute([$booking_id]);
-                    if ($up->rowCount()) {
-                        logBookingEvent($pdo, $booking_id, $host_id, 'host_declined', $note !== '' ? $note : 'Host released the dates');
-                        try { sendBookingReleasedEmail($booking['tourist_email'], $booking['tourist_name'], $booking, $note); } catch (Throwable $e) {}
-                        notifyUserOfBooking($pdo, $booking_id, 'tourist', 'Booking not accepted', 'Your host could not accept ' . bookingLabel($booking_id) . '. The dates were released.' . ($note !== '' ? ' Note: ' . $note : ''), 'tourist/bookings.php');
-                        applyCancellationRefund($pdo, $booking_id, 'host');
-                        setFlash('rejected', 'Dates released. The guest has been notified.');
-                    }
-                }
+                // The host declines a pending request. The dates are released and no payment is ever requested.
+                $note = mb_substr(trim((string)($_POST['note'] ?? '')), 0, 300);
+                $r = hostDeclineBooking($pdo, $booking_id, $host_id, $note);
+                setFlash($r['ok'] ? 'rejected' : 'error', $r['ok'] ? 'Request declined. The dates were released and the guest was notified.' : $r['error']);
+                break;
+
+            case 'confirm_payment':
+                // Step 5: the host says the guest's money arrived. Only now does the booking become 'confirmed'.
+                $pq = $pdo->prepare("SELECT payment_id FROM payments WHERE booking_id = ? ORDER BY payment_id DESC LIMIT 1");
+                $pq->execute([$booking_id]); $pid = (int)$pq->fetchColumn();
+                $r = $pid ? hostConfirmPaymentReceived($pdo, $pid, $host_id) : ['ok' => false, 'error' => 'The guest has not submitted payment details yet.'];
+                setFlash($r['ok'] ? 'success' : 'error', $r['ok'] ? 'Payment confirmed. The booking is confirmed and the guest was notified.' : $r['error']);
+                break;
+
+            case 'reject_payment':
+                $reason = mb_substr(trim((string)($_POST['reason'] ?? '')), 0, 300);
+                if (mb_strlen($reason) < 5) { setFlash('error', 'Please tell the guest why you did not receive the payment (at least 5 characters).'); break; }
+                $pq = $pdo->prepare("SELECT payment_id FROM payments WHERE booking_id = ? ORDER BY payment_id DESC LIMIT 1");
+                $pq->execute([$booking_id]); $pid = (int)$pq->fetchColumn();
+                $r = $pid ? hostRejectPayment($pdo, $pid, $host_id, $reason) : ['ok' => false, 'error' => 'No payment details to check.'];
+                setFlash($r['ok'] ? 'warning' : 'error', $r['ok'] ? 'The guest was asked to check and send their payment details again.' : $r['error']);
                 break;
 
             case 'cancel':
                 // Cancelling is a serious step for the guest, so a written reason is required, it is logged,
                 // the guest is told, and the admins are alerted when a confirmed booking is cancelled.
-                if (in_array($booking['status'], ['pending', 'confirmed'], true)) {
-                    $reason = mb_substr(trim((string)($_POST['cancel_reason'] ?? '')), 0, 500);
-                    if (mb_strlen($reason) < 5) {
-                        setFlash('error', 'Please give the guest a reason for cancelling (at least 5 characters).');
-                        break;
-                    }
-                    $ps = $pdo->prepare("SELECT payment_status FROM payments WHERE booking_id = ? ORDER BY payment_id DESC LIMIT 1");
-                    $ps->execute([$booking_id]);
-                    $payStatus = (string)($ps->fetchColumn() ?: '');
-                    $up = $pdo->prepare("UPDATE bookings SET status = 'cancelled' WHERE booking_id = ? AND status IN ('pending','confirmed')");
-                    $up->execute([$booking_id]);
-                    if ($up->rowCount()) {
-                        logBookingEvent($pdo, $booking_id, $host_id, 'host_cancelled', $reason);
-                        try {
-                            sendHostCancelledGuestEmail($booking['tourist_email'], $booking['tourist_name'], $booking, $reason, $payStatus);
-                            if ($booking['status'] === 'confirmed') {
-                                foreach (adminEmailAddresses($pdo) as $adminTo) {
-                                    sendHostCancelledAdminEmail($adminTo, $booking, $_SESSION['full_name'] ?? 'Host', $booking['tourist_name'], $reason, $payStatus);
-                                }
-                            }
-                        } catch (Throwable $e) { error_log('Host cancel emails: ' . $e->getMessage()); }
-                        notifyUserOfBooking($pdo, $booking_id, 'tourist', 'Booking cancelled by your host', bookingLabel($booking_id) . ' was cancelled. Reason: ' . $reason, 'tourist/bookings.php');
-                        applyCancellationRefund($pdo, $booking_id, 'host');
-                        setFlash('success', 'Booking cancelled. The guest has been told your reason' . ($payStatus === 'confirmed' ? ' and reminded to expect a refund from you.' : '.'));
-                    }
+                $reason = mb_substr(trim((string)($_POST['cancel_reason'] ?? '')), 0, 500);
+                if (mb_strlen($reason) < 5) {
+                    setFlash('error', 'Please give the guest a reason for cancelling (at least 5 characters).');
+                    break;
                 }
+                $ps = $pdo->prepare("SELECT payment_status FROM payments WHERE booking_id = ? ORDER BY payment_id DESC LIMIT 1");
+                $ps->execute([$booking_id]);
+                $payStatus = (string)($ps->fetchColumn() ?: '');
+                $wasStatus = $booking['status'];
+                $r = transitionBooking($pdo, $booking_id, 'cancelled', 'host', $host_id, ['event' => 'host_cancelled', 'note' => $reason]);
+                if (!$r['ok']) { setFlash('error', $r['error']); break; }
+                try {
+                    sendHostCancelledGuestEmail($booking['tourist_email'], $booking['tourist_name'], $booking, $reason, $payStatus);
+                    if ($wasStatus === 'confirmed') {
+                        foreach (adminEmailAddresses($pdo) as $adminTo) {
+                            sendHostCancelledAdminEmail($adminTo, $booking, $_SESSION['full_name'] ?? 'Host', $booking['tourist_name'], $reason, $payStatus);
+                        }
+                    }
+                } catch (Throwable $e) { error_log('Host cancel emails: ' . $e->getMessage()); }
+                notifyUserOfBooking($pdo, $booking_id, 'tourist', 'Booking cancelled by your host', bookingLabel($booking_id) . ' was cancelled. Reason: ' . $reason, 'tourist/bookings.php');
+                applyCancellationRefund($pdo, $booking_id, 'host');
+                setFlash('success', 'Booking cancelled. The guest has been told your reason' . ($payStatus === 'confirmed' ? ' and reminded to expect a refund from you.' : '.'));
                 break;
 
             case 'no_show':
                 if ($booking['status'] === 'confirmed' && $booking['check_in_date'] > date('Y-m-d')) {
                     setFlash('warning', 'A no-show can only be recorded from the check-in day (' . date('d M Y', strtotime($booking['check_in_date'])) . ') onwards.');
-                } elseif ($booking['status'] === 'confirmed') {
-                    logBookingEvent($pdo, $booking_id, $host_id, 'no_show', 'Host recorded the guest as a no-show');
-                    $pdo->prepare("
-                        UPDATE bookings SET status = 'no_show'
-                        WHERE booking_id = ?
-                    ")->execute([$booking_id]);
-                    setFlash('success',
-                        'No-show recorded for this booking.');
+                } else {
+                    $r = transitionBooking($pdo, $booking_id, 'no_show', 'host', $host_id, ['event' => 'no_show', 'note' => 'Host recorded the guest as a no-show']);
+                    setFlash($r['ok'] ? 'success' : 'error', $r['ok'] ? 'No-show recorded for this booking.' : $r['error']);
                 }
                 break;
 
             case 'complete':
-                if ($booking['status'] === 'confirmed') {
-                    $early = $booking['check_out_date'] > date('Y-m-d');
-                    $reason = trim((string)($_POST['early_reason'] ?? ''));
-                    if ($early && mb_strlen($reason) < 5) {
-                        setFlash('error', 'The check-out date has not come yet. Please say why you are ending the stay early (for example, the guest left early).');
-                        break;
-                    }
-                    $pdo->prepare("UPDATE bookings SET status = 'completed' WHERE booking_id = ?")->execute([$booking_id]);
-                    if ($early) {
-                        // Allowed, but recorded: the admin can see it and the guest is told so they can object.
-                        logBookingEvent($pdo, $booking_id, $host_id, 'early_completion', $reason);
-                        try {
-                            sendEmail($booking['tourist_email'], 'Your stay was marked as completed early — StayExplore Kenya',
-                                '<p>Your host marked your stay at <strong>' . h($booking['title']) . '</strong> as completed before the check-out date (' . h($booking['check_out_date']) . ').</p><p>Reason given: ' . h($reason) . '</p><p>If this is not correct, please report it to the admin through the Contact page.</p>');
-                        } catch (Throwable $e) {}
-                        setFlash('success', 'Booking marked as complete early. Your reason was saved and the guest was told.');
-                    } else {
-                        setFlash('success', 'Booking marked as completed.');
-                    }
+                $early = $booking['check_out_date'] > date('Y-m-d');
+                $reason = trim((string)($_POST['early_reason'] ?? ''));
+                if ($booking['status'] === 'confirmed' && $early && mb_strlen($reason) < 5) {
+                    setFlash('error', 'The check-out date has not come yet. Please say why you are ending the stay early (for example, the guest left early).');
+                    break;
+                }
+                $r = transitionBooking($pdo, $booking_id, 'completed', 'host', $host_id, ['event' => $early ? 'early_completion' : 'completed', 'note' => $early ? $reason : 'Host marked the stay as completed']);
+                if (!$r['ok']) { setFlash('error', $r['error']); break; }
+                if ($early) {
+                    // Allowed, but recorded: the admin can see it and the guest is told so they can object.
+                    try {
+                        sendEmail($booking['tourist_email'], 'Your stay was marked as completed early — StayExplore Kenya',
+                            '<p>Your host marked your stay at <strong>' . h($booking['title']) . '</strong> as completed before the check-out date (' . h($booking['check_out_date']) . ').</p><p>Reason given: ' . h($reason) . '</p><p>If this is not right, please contact support.</p>');
+                    } catch (Throwable $e) {}
+                    setFlash('success', 'Booking marked as complete early. Your reason was saved and the guest was told.');
+                } else {
+                    setFlash('success', 'Booking marked as completed.');
                 }
                 break;
 
@@ -189,6 +170,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $tab   = sanitize($_GET['tab'] ?? 'all');
 $today = date('Y-m-d');
+$focusRef = strtoupper(preg_replace('/^BK-/i', '', trim((string)($_GET['ref'] ?? ''))));
+if ($focusRef !== '' && !isset($_GET['tab'])) {   // from a notification: open the tab that holds this booking
+    $fid = bookingIdFromRef($focusRef);
+    if ($fid) {
+        $fq = $pdo->prepare("SELECT b.status FROM bookings b JOIN accommodations a ON a.accommodation_id = b.accommodation_id WHERE b.booking_id = ? AND a.host_id = ?");
+        $fq->execute([$fid, $host_id]); $fs = $fq->fetchColumn();
+        if (in_array($fs, ['cancelled', 'no_show'], true)) $tab = 'cancelled';
+        elseif ($fs === 'completed') $tab = 'completed';
+        elseif ($fs === 'pending') $tab = 'pending';
+        elseif (in_array($fs, ['accepted', 'payment_pending'], true)) $tab = 'awaiting';
+        elseif ($fs === 'confirmed') $tab = 'confirmed';
+    }
+}
 
 // Build query based on tab
 $where = "a.host_id = ?";
@@ -196,6 +190,8 @@ $params = [$host_id];
 
 if ($tab === 'pending') {
     $where .= " AND b.status = 'pending'";
+} elseif ($tab === 'awaiting') {
+    $where .= " AND b.status IN ('accepted','payment_pending')";
 } elseif ($tab === 'confirmed') {
     $where .= " AND b.status = 'confirmed'";
 } elseif ($tab === 'completed') {
@@ -204,6 +200,14 @@ if ($tab === 'pending') {
     $where .= " AND b.status IN ('cancelled','no_show')";
 }
 
+// v9.33: one page at a time. A busy host used to load every booking they ever had, with several lookups per booking.
+$perPage = 20;
+$tc = $pdo->prepare("SELECT COUNT(*) FROM bookings b JOIN accommodations a ON a.accommodation_id = b.accommodation_id WHERE $where");
+$tc->execute($params);
+$totalRows  = (int)$tc->fetchColumn();
+$totalPages = max(1, (int)ceil($totalRows / $perPage));
+$pageNo     = min($totalPages, max(1, (int)($_GET['page'] ?? 1)));
+$offset     = ($pageNo - 1) * $perPage;
 $bookings = $pdo->prepare("
     SELECT b.*,
            a.title AS property_title,
@@ -219,6 +223,7 @@ $bookings = $pdo->prepare("
     JOIN users u ON u.user_id = b.tourist_id
     WHERE $where
     ORDER BY b.created_at DESC
+    LIMIT $perPage OFFSET $offset
 ");
 $bookings->execute($params);
 $bookings = $bookings->fetchAll();
@@ -228,6 +233,7 @@ $counts = $pdo->prepare("
     SELECT
         COUNT(*) AS all_count,
         SUM(CASE WHEN b.status='pending' THEN 1 ELSE 0 END) AS pending,
+        SUM(CASE WHEN b.status IN ('accepted','payment_pending') THEN 1 ELSE 0 END) AS awaiting,
         SUM(CASE WHEN b.status='confirmed' THEN 1 ELSE 0 END) AS confirmed,
         SUM(CASE WHEN b.status='completed' THEN 1 ELSE 0 END) AS completed,
         SUM(CASE WHEN b.status IN ('cancelled','no_show')
@@ -246,37 +252,21 @@ $counts = $counts->fetch();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bookings — StayExplore Kenya</title>
     <link rel="stylesheet" href="../assets/css/style.css">
+<link rel="stylesheet" href="../assets/css/ui.css"><script src="../assets/js/ui.js" defer></script>
     <style>
-        
-        .dash-wrap  { display:grid;
-                      grid-template-columns:200px 1fr; flex:1 }
         .sidebar    { background:var(--surface-2);
                       border-right:1px solid var(--border);
                       padding:24px 0; position:sticky;
                       top:52px; height:calc(100vh - 52px);
                       overflow-y:auto }
-        .sidebar-role { font-size:10px; font-weight:700;
-                        letter-spacing:.08em; color:#126b4e;
-                        text-transform:uppercase;
-                        padding:0 20px; margin-bottom:12px }
-        .sidebar-link { display:flex; align-items:center; gap:10px;
-                        padding:9px 20px; font-size:13px;
-                        color:var(--text-secondary);
-                        text-decoration:none; width:100% }
-        .sidebar-link:hover { color:var(--text-primary);
-                              background:var(--surface-1) }
-        .sidebar-link.active { color:#085041; font-weight:500;
-                               background:#E1F5EE;
-                               border-left:3px solid #126b4e }
         .badge      { font-size:10px; background:#DC2626;
                       color:#fff; border-radius:10px;
                       padding:1px 6px; margin-left:auto }
         .main       { padding:28px }
-        .page-tag   { font-size:11px; font-weight:600;
-                      letter-spacing:.06em; color:#126b4e;
-                      text-transform:uppercase; margin-bottom:8px }
-        .page-title { font-size:26px; font-weight:400;
-                      margin-bottom:20px }
+        .mini { font-size:11px; font-weight:400; color:var(--text-secondary); margin-top:3px; line-height:1.45 }
+        .inline-form { margin:0 }
+        .btn-sm-primary { background:var(--btn); color:#fff; border-color:var(--accent) }
+        .s-accepted { background:var(--info-bg); color:var(--info-fg) }
         .tabs       { display:flex; border-bottom:1px solid
                       var(--border); margin-bottom:20px }
         .tab-btn    { padding:10px 16px; font-size:13px;
@@ -286,8 +276,8 @@ $counts = $counts->fetch();
                       margin-bottom:-1px; text-decoration:none;
                       display:inline-flex; align-items:center;
                       gap:6px }
-        .tab-btn.active { color:#085041;
-                          border-bottom-color:#085041 }
+        .tab-btn.active { color:var(--accent-strong);
+                          border-bottom-color:var(--accent-strong) }
         .tab-count  { font-size:11px; background:var(--surface-1);
                       border:1px solid var(--border);
                       border-radius:10px; padding:1px 7px }
@@ -304,16 +294,14 @@ $counts = $counts->fetch();
         .status-pill  { display:inline-block; font-size:11px;
                         font-weight:600; padding:3px 9px;
                         border-radius:3px }
-        .s-confirmed  { background:#E1F5EE; color:#0F6E56;
-                        border:1px solid #9FE1CB }
-        .s-pending    { background:#FFF8E1; color:#7a5200;
-                        border:1px solid #F9D57C }
+        .s-confirmed  { background:var(--accent-soft); color:var(--accent-strong);
+                        border:1px solid var(--accent-line) }
+        .s-pending    { background:var(--warn-bg); color:var(--warn-fg);
+                        border:1px solid var(--warn-line) }
         .s-completed  { background:#F0F4FF; color:#1A4DB3;
                         border:1px solid #B3C5F5 }
-        .s-cancelled  { background:#FEF2F2; color:#991B1B;
-                        border:1px solid #FECACA }
-        .s-no_show    { background:#FDF2F8; color:#86198F;
-                        border:1px solid #F0ABFC }
+        .s-cancelled  { background:var(--bad-bg); color:var(--bad-fg);
+                        border:1px solid var(--bad-line) }
         .booking-details { display:grid;
                            grid-template-columns:repeat(4,1fr);
                            gap:12px; padding:12px 0;
@@ -337,11 +325,11 @@ $counts = $counts->fetch();
                       border:1px solid var(--border-strong);
                       background:none;
                       color:var(--text-secondary) }
-        .btn-sm:hover { border-color:#126b4e; color:#126b4e }
-        .btn-sm-danger { border-color:#FECACA; color:#b42318 }
-        .btn-sm-danger:hover { background:#FEF2F2 }
-        .pay-confirmed { color:#0F6E56; font-weight:500 }
-        .pay-pending   { color:#8f4b00 }
+        .btn-sm:hover { border-color:var(--accent); color:var(--accent) }
+        .btn-sm-danger { border-color:var(--bad-line); color:var(--bad-fg) }
+        .btn-sm-danger:hover { background:var(--bad-bg) }
+        .pay-confirmed { color:var(--accent-strong); font-weight:500 }
+        .pay-pending   { color:var(--warn-fg) }
         .flag-form     { display:flex; gap:6px; margin-top:8px;
                          flex-wrap:wrap }
         .flag-form input { flex:1; padding:6px 10px;
@@ -351,8 +339,7 @@ $counts = $counts->fetch();
                            background:var(--surface-2) }
         .empty-state   { text-align:center; padding:48px 20px;
                          color:var(--text-secondary); font-size:14px }
-        @media(max-width:900px){
-            .dash-wrap { grid-template-columns:1fr }
+        @media(max-width:1024px){
             .sidebar   { display:none }
             .booking-details { grid-template-columns:repeat(2,1fr) }
         }
@@ -377,8 +364,13 @@ $counts = $counts->fetch();
             </a>
             <a href="?tab=pending"
                class="tab-btn <?= $tab==='pending'?'active':'' ?>">
-                Pending
+                Requests
                 <span class="tab-count"><?= $counts['pending'] ?></span>
+            </a>
+            <a href="?tab=awaiting"
+               class="tab-btn <?= $tab==='awaiting'?'active':'' ?>">
+                Awaiting payment
+                <span class="tab-count"><?= $counts['awaiting'] ?></span>
             </a>
             <a href="?tab=confirmed"
                class="tab-btn <?= $tab==='confirmed'?'active':'' ?>">
@@ -399,12 +391,12 @@ $counts = $counts->fetch();
 
         <?php if (empty($bookings)): ?>
             <div class="empty-state">
-                No <?= $tab === 'all' ? '' : $tab ?> bookings found.
+                No <?= $tab === 'all' ? '' : h($tab === 'pending' ? 'requests' : $tab) ?> bookings found.
             </div>
 
         <?php else: ?>
             <?php foreach ($bookings as $b): ?>
-            <div class="booking-card">
+            <div class="booking-card<?= ($focusRef !== '' && strtoupper((string)bookingRef($b['booking_id'])) === $focusRef) ? ' bk-focus' : '' ?>" id="bk-<?= h(bookingRef($b['booking_id'])) ?>">
 
                 <!-- Top row -->
                 <div class="booking-top">
@@ -419,23 +411,7 @@ $counts = $counts->fetch();
                                 strtotime($b['created_at'])) ?>
                         </div>
                     </div>
-                    <?php
-                    $pill = [
-                        'confirmed' => 's-confirmed',
-                        'pending'   => 's-pending',
-                        'completed' => 's-completed',
-                        'cancelled' => 's-cancelled',
-                        'no_show'   => 's-no_show'
-                    ][$b['status']] ?? 's-pending';
-
-                    $label = [
-                        'confirmed' => 'Confirmed',
-                        'pending'   => 'Pending',
-                        'completed' => 'Completed',
-                        'cancelled' => 'Cancelled',
-                        'no_show'   => 'No show'
-                    ][$b['status']] ?? ucfirst($b['status']);
-                    ?>
+                    <?php $pill = bookingStatusClass($b['status']); $label = bookingStatusLabel($b['status'], 'host'); ?>
                     <span class="status-pill <?= $pill ?>">
                         <?= $label ?>
                     </span>
@@ -447,7 +423,7 @@ $counts = $counts->fetch();
                         <div class="label">Guest</div>
                         <div class="value">
                             <?= h($b['tourist_name']) ?>
-                            <?php $rep = getGuestReputation($pdo, $b['tourist_id']); ?>
+                            <?php static $repCache = []; $rep = $repCache[$b['tourist_id']] ??= getGuestReputation($pdo, $b['tourist_id']); ?>
                             <div style="font-size:11px;font-weight:400;color:var(--text-secondary)">
                                 <?= $rep['count'] ? '&#9733; ' . h($rep['avg']) . ' from ' . (int)$rep['count'] . ' host review' . ($rep['count'] === 1 ? '' : 's') : 'No host reviews yet' ?>
                             </div>
@@ -484,21 +460,21 @@ $counts = $counts->fetch();
                             <?php $sp = bookingSplit($b); ?>
                             <?php if (!$sp['legacy'] && $sp['mode'] === 'invoice'): ?>
                                 KES <?= number_format($sp['host_amount']) ?>
-                                <div style="font-size:11px;font-weight:400">the guest pays you the full price directly. After the stay you owe StayExplore Kenya a commission of KES <?= number_format($sp['commission_deferred']) ?> (see Commission).</div>
+                                <div class="mini">Paid to you directly by the guest. Your commission (KES <?= number_format($sp['commission_deferred']) ?>) is invoiced separately after the stay is completed.</div>
                             <?php elseif (!$sp['legacy'] && $sp['platform'] > 0): ?>
                                 KES <?= number_format($sp['host_amount']) ?>
-                                <div style="font-size:11px;font-weight:400">the guest pays you this. Booking total KES <?= number_format($sp['total']) ?>; KES <?= number_format($sp['platform']) ?> (service fee and your commission) goes to StayExplore Kenya.</div>
-                                <div style="font-size:11px;font-weight:400">StayExplore Kenya's share: <strong><?= h(['confirmed' => 'received', 'pending' => 'being checked', 'rejected' => 'not accepted yet', 'refunded' => 'refunded'][$b['pp_status'] ?? ''] ?? 'not paid yet') ?></strong></div>
+                                <div class="mini">Booked before v9.33: the guest pays you this. KES <?= number_format($sp['platform']) ?> goes to StayExplore Kenya as agreed when it was made.</div>
                             <?php else: ?>
                                 KES <?= number_format($b['total_amount']) ?>
                             <?php endif; ?>
-                            <div class="<?= $b['payment_status'] === 'confirmed'
-                                ? 'pay-confirmed' : 'pay-pending' ?>"
-                                 style="font-size:11px;font-weight:400">
-                                <?= $b['payment_status'] === 'confirmed'
-                                    ? 'Payment details reviewed'
-                                    : ($b['payment_status'] === 'pending' ? 'Payment details submitted — review needed' : 'Awaiting payment details') ?>
-                                <?php if (!empty($b['payment_reference'])): ?><div>Reference: <?= h($b['payment_reference'], ENT_QUOTES, 'UTF-8') ?></div><?php endif; ?>
+                            <div class="mini <?= $b['payment_status'] === 'confirmed' ? 'pay-confirmed' : 'pay-pending' ?>">
+                                <?php if ($b['status'] === 'pending'): ?>No payment requested yet
+                                <?php elseif ($b['payment_status'] === 'confirmed'): ?>You confirmed the payment
+                                <?php elseif ($b['payment_status'] === 'pending'): ?>Guest says they paid: check your account
+                                <?php elseif ($b['payment_status'] === 'failed'): ?>Payment not received: guest asked to retry
+                                <?php elseif ($b['status'] === 'accepted'): ?>Waiting for the guest to pay<?php if (!empty($b['payment_due_at'])): ?> (until <?= h(date('j M, H:i', strtotime($b['payment_due_at']))) ?>)<?php endif; ?>
+                                <?php else: ?>&mdash;<?php endif; ?>
+                                <?php if (!empty($b['payment_reference'])): ?><div>Method: <?= h(str_replace('_', ' ', (string)$b['payment_method'])) ?> &middot; Ref: <?= h($b['payment_reference'], ENT_QUOTES, 'UTF-8') ?></div><?php endif; ?>
                             </div>
                         </div>
                     </div>
@@ -517,18 +493,34 @@ $counts = $counts->fetch();
                     <?php endif; ?>
 
                     <?php if ($b['status'] === 'pending'): ?>
-                        <form method="POST" style="margin:0">
+                        <form method="POST" class="inline-form">
                             <input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
                             <input type="hidden" name="booking_ref" value="<?= h(bookingRef($b['booking_id'])) ?>">
-                            <input type="hidden" name="action" value="confirm">
-                            <button type="submit" class="btn-sm" <?= empty($b['payment_status']) ? 'disabled title="Waiting for the guest to submit payment details"' : '' ?> onclick="return confirm('Confirm this booking and mark the submitted payment details as reviewed?')">Confirm booking</button>
+                            <input type="hidden" name="action" value="accept">
+                            <button type="submit" class="btn-sm btn-sm-primary" onclick="return confirm('Accept this request? The guest will be asked to pay you directly within <?= (int)paymentDeadlineHours() ?> hours, and the dates stay held for them.')">Accept request</button>
                         </form>
-                        <form method="POST" style="margin:0">
+                        <form method="POST" class="inline-form">
                             <input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
                             <input type="hidden" name="booking_ref" value="<?= h(bookingRef($b['booking_id'])) ?>">
                             <input type="hidden" name="action" value="decline">
                             <input type="hidden" name="note" value="">
-                            <button type="submit" class="btn-sm btn-sm-danger" onclick="var n=prompt('Release these dates? The guest will be emailed. Add a short note for the guest (optional):',''); if(n===null){return false;} this.form.note.value=n; return true;">Release dates</button>
+                            <button type="submit" class="btn-sm btn-sm-danger" onclick="var n=prompt('Decline this request? The dates are released and the guest is told. Add a short note for the guest (optional):',''); if(n===null){return false;} this.form.note.value=n; return true;">Decline</button>
+                        </form>
+                    <?php endif; ?>
+
+                    <?php if ($b['status'] === 'payment_pending'): ?>
+                        <form method="POST" class="inline-form">
+                            <input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
+                            <input type="hidden" name="booking_ref" value="<?= h(bookingRef($b['booking_id'])) ?>">
+                            <input type="hidden" name="action" value="confirm_payment">
+                            <button type="submit" class="btn-sm btn-sm-primary" onclick="return confirm('Confirm that you have really received this payment in your M-Pesa or bank account? The booking becomes confirmed.')">Confirm payment received</button>
+                        </form>
+                        <form method="POST" class="inline-form">
+                            <input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
+                            <input type="hidden" name="booking_ref" value="<?= h(bookingRef($b['booking_id'])) ?>">
+                            <input type="hidden" name="action" value="reject_payment">
+                            <input type="hidden" name="reason" value="">
+                            <button type="submit" class="btn-sm btn-sm-danger" onclick="var r=prompt('Why did you not receive it? The guest will see this and can send the details again.'); if(!r||r.trim().length<5){alert('Please give a reason of at least 5 characters.');return false;} this.form.reason.value=r; return true;">Not received</button>
                         </form>
                     <?php endif; ?>
 
@@ -564,7 +556,7 @@ $counts = $counts->fetch();
                     <?php endif; ?>
 
                     <?php if (in_array($b['status'],
-                        ['pending','confirmed'])): ?>
+                        ['accepted','payment_pending','confirmed'])): ?>
                         <form method="POST" style="margin:0">
 <input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
                             <input type="hidden" name="booking_ref"
@@ -623,6 +615,13 @@ $counts = $counts->fetch();
 
             </div>
             <?php endforeach; ?>
+            <?php if ($totalPages > 1): $q = $_GET; ?>
+            <nav class="pager" aria-label="Booking pages">
+                <?php if ($pageNo > 1): $q['page'] = $pageNo - 1; ?><a class="btn-sm" href="?<?= h(http_build_query($q)) ?>">&larr; Newer</a><?php else: ?><span></span><?php endif; ?>
+                <span class="pager-info">Page <?= (int)$pageNo ?> of <?= (int)$totalPages ?> &middot; <?= (int)$totalRows ?> bookings</span>
+                <?php if ($pageNo < $totalPages): $q['page'] = $pageNo + 1; ?><a class="btn-sm" href="?<?= h(http_build_query($q)) ?>">Older &rarr;</a><?php else: ?><span></span><?php endif; ?>
+            </nav>
+            <?php endif; ?>
         <?php endif; ?>
 
     <?php appShellEnd(); ?>
@@ -635,5 +634,6 @@ function toggleFlagForm(id) {
 }
 </script>
 
+<style>.bk-focus{outline:2px solid var(--accent,#16866b);outline-offset:3px;animation:bkpulse 2.4s ease 2}@keyframes bkpulse{0%,100%{background:transparent}50%{background:rgba(22,134,107,.12)}}</style><script>(function(){var f=document.querySelector('.bk-focus');if(f)f.scrollIntoView({block:'center',behavior:'smooth'});})();</script>
 </body>
 </html>

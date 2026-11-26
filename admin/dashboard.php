@@ -2,6 +2,8 @@
 require_once '../includes/auth.php';
 require_once '../includes/functions.php';
 require_once '../includes/db.php';
+require_once '../includes/commission.php';
+require_once '../includes/booking_workflow.php';
 
 if (session_status() === PHP_SESSION_NONE) session_start();
 
@@ -80,46 +82,29 @@ $monthly = $pdo->query("
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard — StayExplore Kenya</title>
     <link rel="stylesheet" href="../assets/css/style.css">
+<link rel="stylesheet" href="../assets/css/ui.css"><script src="../assets/js/ui.js" defer></script>
     <style>
-        
-        .dash-wrap   { display:grid;
-                       grid-template-columns:200px 1fr; flex:1 }
         .sidebar     { background:var(--surface-2);
                        border-right:1px solid var(--border);
                        padding:24px 0; position:sticky;
                        top:52px; height:calc(100vh - 52px);
                        overflow-y:auto }
-        .sidebar-role{ font-size:10px; font-weight:700;
-                       letter-spacing:.08em; color:#b42318;
-                       text-transform:uppercase;
-                       padding:0 20px; margin-bottom:12px }
-        .sidebar-link{ display:flex; align-items:center; gap:10px;
-                       padding:9px 20px; font-size:13px;
-                       color:var(--text-secondary);
-                       text-decoration:none; width:100% }
-        .sidebar-link:hover { color:var(--text-primary);
-                              background:var(--surface-1) }
-        .sidebar-link.active { color:#085041; font-weight:500;
-                               background:#E1F5EE;
-                               border-left:3px solid #126b4e }
         .badge       { font-size:10px; background:#DC2626;
                        color:#fff; border-radius:10px;
                        padding:1px 6px; margin-left:auto }
         .main        { padding:28px; overflow-y:auto }
         .page-date   { font-size:11px; font-weight:600;
-                       letter-spacing:.06em; color:#126b4e;
+                       letter-spacing:.06em; color:var(--accent);
                        text-transform:uppercase; margin-bottom:6px }
-        .page-title  { font-size:26px; font-weight:400;
-                       margin-bottom:4px }
-        .page-sub    { font-size:13px; color:var(--text-secondary);
-                       margin-bottom:24px }
+        .strip-title { font-size:15px; font-weight:600; margin:8px 0 10px; display:flex; justify-content:space-between; align-items:baseline }
+        .strip-title a { font-size:13px; font-weight:400 }
         .stats-grid  { display:grid;
                        grid-template-columns:repeat(4,1fr);
                        gap:12px; margin-bottom:24px }
         .stat-card   { background:var(--surface-2);
                        border:1px solid var(--border);
                        border-radius:8px; padding:16px }
-        .stat-card.accent { border-left:3px solid #126b4e }
+        .stat-card.accent { border-left:3px solid var(--accent) }
         .stat-card.warn { border-left:3px solid #8f4b00 }
         .stat-card.danger { border-left:3px solid #DC2626 }
         .stat-label  { font-size:10px; font-weight:700;
@@ -129,9 +114,9 @@ $monthly = $pdo->query("
         .stat-value  { font-size:24px; font-weight:500;
                        color:var(--text-primary); margin-bottom:3px }
         .stat-note   { font-size:12px; color:var(--text-secondary) }
-        .stat-note.green { color:#126b4e }
-        .stat-note.warn  { color:#8f4b00 }
-        .stat-note.red   { color:#b42318 }
+        .stat-note.green { color:var(--accent) }
+        .stat-note.warn  { color:var(--warn-fg) }
+        .stat-note.red   { color:var(--bad-fg) }
         .content-grid { display:grid;
                         grid-template-columns:1fr 300px;
                         gap:20px; margin-bottom:20px }
@@ -143,7 +128,7 @@ $monthly = $pdo->query("
                        display:flex; justify-content:space-between;
                        align-items:center }
         .card-head h3 { font-size:13px; font-weight:500 }
-        .card-head a  { font-size:12px; color:#126b4e;
+        .card-head a  { font-size:12px; color:var(--accent);
                         text-decoration:none }
         table        { width:100%; border-collapse:collapse;
                        font-size:13px }
@@ -156,10 +141,10 @@ $monthly = $pdo->query("
                        border-bottom:1px solid var(--border) }
         tr:last-child td { border-bottom:none }
         tr:hover td  { background:var(--surface-1) }
-        .s-confirmed { color:#0F6E56; font-weight:500 }
-        .s-pending   { color:#8f4b00; font-weight:500 }
+        .s-confirmed { color:var(--accent-strong); font-weight:500 }
+        .s-pending   { color:var(--warn-fg); font-weight:500 }
         .s-completed { color:#1A4DB3; font-weight:500 }
-        .s-cancelled { color:#b42318 }
+        .s-cancelled { color:var(--bad-fg) }
         .pending-row { padding:14px 18px;
                        border-bottom:1px solid var(--border);
                        display:flex; justify-content:space-between;
@@ -170,7 +155,7 @@ $monthly = $pdo->query("
         .pending-info p  { font-size:12px;
                            color:var(--text-secondary) }
         .review-btn  { padding:5px 12px; font-size:12px;
-                       background:#085041; color:#fff;
+                       background:var(--btn-hover); color:#fff;
                        border:none; border-radius:4px;
                        text-decoration:none; white-space:nowrap }
         .chart-wrap  { padding:18px }
@@ -180,7 +165,7 @@ $monthly = $pdo->query("
                        padding-bottom:8px; margin-bottom:8px }
         .bar-col     { flex:1; display:flex; flex-direction:column;
                        align-items:center; gap:4px; height:100% }
-        .bar         { width:100%; background:#126b4e;
+        .bar         { width:100%; background:var(--btn);
                        border-radius:3px 3px 0 0; min-height:2px }
         .bar-label   { font-size:10px; color:var(--text-secondary) }
         .needs-attention { background:var(--surface-2);
@@ -198,14 +183,13 @@ $monthly = $pdo->query("
                            gap:10px }
         .count-badge { font-size:12px; font-weight:600;
                        padding:3px 10px; border-radius:3px }
-        .count-red   { background:#FEF2F2; color:#b42318;
-                       border:1px solid #FECACA }
-        .count-amber { background:#FFF8E1; color:#7a5200;
-                       border:1px solid #F9D57C }
-        .action-link { font-size:12px; color:#126b4e;
+        .count-red   { background:var(--bad-bg); color:var(--bad-fg);
+                       border:1px solid var(--bad-line) }
+        .count-amber { background:var(--warn-bg); color:var(--warn-fg);
+                       border:1px solid var(--warn-line) }
+        .action-link { font-size:12px; color:var(--accent);
                        text-decoration:none }
-        @media(max-width:1000px){
-            .dash-wrap { grid-template-columns:1fr }
+        @media(max-width:1024px){
             .sidebar   { display:none }
             .stats-grid { grid-template-columns:repeat(2,1fr) }
             .content-grid { grid-template-columns:1fr }
@@ -401,6 +385,15 @@ $monthly = $pdo->query("
         </div>
         <?php endif; ?>
 
+        <?php $cs = commissionPlatformSummary($pdo); ?>
+        <h2 class="strip-title">Host commission <a href="revenue.php">Details</a></h2>
+        <div class="stats-grid" style="margin-bottom:24px">
+            <div class="stat-card accent"><div class="stat-label">Total generated</div><div class="stat-value">KES <?= number_format($cs['generated']) ?></div><div class="stat-note"><?= (int)$cs['invoices'] ?> invoice(s)</div></div>
+            <div class="stat-card"><div class="stat-label">Outstanding</div><div class="stat-value">KES <?= number_format($cs['outstanding']) ?></div><div class="stat-note">owed by hosts</div></div>
+            <div class="stat-card"><div class="stat-label">Awaiting verification</div><div class="stat-value">KES <?= number_format($cs['awaiting']) ?></div><div class="stat-note"><?= (int)$cs['awaiting_n'] ?> to check</div></div>
+            <div class="stat-card"><div class="stat-label">Overdue invoices</div><div class="stat-value"><?= (int)$cs['overdue_n'] ?></div><div class="stat-note">KES <?= number_format($cs['overdue_amount']) ?> past due</div></div>
+        </div>
+
         <div class="content-grid">
 
             <!-- Recent Bookings Table -->
@@ -456,10 +449,10 @@ $monthly = $pdo->query("
                                     'pending'   => 's-pending',
                                     'completed' => 's-completed',
                                     'cancelled' => 's-cancelled'
-                                ][$b['status']] ?? '';
+                                ][$b['status']] ?? ($b['status'] === 'accepted' ? 's-confirmed' : 's-pending');
                                 ?>
                                 <span class="<?= $cls ?>">
-                                    <?= ucfirst($b['status']) ?>
+                                    <?= h(bookingStatusLabel($b['status'], 'tourist')) ?>
                                 </span>
                             </td>
                             <td style="font-weight:500">

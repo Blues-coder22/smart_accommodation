@@ -3,6 +3,7 @@ require_once '../includes/auth.php';
 require_once '../includes/functions.php';
 require_once '../includes/db.php';
 require_once '../includes/profile_functions.php';
+require_once '../includes/host_profile.php';
 
 if (session_status() === PHP_SESSION_NONE) session_start();
 
@@ -62,9 +63,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $close_errors = $closeResult['errors'] ?? ['The account could not be closed.'];
     }
     if (isset($_POST['update_profile'])) {
+        // Where guests send their accommodation payment. Shown to a guest only after you accept their booking.
+        try {
+            require_once '../includes/commission.php'; ensureCommissionTables($pdo);
+            $pi = mb_substr(trim((string)($_POST['payment_instructions'] ?? '')), 0, 600);
+            $pdo->prepare('UPDATE users SET payment_instructions = ? WHERE user_id = ?')->execute([$pi !== '' ? $pi : null, $user_id]);
+        } catch (Throwable $e) { error_log('payment instructions: ' . $e->getMessage()); }
         $result = updateProfile($pdo, $user_id, [
             'full_name'      => $_POST['full_name'] ?? '',
             'phone'          => $_POST['phone'] ?? '',
+            'intro'          => $_POST['intro'] ?? '',
             'existing_photo' => $user['profile_photo'],
             'photo_file'     => $_FILES['profile_photo'] ?? null
         ]);
@@ -121,41 +129,21 @@ $hstats = $hstats->fetch();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Host Profile — StayExplore Kenya</title>
     <link rel="stylesheet" href="../assets/css/style.css">
+<link rel="stylesheet" href="../assets/css/ui.css"><script src="../assets/js/ui.js" defer></script>
     <style>
-        
-        .dash-wrap   { display:grid;
-                       grid-template-columns:200px 1fr; flex:1 }
         .sidebar     { background:var(--surface-2);
                        border-right:1px solid var(--border);
                        padding:24px 0; position:sticky;
                        top:52px; height:calc(100vh - 52px);
                        overflow-y:auto }
-        .sidebar-role{ font-size:10px; font-weight:700;
-                       letter-spacing:.08em; color:#126b4e;
-                       text-transform:uppercase;
-                       padding:0 20px; margin-bottom:12px }
-        .sidebar-link{ display:flex; align-items:center; gap:10px;
-                       padding:9px 20px; font-size:13px;
-                       color:var(--text-secondary);
-                       text-decoration:none; width:100% }
-        .sidebar-link:hover { color:var(--text-primary);
-                              background:var(--surface-1) }
-        .sidebar-link.active { color:#085041; font-weight:500;
-                               background:#E1F5EE;
-                               border-left:3px solid #126b4e }
-        .main        { padding:28px; max-width:680px }
-        .page-tag    { font-size:11px; font-weight:600;
-                       letter-spacing:.06em; color:#126b4e;
-                       text-transform:uppercase; margin-bottom:8px }
-        .page-title  { font-size:26px; font-weight:400;
-                       margin-bottom:20px }
+        .main        { padding:28px; max-width:800px }
         .profile-header { display:flex; align-items:center;
                           gap:20px; background:var(--surface-2);
                           border:1px solid var(--border);
                           border-radius:8px; padding:20px;
                           margin-bottom:16px }
         .avatar      { width:72px; height:72px; border-radius:50%;
-                       background:#126b4e; display:flex;
+                       background:var(--btn); display:flex;
                        align-items:center; justify-content:center;
                        color:#fff; font-size:28px; font-weight:600;
                        overflow:hidden; flex-shrink:0 }
@@ -177,7 +165,7 @@ $hstats = $hstats->fetch();
                        border-radius:8px; padding:12px;
                        text-align:center }
         .stat-num    { font-size:20px; font-weight:500;
-                       color:#085041 }
+                       color:var(--accent-strong) }
         .stat-label  { font-size:11px; color:var(--text-secondary);
                        margin-top:2px }
         .form-card   { background:var(--surface-2);
@@ -198,18 +186,17 @@ $hstats = $hstats->fetch();
                             color:var(--text-primary);
                             background:var(--surface-2) }
         .form-group input:focus { outline:none;
-                                  border-color:#126b4e }
+                                  border-color:var(--accent) }
         .form-row    { display:grid;
                        grid-template-columns:1fr 1fr; gap:12px }
-        .btn-save    { padding:9px 22px; background:#085041;
+        .btn-save    { padding:9px 22px; background:var(--btn-hover);
                        color:#fff; border:none; border-radius:6px;
                        font-size:13px; font-weight:500; cursor:pointer }
-        .success-msg { background:#E1F5EE; border:1px solid #9FE1CB;
+        .success-msg { background:var(--accent-soft); border:1px solid var(--accent-line);
                        border-radius:6px; padding:10px 14px;
-                       font-size:13px; color:#0F6E56;
+                       font-size:13px; color:var(--accent-strong);
                        margin-bottom:14px }
-        @media(max-width:900px){
-            .dash-wrap { grid-template-columns:1fr }
+        @media(max-width:1024px){
             .sidebar   { display:none }
             .stats-row { grid-template-columns:repeat(2,1fr) }
             .form-row  { grid-template-columns:1fr }
@@ -229,7 +216,7 @@ $hstats = $hstats->fetch();
             <div class="avatar">
                 <?php if ($user['profile_photo']): ?>
                     <img src="<?= h(profilePhotoUrl($user['user_id'], $user['profile_photo'])) ?>"
-                         alt="Your profile photo">
+                         alt="Your profile photo" loading="lazy" decoding="async">
                 <?php else: ?>
                     <?= strtoupper(substr($user['full_name'],0,1)) ?>
                 <?php endif; ?>
@@ -313,6 +300,18 @@ $hstats = $hstats->fetch();
                     </div>
                 </div>
                 <div class="form-group">
+                    <label for="pay_instr">How guests pay you</label>
+                    <textarea id="pay_instr" name="payment_instructions" rows="3" maxlength="600" placeholder="e.g. M-Pesa Till 123456 (Your Business Name), or Bank: KCB, account 1234567890, Your Name"><?php
+                        try { $pi = $pdo->prepare('SELECT payment_instructions FROM users WHERE user_id = ?'); $pi->execute([$user_id]); echo h((string)$pi->fetchColumn()); } catch (Throwable $e) {} ?></textarea>
+                    <div class="small">Shown to a guest only after you accept their booking. Guests pay you directly; StayExplore Kenya never receives this money.</div>
+                </div>
+                <div class="form-group">
+                    <label for="host_intro">About you (shown on your public host profile)</label>
+                    <textarea id="host_intro" name="intro" rows="4" maxlength="600"
+                              style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font:inherit;background:var(--surface-1);color:var(--text-primary)"
+                              placeholder="Say hello: where you live, what guests love about your place and how you like to host."><?= h(getHostIntro($pdo, (int)$user_id)) ?></textarea>
+                </div>
+                <div class="form-group">
                     <label>Profile photo</label>
                     <input aria-label="Profile photo" type="file" name="profile_photo"
                            accept="image/jpeg,image/png,image/webp">
@@ -375,7 +374,7 @@ $hstats = $hstats->fetch();
     <?php include __DIR__ . '/../includes/host_verification_card.php'; ?>
 
     <div class="form-card" style="border:1px solid #e6b7b7">
-        <h3 style="color:#a12b2b">Close account</h3>
+        <h3 style="color:var(--bad-fg)">Close account</h3>
         <p style="font-size:13px;color:var(--text-secondary)">Closing your account signs you out, and you will not be able to sign in again. We keep your booking, payment and review history for our records. If you are a host, your approved properties are paused so they cannot get new bookings. Contact the admin if you want your account opened again.</p>
         <?php if (!empty($close_errors)): ?>
             <div class="alert alert-error" style="margin-bottom:14px">

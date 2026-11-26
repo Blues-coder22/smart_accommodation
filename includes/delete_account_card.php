@@ -3,7 +3,7 @@
 // Expects $delete_errors (array) from the page.
 ?>
     <div class="form-card" style="border:1px solid #e6b7b7">
-        <h3 style="color:#a12b2b">Delete account permanently</h3>
+        <h3 style="color:var(--bad-fg)">Delete account permanently</h3>
         <p style="font-size:13px;color:var(--text-secondary)">This cannot be undone. Your name, email, phone number, photo and password are deleted for good, your favourites and chat messages are removed, and nobody (including an admin) can get the account back or sign in to it. Bookings, payments and reviews stay on record for the other people involved, but they show as &ldquo;Deleted user&rdquo;. You cannot delete the account while you have an upcoming or pending booking.</p>
         <?php if (!empty($delete_errors)): ?>
             <div class="alert alert-error" style="margin-bottom:14px">

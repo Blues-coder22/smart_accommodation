@@ -27,7 +27,7 @@ if (!function_exists('ensureBookingRefColumn')) {
         if (!$pdo) return;
         $done = true;
         try {
-            if (!$pdo->query("SHOW COLUMNS FROM bookings LIKE 'booking_ref'")->fetch()) {
+            if (!(function_exists('schemaIsUpgraded') && schemaIsUpgraded()) && !$pdo->query("SHOW COLUMNS FROM bookings LIKE 'booking_ref'")->fetch()) {
                 $pdo->exec("ALTER TABLE bookings ADD COLUMN booking_ref VARCHAR(12) NULL DEFAULT NULL, ADD UNIQUE KEY uq_booking_ref (booking_ref)");
             }
             $ids = $pdo->query("SELECT booking_id FROM bookings WHERE booking_ref IS NULL")->fetchAll(PDO::FETCH_COLUMN);

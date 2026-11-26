@@ -25,7 +25,7 @@ try {
         <?php else: ?>
             <p style="font-size:14px;margin-bottom:12px"><strong>&#9733; <?= h($gr_rep['avg']) ?></strong> from <?= (int)$gr_rep['count'] ?> host review<?= $gr_rep['count'] === 1 ? '' : 's' ?></p>
             <?php foreach ($gr_rows as $g): ?>
-                <div style="border-top:1px solid var(--border,#eee);padding:10px 0;font-size:13px">
+                <div style="border-top:1px solid var(--border,var(--border));padding:10px 0;font-size:13px">
                     <strong>&#9733; <?= (int)$g['rating'] ?>/5</strong> &middot; <?= personChipHtml($g['host_uid'], $g['host_name'], $g['host_photo'], 24) ?> &middot; <?= h($g['title']) ?> &middot; <?= date('d M Y', strtotime($g['created_at'])) ?>
                     <?php if (!empty($g['review_text'])): ?><div style="margin-top:4px"><?= h($g['review_text']) ?></div><?php endif; ?>
                 </div>

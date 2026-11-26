@@ -8,6 +8,7 @@ require_once __DIR__ . '/functions.php';
 
 if (!function_exists('ensureCurrenciesTable')) {
     function ensureCurrenciesTable($pdo) {
+        if (function_exists('schemaIsUpgraded') && schemaIsUpgraded()) return;   // v9.33: tables are created once by the upgrade, not on every request
         static $done = false; if ($done) return; $done = true;
         try {
             $pdo->exec("CREATE TABLE IF NOT EXISTS currencies (

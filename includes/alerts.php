@@ -10,6 +10,7 @@ require_once __DIR__ . '/notifications.php';
 
 if (!function_exists('ensureAlertTables')) {
     function ensureAlertTables($pdo) {
+        if (function_exists('schemaIsUpgraded') && schemaIsUpgraded()) return;   // v9.33: tables are created once by the upgrade, not on every request
         static $done = false; if ($done) return; $done = true;
         try {
             // One row per alert already sent, so the same alert is never sent twice.
@@ -77,7 +78,7 @@ if (!function_exists('sendSavedStayAlerts')) {
         // Nights taken by a pending or confirmed booking
         $taken = array_fill_keys($ids, []);
         $b = $pdo->prepare("SELECT accommodation_id, check_in_date, check_out_date FROM bookings
-                            WHERE accommodation_id IN ($in) AND status IN ('pending','confirmed')
+                            WHERE accommodation_id IN ($in) AND status IN ('pending','accepted','payment_pending','confirmed')
                               AND check_out_date > ? AND check_in_date < ?");
         $b->execute(array_merge($ids, [$start, $end]));
         foreach ($b->fetchAll(PDO::FETCH_ASSOC) as $r) {

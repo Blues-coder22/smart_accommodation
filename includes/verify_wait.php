@@ -9,6 +9,7 @@
  */
 if (!function_exists('ensureVerifyWaitsTable')) {
     function ensureVerifyWaitsTable($pdo) {
+        if (function_exists('schemaIsUpgraded') && schemaIsUpgraded()) return;   // v9.33: tables are created once by the upgrade, not on every request
         static $done = false;
         if ($done) return;
         $done = true;
@@ -97,6 +98,7 @@ if (!function_exists('verifyWaitComplete')) {
  */
 if (!function_exists('ensureVerifyCodesTable')) {
     function ensureVerifyCodesTable($pdo) {
+        if (function_exists('schemaIsUpgraded') && schemaIsUpgraded()) return;   // v9.33: tables are created once by the upgrade, not on every request
         static $done = false;
         if ($done) return;
         $done = true;
@@ -129,21 +131,35 @@ if (!function_exists('issueVerifyCode')) {
     }
 }
 
+if (!function_exists('verifyCodesEnsureLastTry')) {
+    /** v9.36: remembers when the last wrong guess was, so a lock after 5 wrong tries ends by itself after 5 minutes. */
+    function verifyCodesEnsureLastTry($pdo) {
+        static $d = false; if ($d) return; $d = true;
+        try { if (!$pdo->query("SHOW COLUMNS FROM verify_codes LIKE 'last_try'")->fetch()) $pdo->exec("ALTER TABLE verify_codes ADD COLUMN last_try DATETIME NULL"); } catch (Throwable $e) {}
+    }
+}
+
 if (!function_exists('verifyCodeSubmit')) {
     /** @return array ['ok' => bool, 'message' => string]. On success the user's email is marked verified. */
     function verifyCodeSubmit($pdo, $user_id, $code) {
         ensureVerifyCodesTable($pdo);
         $code = preg_replace('/\D/', '', (string)$code);
         if (strlen($code) !== 6) return ['ok' => false, 'message' => 'Enter the 6-digit code from the email.'];
-        $q = $pdo->prepare("SELECT code_hash, attempts, (expires_at > NOW()) AS alive FROM verify_codes WHERE user_id = ? LIMIT 1");
+        verifyCodesEnsureLastTry($pdo);
+        $q = $pdo->prepare("SELECT code_hash, attempts, (expires_at > NOW()) AS alive, TIMESTAMPDIFF(SECOND, last_try, NOW()) AS since FROM verify_codes WHERE user_id = ? LIMIT 1");
         $q->execute([(int)$user_id]);
         $row = $q->fetch(PDO::FETCH_ASSOC);
         if (!$row || !(int)$row['alive']) return ['ok' => false, 'message' => 'That code has expired. Press "Send the email again" to get a new one.'];
-        if ((int)$row['attempts'] >= 5) return ['ok' => false, 'message' => 'Too many wrong tries. Press "Send the email again" to get a new code.'];
+        if ((int)$row['attempts'] >= 5) {
+            // The lock lasts 5 minutes, or until a new email is sent (a new email always gives a fresh code and fresh tries).
+            $since = $row['since'] === null ? 999999 : (int)$row['since'];
+            if ($since >= 300) { $pdo->prepare("UPDATE verify_codes SET attempts = 0 WHERE user_id = ?")->execute([(int)$user_id]); $row['attempts'] = 0; }
+            else { $mins = max(1, (int)ceil((300 - $since) / 60)); return ['ok' => false, 'message' => 'Too many wrong tries. Press "Send the email again" for a new code now, or try again in ' . $mins . ' minute' . ($mins === 1 ? '' : 's') . '.']; }
+        }
         if (!hash_equals($row['code_hash'], verifyCodeHash($user_id, $code))) {
-            $pdo->prepare("UPDATE verify_codes SET attempts = attempts + 1 WHERE user_id = ?")->execute([(int)$user_id]);
+            $pdo->prepare("UPDATE verify_codes SET attempts = attempts + 1, last_try = NOW() WHERE user_id = ?")->execute([(int)$user_id]);
             $left = max(0, 4 - (int)$row['attempts']);
-            return ['ok' => false, 'message' => 'That code is not right.' . ($left > 0 ? ' ' . $left . ' more ' . ($left === 1 ? 'try' : 'tries') . ' left.' : ' Request a new code.')];
+            return ['ok' => false, 'message' => 'That code is not right.' . ($left > 0 ? ' ' . $left . ' more ' . ($left === 1 ? 'try' : 'tries') . ' left. Use the code from the newest email.' : ' Press "Send the email again" for a new code.')];
         }
         $pdo->prepare("DELETE FROM verify_codes WHERE user_id = ?")->execute([(int)$user_id]);
         $pdo->prepare("UPDATE users SET email_verified = 1, verification_token = NULL WHERE user_id = ?")->execute([(int)$user_id]);

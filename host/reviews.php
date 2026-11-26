@@ -95,44 +95,24 @@ $stats = $stats->fetch();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Reviews — StayExplore Kenya</title>
     <link rel="stylesheet" href="../assets/css/style.css">
+<link rel="stylesheet" href="../assets/css/ui.css"><script src="../assets/js/ui.js" defer></script>
     <style>
-        
-        .dash-wrap   { display:grid;
-                       grid-template-columns:200px 1fr; flex:1 }
         .sidebar     { background:var(--surface-2);
                        border-right:1px solid var(--border);
                        padding:24px 0; position:sticky;
                        top:52px; height:calc(100vh - 52px);
                        overflow-y:auto }
-        .sidebar-role{ font-size:10px; font-weight:700;
-                       letter-spacing:.08em; color:#126b4e;
-                       text-transform:uppercase;
-                       padding:0 20px; margin-bottom:12px }
-        .sidebar-link{ display:flex; align-items:center; gap:10px;
-                       padding:9px 20px; font-size:13px;
-                       color:var(--text-secondary);
-                       text-decoration:none; width:100% }
-        .sidebar-link:hover { color:var(--text-primary);
-                              background:var(--surface-1) }
-        .sidebar-link.active { color:#085041; font-weight:500;
-                               background:#E1F5EE;
-                               border-left:3px solid #126b4e }
         .badge       { font-size:10px; background:#DC2626;
                        color:#fff; border-radius:10px;
                        padding:1px 6px; margin-left:auto }
         .main        { padding:28px }
-        .page-tag    { font-size:11px; font-weight:600;
-                       letter-spacing:.06em; color:#126b4e;
-                       text-transform:uppercase; margin-bottom:8px }
-        .page-title  { font-size:26px; font-weight:400;
-                       margin-bottom:20px }
         .stats-row   { display:grid;
                        grid-template-columns:repeat(4,1fr);
                        gap:12px; margin-bottom:20px }
         .stat-card   { background:var(--surface-2);
                        border:1px solid var(--border);
                        border-radius:8px; padding:14px }
-        .stat-card.accent { border-left:3px solid #126b4e }
+        .stat-card.accent { border-left:3px solid var(--accent) }
         .stat-label  { font-size:10px; font-weight:700;
                        letter-spacing:.06em;
                        color:var(--text-secondary);
@@ -147,8 +127,8 @@ $stats = $stats->fetch();
                        text-decoration:none;
                        color:var(--text-secondary);
                        border:1px solid var(--border) }
-        .filter-tab.active { background:#085041; color:#fff;
-                             border-color:#085041 }
+        .filter-tab.active { background:var(--btn-hover); color:#fff;
+                             border-color:var(--accent-strong) }
         .review-card { background:var(--surface-2);
                        border:1px solid var(--border);
                        border-radius:8px; padding:18px;
@@ -165,7 +145,7 @@ $stats = $stats->fetch();
         .review-text { font-size:14px; color:var(--text-primary);
                        line-height:1.6; margin-bottom:12px }
         .host-reply  { background:var(--surface-1);
-                       border-left:3px solid #126b4e;
+                       border-left:3px solid var(--accent);
                        padding:12px 14px; border-radius:0 6px 6px 0;
                        font-size:13px; color:var(--text-secondary);
                        line-height:1.5 }
@@ -183,9 +163,9 @@ $stats = $stats->fetch();
                                font-family:inherit;
                                background:var(--surface-2) }
         .reply-form textarea:focus { outline:none;
-                                     border-color:#126b4e }
+                                     border-color:var(--accent) }
         .reply-actions { display:flex; gap:8px; margin-top:8px }
-        .btn-reply   { padding:7px 16px; background:#085041;
+        .btn-reply   { padding:7px 16px; background:var(--btn-hover);
                        color:#fff; border:none; border-radius:4px;
                        font-size:12px; font-weight:500;
                        cursor:pointer }
@@ -199,11 +179,10 @@ $stats = $stats->fetch();
                        color:var(--text-secondary);
                        border:1px solid var(--border-strong);
                        background:none }
-        .toggle-reply:hover { border-color:#126b4e; color:#126b4e }
+        .toggle-reply:hover { border-color:var(--accent); color:var(--accent) }
         .empty-state { text-align:center; padding:48px 20px;
                        color:var(--text-secondary); font-size:14px }
-        @media(max-width:900px){
-            .dash-wrap { grid-template-columns:1fr }
+        @media(max-width:1024px){
             .sidebar   { display:none }
             .stats-row { grid-template-columns:repeat(2,1fr) }
         }
@@ -339,7 +318,7 @@ $stats = $stats->fetch();
                 <?php if ($r['host_reply']): ?>
                 <div class="host-reply">
                     <strong>Your response</strong>
-                    <?php if (!empty($r['host_reply_hidden'])): ?><em style="display:block;color:#a12b2b;font-size:12px">Hidden from the public by an admin.</em><?php endif; ?>
+                    <?php if (!empty($r['host_reply_hidden'])): ?><em style="display:block;color:var(--bad-fg);font-size:12px">Hidden from the public by an admin.</em><?php endif; ?>
                     <?= nl2br(h($r['host_reply'])) ?>
                 </div>
                 <?php endif; ?>

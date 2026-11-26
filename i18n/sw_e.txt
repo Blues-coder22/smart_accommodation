@@ -1,0 +1,61 @@
+An admin reviews the listing before it becomes visible as an approved accommodation.|||Msimamizi hukagua tangazo kabla halijaonekana kama malazi yaliyoidhinishwa.
+This account has an invalid role. Please contact the admin.|||Akaunti hii ina jukumu lisilo halali. Tafadhali wasiliana na msimamizi.
+Your account has been closed. Your historical booking and payment records have been retained. Contact the admin if you need help.|||Akaunti yako imefungwa. Rekodi zako za uhifadhi na malipo zimehifadhiwa. Wasiliana na msimamizi ukihitaji msaada.
+When a host adds a property and an admin approves it, it will appear here and in search results. You can still explore attractions meanwhile.|||Mwenyeji akiweka mali na msimamizi akiidhinisha, itaonekana hapa na kwenye matokeo ya utafutaji. Wakati huo unaweza kugundua vivutio.
+I confirm these details are mine and correct, and I agree that an admin may check them.|||Nathibitisha kuwa taarifa hizi ni zangu na ni sahihi, na nakubali msimamizi azikague.
+. Guests see a "Verified host" badge on your listings. For your privacy your ID number and photo were erased once an admin checked them.|||. Wageni wanaona nembo ya "Mwenyeji aliyethibitishwa" kwenye matangazo yako. Kwa faragha yako, namba na picha ya kitambulisho chako vilifutwa baada ya msimamizi kuvikagua.
+. An admin will review it and email you the result.|||. Msimamizi atalikagua na kukutumia matokeo kwa barua pepe.
+. Hosts see a "Verified guest" badge next to your name, which can help your booking requests get accepted. For your privacy your ID number and photo were erased once an admin checked them.|||. Wenyeji wanaona nembo ya "Mgeni aliyethibitishwa" karibu na jina lako, inayoweza kusaidia maombi yako ya uhifadhi kukubaliwa. Kwa faragha yako, namba na picha ya kitambulisho chako vilifutwa baada ya msimamizi kuvikagua.
+I am signing up as|||Ninajisajili kama
+Choose one|||Chagua moja
+Traveller|||Msafiri
+Traveller — find stays, explore places and make bookings|||Msafiri — tafuta malazi, gundua maeneo na uhifadhi
+Host — list your property and manage bookings|||Mwenyeji — tangaza mali yako na usimamie uhifadhi
+It only takes a minute. We will email you a link to confirm your account.|||Inachukua dakika moja tu. Tutakutumia kiungo kwa barua pepe ili uthibitishe akaunti yako.
+Hosts cannot make bookings. Please sign in with a traveller account.|||Wenyeji hawawezi kuweka nafasi. Tafadhali ingia kwa akaunti ya msafiri.
+Guests can book these dates|||Wageni wanaweza kuweka nafasi za tarehe hizi
+We emailed you a verification link. Open it on this phone or on any other device, and this page will sign you in.|||Tumekutumia kiungo cha uthibitisho kwa barua pepe. Kifungue kwenye simu hii au kifaa kingine chochote, na ukurasa huu utakuingiza.
+Thank you for verifying your email.|||Asante kwa kuthibitisha barua pepe yako.
+If you were signing up on another device, go back to it. It will sign you in on its own within a few seconds, with no password.|||Ikiwa ulikuwa unajisajili kwenye kifaa kingine, rudi huko. Kitakuingiza chenyewe ndani ya sekunde chache, bila nenosiri.
+We sent a verification link to|||Tumetuma kiungo cha uthibitisho kwa
+. Open it on any device. You do not need to come back to this page first.|||. Kifungue kwenye kifaa chochote. Si lazima urudi kwenye ukurasa huu kwanza.
+Can't open the link?|||Huwezi kufungua kiungo?
+Type the 6-digit code from the same email here.|||Andika hapa msimbo wa tarakimu 6 kutoka kwenye barua pepe hiyo hiyo.
+If the link does not open, type this code on the page where you signed up:|||Kiungo kisipofunguka, andika msimbo huu kwenye ukurasa ulipojisajili:
+Nothing yet. Updates about your bookings, messages, payments, check-in reminders and saved stays will appear here, as well as in your email.|||Bado hakuna kitu. Taarifa kuhusu uhifadhi, ujumbe, malipo, vikumbusho vya kuwasili na malazi uliyohifadhi zitaonekana hapa, na pia kwenye barua pepe yako.
+Verification helps protect guests and hosts. An admin checks your ID, then your properties show a "Verified host" badge. Only admins can see your ID photo, and it is deleted as soon as they decide.|||Uthibitisho husaidia kulinda wageni na wenyeji. Msimamizi hukagua kitambulisho chako, kisha mali zako huonyesha nembo ya "Mwenyeji aliyethibitishwa". Ni wasimamizi pekee wanaoweza kuona picha ya kitambulisho chako, na hufutwa mara tu wanapofanya uamuzi.
+Verification is optional and helps protect guests and hosts. An admin checks your ID, then a "Verified guest" badge shows next to your name. Only admins can see your ID photo, and it is deleted as soon as they decide.|||Uthibitisho ni hiari na husaidia kulinda wageni na wenyeji. Msimamizi hukagua kitambulisho chako, kisha nembo ya "Mgeni aliyethibitishwa" huonekana karibu na jina lako. Ni wasimamizi pekee wanaoweza kuona picha ya kitambulisho chako, na hufutwa mara tu wanapofanya uamuzi.
+Save to favourites|||Ongeza kwenye vipendwa
+Saved to favourites|||Imeongezwa kwenye vipendwa
+Saved to favourites (remove)|||Imeongezwa kwenye vipendwa (ondoa)
+♡ Save to favourites|||♡ Ongeza kwenye vipendwa
+Today’s the day! Safari njema!|||Leo ndiyo siku! Safari njema!
+Tomorrow is the day! Pack tonight and sleep early.|||Kesho ndiyo siku! Pakia leo usiku na ulale mapema.
+Almost there! Check your directions and say hello to your host.|||Karibu umefika! Angalia maelekezo yako na umsalimie mwenyeji wako.
+One week to go. Sunscreen, a hat and your camera!|||Wiki moja imebaki. Mafuta ya kujikinga na jua, kofia na kamera yako!
+Two weeks or so. Time to start packing.|||Karibu wiki mbili. Ni wakati wa kuanza kupakia.
+Less than two months. Have a look at the attractions near your stay.|||Chini ya miezi miwili. Tazama vivutio vilivyo karibu na malazi yako.
+Plenty of time to dream. Start a list of what you want to see.|||Bado kuna muda wa kuota. Anza orodha ya unachotaka kuona.
+Your countdown starts once the host confirms.|||Kuhesabu siku kutaanza mwenyeji akithibitisha.
+Your countdown starts once the host confirms your payment.|||Kuhesabu siku kutaanza mwenyeji akithibitisha malipo yako.
+days|||siku
+hours|||saa
+min|||dak
+sec|||sek
+days to go|||siku zimebaki
+About you (shown on your public host profile)|||Kukuhusu (huonyeshwa kwenye wasifu wako wa umma wa mwenyeji)
+View host profile|||Tazama wasifu wa mwenyeji
+ID checked by an admin|||Kitambulisho kimekaguliwa na msimamizi
+Not verified yet|||Bado hajathibitishwa
+ID check not completed|||Ukaguzi wa kitambulisho haujakamilika
+of enquiries answered|||ya maswali yaliyojibiwa
+enquiries counted|||maswali yamehesabiwa
+Not enough enquiries yet to show a response rate|||Bado maswali hayatoshi kuonyesha kiwango cha kujibu
+property|||mali
+properties|||mali
+Properties|||Mali
+No reviews yet|||Bado hakuna maoni
+About this host|||Kuhusu mwenyeji huyu
+This host has not written an introduction yet.|||Mwenyeji huyu bado hajaandika utangulizi.
+Host reply:|||Jibu la mwenyeji:
+Your introduction must be 600 characters or fewer.|||Utangulizi wako lazima uwe na herufi 600 au chini.

@@ -2,6 +2,7 @@
 /** History of every payment status change (who, when, why) so an admin can track disputes. */
 if (!function_exists('ensurePaymentAuditTable')) {
     function ensurePaymentAuditTable($pdo) {
+        if (function_exists('schemaIsUpgraded') && schemaIsUpgraded()) return;   // v9.33: tables are created once by the upgrade, not on every request
         static $done = false;
         if ($done) return;
         $done = true;

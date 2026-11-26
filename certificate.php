@@ -36,21 +36,22 @@ $isGuestCert = $kind === 'host' && ($data['user_role'] ?? 'host') === 'tourist';
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Certificate <?= h($cert['cert_no']) ?> — StayExplore Kenya</title>
     <link rel="stylesheet" href="assets/css/style.css">
+<link rel="stylesheet" href="assets/css/ui.css"><script src="assets/js/ui.js" defer></script>
     <link rel="stylesheet" href="assets/css/finance.css">
     <style>
-        body{background:#f6f1e7}
+        body{background:var(--cream)}
         .ct-bar{max-width:820px;margin:16px auto 0;display:flex;gap:10px;flex-wrap:wrap;padding:0 8px}
-        .ct{max-width:820px;margin:16px auto;background:#fff;border:10px double #126b4e;padding:44px 52px;text-align:center}
-        .ct .brand{font-size:15px;letter-spacing:.2em;text-transform:uppercase;color:#126b4e;font-weight:700}
+        .ct{max-width:820px;margin:16px auto;background:var(--surface-2);border:10px double var(--accent);padding:44px 52px;text-align:center}
+        .ct .brand{font-size:15px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);font-weight:700}
         .ct h1{font-family:Georgia,serif;font-size:36px;margin:14px 0 4px}
-        .ct .lead{color:#565c55;margin:0 0 22px}
+        .ct .lead{color:var(--text-secondary);margin:0 0 22px}
         .ct .name{font-family:Georgia,serif;font-size:32px;border-bottom:1px solid #9aa39d;display:inline-block;padding:0 24px 6px;margin:6px 0 18px}
         .ct p{line-height:1.7;max-width:620px;margin:10px auto}
         .ct .meta{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-top:34px;text-align:left;font-size:14px}
         .ct .sig{border-top:1px solid #333;padding-top:6px;min-width:220px;margin-top:40px;display:inline-block}
-        .ct .fine{font-size:12px;color:#565c55;margin-top:26px}
-        @media print{body{background:#fff}.ct-bar{display:none}.ct{margin:0;max-width:none;border-width:8px}}
-        @media(max-width:600px){.ct{padding:24px 18px}.ct h1{font-size:26px}}
+        .ct .fine{font-size:12px;color:var(--text-secondary);margin-top:26px}
+        @media print{body{background:var(--surface-2)}.ct-bar{display:none}.ct{margin:0;max-width:none;border-width:8px}}
+        @media(max-width:768px){.ct{padding:24px 18px}.ct h1{font-size:26px}}
     </style>
 </head>
 <body>

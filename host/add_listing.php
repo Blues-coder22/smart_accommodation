@@ -166,41 +166,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Add Listing — StayExplore Kenya</title>
     <link rel="stylesheet" href="../assets/css/style.css">
-    <link rel="stylesheet"
-          href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="../assets/css/ui.css"><script src="../assets/js/ui.js" defer></script>
+    <script src="../assets/js/leaflet-loader.js"></script>
 <script src="../assets/js/map-pins.js"></script>
     <style>
-        
-        .dash-wrap  { display:grid;
-                      grid-template-columns:200px 1fr;
-                      flex:1 }
         .sidebar    { background:var(--surface-2);
                       border-right:1px solid var(--border);
                       padding:24px 0; position:sticky;
                       top:52px; height:calc(100vh - 52px);
                       overflow-y:auto }
-        .sidebar-role { font-size:10px; font-weight:700;
-                        letter-spacing:.08em; color:#126b4e;
-                        text-transform:uppercase;
-                        padding:0 20px; margin-bottom:12px }
-        .sidebar-link { display:flex; align-items:center; gap:10px;
-                        padding:9px 20px; font-size:13px;
-                        color:var(--text-secondary); cursor:pointer;
-                        text-decoration:none; width:100% }
-        .sidebar-link:hover { color:var(--text-primary);
-                              background:var(--surface-1) }
-        .sidebar-link.active { color:#085041; font-weight:500;
-                               background:#E1F5EE;
-                               border-left:3px solid #126b4e }
         .main       { padding:28px; max-width:800px }
-        .page-tag   { font-size:11px; font-weight:600;
-                      letter-spacing:.06em; color:#126b4e;
-                      text-transform:uppercase; margin-bottom:8px }
-        .page-title { font-size:26px; font-weight:400;
-                      margin-bottom:4px }
-        .page-sub   { font-size:13px; color:var(--text-secondary);
-                      margin-bottom:28px }
         .form-section { background:var(--surface-2);
                         border:1px solid var(--border);
                         border-radius:8px; padding:24px;
@@ -227,7 +202,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .form-group input:focus,
         .form-group select:focus,
         .form-group textarea:focus { outline:none;
-                                     border-color:#126b4e }
+                                     border-color:var(--accent) }
         .form-row   { display:grid;
                       grid-template-columns:1fr 1fr;
                       gap:14px }
@@ -249,7 +224,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         border-radius:6px; padding:24px;
                         text-align:center; cursor:pointer;
                         transition:.15s }
-        .photo-upload:hover { border-color:#126b4e }
+        .photo-upload:hover { border-color:var(--accent) }
         .photo-upload input { display:none }
         .photo-upload p { font-size:13px;
                           color:var(--text-secondary);
@@ -260,7 +235,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                        object-fit:cover;
                        border:1px solid var(--border) }
         .submit-btn { width:100%; padding:12px;
-                      background:#085041; color:#fff;
+                      background:var(--btn-hover); color:#fff;
                       border:none; border-radius:6px;
                       font-size:14px; font-weight:500;
                       cursor:pointer; margin-top:8px }
@@ -270,11 +245,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         border-radius:8px; padding:40px;
                         text-align:center }
         .success-icon { width:52px; height:52px;
-                        background:#E1F5EE; border-radius:50%;
+                        background:var(--accent-soft); border-radius:50%;
                         display:flex; align-items:center;
                         justify-content:center;
                         margin:0 auto 16px;
-                        border:1px solid #9FE1CB }
+                        border:1px solid var(--accent-line) }
         .success-icon svg { width:22px; height:22px; stroke:#126b4e }
     </style>
 <link rel="stylesheet" href="../assets/css/dark.css"><meta name="color-scheme" content="light dark"><script src="../assets/js/se-theme.js"></script><script src="../assets/js/se-i18n.js"></script></head>
@@ -303,7 +278,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </p>
             <div style="display:flex;gap:10px;justify-content:center">
                 <a href="listings.php"
-                   style="padding:10px 20px;background:#085041;
+                   style="padding:10px 20px;background:var(--btn-hover);
                           color:#fff;border-radius:6px;font-size:14px;
                           font-weight:500;text-decoration:none">
                     View my listings
@@ -432,7 +407,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     Click on the map to place a pin at your
                     property's exact location.
                     <span id="coordDisplay"
-                          style="color:#126b4e;margin-left:6px"></span>
+                          style="color:var(--accent);margin-left:6px"></span>
                 </p>
             </div>
 
@@ -503,7 +478,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <?php appShellEnd(); ?>
 
 <!-- Map for location picking -->
-<script>
+<script type="text/se-leaflet" data-target="map">
 const map = L.map('map').setView([-1.2921, 36.8219], 12);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OpenStreetMap contributors'

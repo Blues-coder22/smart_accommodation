@@ -27,8 +27,8 @@ $base = "
              WHEN b.status = 'completed' AND EXISTS (SELECT 1 FROM booking_events e2 WHERE e2.booking_id = b.booking_id AND e2.event = 'early_completion') THEN 'early_completed'
              WHEN b.status = 'cancelled' AND p.payment_status = 'confirmed' THEN 'cancelled_paid'
              WHEN b.status = 'cancelled' AND p.payment_status = 'pending'   THEN 'cancelled_awaiting'
-             WHEN b.status IN ('pending','confirmed') AND p.payment_id IS NULL AND b.check_in_date < CURDATE() THEN 'past_unpaid'
-             WHEN b.status IN ('pending','confirmed') AND (p.payment_id IS NULL OR p.payment_status <> 'confirmed') AND b.check_in_date <= DATE_ADD(CURDATE(), INTERVAL 3 DAY) THEN 'soon_unpaid'
+             WHEN b.status IN ('pending','accepted','payment_pending','confirmed') AND p.payment_id IS NULL AND b.check_in_date < CURDATE() THEN 'past_unpaid'
+             WHEN b.status IN ('pending','accepted','payment_pending','confirmed') AND (p.payment_id IS NULL OR p.payment_status <> 'confirmed') AND b.check_in_date <= DATE_ADD(CURDATE(), INTERVAL 3 DAY) THEN 'soon_unpaid'
              WHEN b.status IN ('completed','no_show') AND (p.payment_id IS NULL OR p.payment_status <> 'confirmed') THEN 'done_unpaid'
              ELSE ''
            END AS flag
@@ -41,10 +41,10 @@ $base = "
 $where = '1=1'; $params = [];
 switch ($filter) {
     case 'attention': $where = "flag <> ''"; break;
-    case 'unpaid':    $where = "status IN ('pending','confirmed') AND (payment_status IS NULL OR payment_status <> 'confirmed')"; break;
+    case 'unpaid':    $where = "status IN ('pending','accepted','payment_pending','confirmed') AND (payment_status IS NULL OR payment_status <> 'confirmed')"; break;
     case 'cancelled': $where = "status = 'cancelled'"; break;
     case 'cancelled_paid': $where = "flag = 'cancelled_paid'"; break;
-    case 'upcoming':  $where = "status IN ('pending','confirmed') AND check_out_date >= CURDATE()"; break;
+    case 'upcoming':  $where = "status IN ('pending','accepted','payment_pending','confirmed') AND check_out_date >= CURDATE()"; break;
     case 'completed': $where = "status IN ('completed','no_show')"; break;
     case 'all':       break;
     default:          $filter = 'all';
@@ -61,23 +61,23 @@ $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 $c = $pdo->query("SELECT
     SUM(flag <> '') AS attention,
     SUM(flag = 'cancelled_paid') AS cancelled_paid,
-    SUM(status IN ('pending','confirmed') AND (payment_status IS NULL OR payment_status <> 'confirmed')) AS unpaid,
+    SUM(status IN ('pending','accepted','payment_pending','confirmed') AND (payment_status IS NULL OR payment_status <> 'confirmed')) AS unpaid,
     SUM(status = 'cancelled') AS cancelled
     FROM ($base) y")->fetch(PDO::FETCH_ASSOC);
 
 $notes = [
-    'cancelled_paid'     => ['#fdecea', '#8a2b22', 'Cancelled, but the payment is marked received. A refund may be owed. Check with the host.'],
-    'cancelled_awaiting' => ['#fff6dc', '#7a5a00', 'Cancelled while a payment was awaiting confirmation. Make sure no money is held.'],
-    'past_unpaid'        => ['#fdecea', '#8a2b22', 'Check-in date has passed and no payment was ever submitted.'],
-    'soon_unpaid'        => ['#fff6dc', '#7a5a00', 'Check-in is within 3 days and the payment is not confirmed yet.'],
+    'cancelled_paid'     => ['var(--bad-bg)', 'var(--bad-fg)', 'Cancelled, but the payment is marked received. A refund may be owed. Check with the host.'],
+    'cancelled_awaiting' => ['var(--warn-bg)', 'var(--warn-fg)', 'Cancelled while a payment was awaiting confirmation. Make sure no money is held.'],
+    'past_unpaid'        => ['var(--bad-bg)', 'var(--bad-fg)', 'Check-in date has passed and no payment was ever submitted.'],
+    'soon_unpaid'        => ['var(--warn-bg)', 'var(--warn-fg)', 'Check-in is within 3 days and the payment is not confirmed yet.'],
     'early_completed'    => ['#f3e8ee', '#6e2a4d', 'The host completed this stay before the check-out date. Read the reason below and ask the guest if unsure.'],
-    'done_unpaid'        => ['#fff6dc', '#7a5a00', 'The stay is over but the payment was never confirmed.'],
+    'done_unpaid'        => ['var(--warn-bg)', 'var(--warn-fg)', 'The stay is over but the payment was never confirmed.'],
 ];
-$bookingBadge = ['pending' => ['#fff6dc', '#7a5a00', 'Pending'], 'confirmed' => ['#e7f3ec', '#1f5a3f', 'Confirmed'],
-                 'cancelled' => ['#fdecea', '#8a2b22', 'Cancelled'], 'completed' => ['#e8f0fa', '#24476f', 'Completed'], 'no_show' => ['#f3e8ee', '#6e2a4d', 'No show']];
+$bookingBadge = ['pending' => ['var(--warn-bg)', 'var(--warn-fg)', 'Awaiting host'], 'accepted' => ['var(--info-bg)', 'var(--info-fg)', 'Accepted: awaiting payment'], 'payment_pending' => ['var(--warn-bg)', 'var(--warn-fg)', 'Payment being checked'], 'confirmed' => ['#e7f3ec', '#1f5a3f', 'Confirmed'],
+                 'cancelled' => ['var(--bad-bg)', 'var(--bad-fg)', 'Cancelled'], 'completed' => ['#e8f0fa', '#24476f', 'Completed'], 'no_show' => ['#f3e8ee', '#6e2a4d', 'No show']];
 function payLabel($r) {
-    if (!$r['payment_id']) return ['#f1efe8', '#565c55', 'No payment submitted'];
-    return ['confirmed' => ['#e7f3ec', '#1f5a3f', 'Received'], 'pending' => ['#fff6dc', '#7a5a00', 'Awaiting host'], 'failed' => ['#fdecea', '#8a2b22', 'Failed']][$r['payment_status']] ?? ['#f1efe8', '#565c55', 'Unknown'];
+    if (!$r['payment_id']) return ['var(--soft)', 'var(--text-secondary)', $r['status'] === 'pending' ? 'Not requested yet' : 'No payment submitted'];
+    return ['confirmed' => ['#e7f3ec', '#1f5a3f', 'Received'], 'pending' => ['var(--warn-bg)', 'var(--warn-fg)', 'Awaiting host'], 'failed' => ['var(--bad-bg)', 'var(--bad-fg)', 'Failed']][$r['payment_status']] ?? ['var(--soft)', 'var(--text-secondary)', 'Unknown'];
 }
 ?>
 <!DOCTYPE html>
@@ -86,10 +86,11 @@ function payLabel($r) {
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Booking tracking — Admin</title>
 <link rel="stylesheet" href="../assets/css/style.css">
+<link rel="stylesheet" href="../assets/css/ui.css"><script src="../assets/js/ui.js" defer></script>
 <style>
 .bk-table{width:100%;border-collapse:collapse;font-size:13px}
-.bk-table th{text-align:left;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#565c55;padding:10px 12px;border-bottom:1px solid #e4e1d8;white-space:nowrap}
-.bk-table td{padding:12px;border-bottom:1px solid #eee;vertical-align:top}
+.bk-table th{text-align:left;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);padding:10px 12px;border-bottom:1px solid var(--border);white-space:nowrap}
+.bk-table td{padding:12px;border-bottom:1px solid var(--border);vertical-align:top}
 .pill{display:inline-block;padding:3px 10px;border-radius:99px;font-size:11px;font-weight:700;white-space:nowrap}
 .note{border-radius:8px;padding:7px 10px;font-size:12px;margin-top:8px;line-height:1.4}
 </style>
@@ -124,14 +125,14 @@ function payLabel($r) {
         <table class="bk-table">
             <thead><tr><th>Booking</th><th>Guest and host</th><th>Booking status</th><th>Payment</th></tr></thead>
             <tbody>
-            <?php if (!$rows): ?><tr><td colspan="4" style="text-align:center;color:#565c55;padding:30px">Nothing here. <?= $filter === 'attention' ? 'No bookings need a look right now.' : '' ?></td></tr><?php endif; ?>
-            <?php foreach ($rows as $r): $bb = $bookingBadge[$r['status']] ?? ['#f1efe8', '#565c55', ucfirst($r['status'])]; $pl = payLabel($r); ?>
+            <?php if (!$rows): ?><tr><td colspan="4" style="text-align:center;color:var(--text-secondary);padding:30px">Nothing here. <?= $filter === 'attention' ? 'No bookings need a look right now.' : '' ?></td></tr><?php endif; ?>
+            <?php foreach ($rows as $r): $bb = $bookingBadge[$r['status']] ?? ['var(--soft)', 'var(--text-secondary)', ucfirst($r['status'])]; $pl = payLabel($r); ?>
             <tr>
                 <td>
                     <strong><?= h(bookingLabel($r['booking_id'])) ?></strong> &middot; <a href="../tourist/details.php?id=<?= (int)$r['accommodation_id'] ?>"><?= h($r['title']) ?></a><br>
-                    <span style="color:#565c55"><?= date('d M', strtotime($r['check_in_date'])) ?> &ndash; <?= date('d M Y', strtotime($r['check_out_date'])) ?> &middot; <?= (int)$r['num_guests'] ?> guest<?= $r['num_guests'] == 1 ? '' : 's' ?></span><br>
+                    <span style="color:var(--text-secondary)"><?= date('d M', strtotime($r['check_in_date'])) ?> &ndash; <?= date('d M Y', strtotime($r['check_out_date'])) ?> &middot; <?= (int)$r['num_guests'] ?> guest<?= $r['num_guests'] == 1 ? '' : 's' ?></span><br>
                     <strong>KES <?= number_format($r['total_amount']) ?></strong>
-                    <span style="color:#565c55;font-size:11px">&middot; booked <?= date('d M Y', strtotime($r['created_at'])) ?></span>
+                    <span style="color:var(--text-secondary);font-size:11px">&middot; booked <?= date('d M Y', strtotime($r['created_at'])) ?></span>
                 </td>
                 <td>
                     <div style="margin-bottom:8px"><?= personChipHtml($r['t_id'], $r['t_name'], $r['t_photo'], 32, 'Guest') ?></div>
@@ -141,7 +142,7 @@ function payLabel($r) {
                 <td>
                     <span class="pill" style="background:<?= $pl[0] ?>;color:<?= $pl[1] ?>"><?= h($pl[2]) ?></span>
                     <?php if ($r['payment_id']): ?>
-                        <div style="font-size:12px;color:#565c55;margin-top:6px">KES <?= number_format($r['paid_amount']) ?> &middot; <?= h($r['payment_method'] ?: 'method not given') ?><br>Ref: <?= h($r['payment_reference'] ?: 'none') ?></div>
+                        <div style="font-size:12px;color:var(--text-secondary);margin-top:6px">KES <?= number_format($r['paid_amount']) ?> &middot; <?= h($r['payment_method'] ?: 'method not given') ?><br>Ref: <?= h($r['payment_reference'] ?: 'none') ?></div>
                         <a href="payments.php?filter=all&q=<?= h(bookingRef($r['booking_id'])) ?>" style="font-size:12px">Open in Payment tracking &rarr;</a>
                     <?php endif; ?>
                     <?php if ($r['flag'] !== ''): $n = $notes[$r['flag']]; ?>

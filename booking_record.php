@@ -5,6 +5,7 @@ require_once 'includes/auth.php';
 require_once 'includes/functions.php';
 require_once 'includes/db.php';
 require_once 'includes/commission.php';
+require_once 'includes/booking_workflow.php';
 require_once 'includes/payment_audit.php';
 require_once 'includes/booking_events.php';
 require_once 'includes/email.php';
@@ -34,8 +35,9 @@ $pm = fn($m) => paymentMethodLabel($m);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Booking record <?= h(bookingLabel($bid)) ?> — StayExplore Kenya</title>
     <link rel="stylesheet" href="assets/css/style.css">
+<link rel="stylesheet" href="assets/css/ui.css"><script src="assets/js/ui.js" defer></script>
     <link rel="stylesheet" href="assets/css/finance.css">
-    <style>body{background:#f6f1e7}.br-wrap{max-width:820px;margin:20px auto;padding:0 12px}.br-sheet{background:#fff;border:1px solid #d9d2c3;border-radius:8px;padding:28px 32px}.br-sheet h1{margin:0 0 2px;font-size:24px}.br-sheet h2{font-size:16px;margin:20px 0 8px;border-bottom:1px solid #e4ddcf;padding-bottom:4px}.br-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 24px}.br-grid dt{font-size:12px;text-transform:uppercase;color:#565c55;margin-top:8px}.br-grid dd{margin:2px 0 0;font-weight:500}@media print{body{background:#fff}.br-wrap{max-width:none;margin:0;padding:0}.br-sheet{border:0;padding:0}.no-print{display:none!important}}@media(max-width:600px){.br-grid{grid-template-columns:1fr}.br-sheet{padding:18px}}</style>
+    <style>body{background:#f6f1e7}.br-wrap{max-width:820px;margin:20px auto;padding:0 12px}.br-sheet{background:#fff;border:1px solid #d9d2c3;border-radius:8px;padding:28px 32px}.br-sheet h1{margin:0 0 2px;font-size:24px}.br-sheet h2{font-size:16px;margin:20px 0 8px;border-bottom:1px solid #e4ddcf;padding-bottom:4px}.br-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 24px}.br-grid dt{font-size:12px;text-transform:uppercase;color:#565c55;margin-top:8px}.br-grid dd{margin:2px 0 0;font-weight:500}@media print{body{background:#fff}.br-wrap{max-width:none;margin:0;padding:0}.br-sheet{border:0;padding:0}.no-print{display:none!important}}@media(max-width:768px){.br-grid{grid-template-columns:1fr}.br-sheet{padding:18px}}</style>
 </head>
 <body>
 <div class="br-wrap">
@@ -46,7 +48,7 @@ $pm = fn($m) => paymentMethodLabel($m);
     <h2>Booking</h2>
     <dl class="br-grid">
         <div><dt>Stay</dt><dd><?= h($b['title']) ?><br><span class="small"><?= h($b['location_name']) ?></span></dd></div>
-        <div><dt>Status</dt><dd><?= h(ucfirst($b['status'])) ?></dd></div>
+        <div><dt>Status</dt><dd><?= h(bookingStatusLabel($b['status'], $isHost ? 'host' : 'tourist')) ?></dd></div>
         <div><dt>Check-in</dt><dd><?= h($b['check_in_date']) ?></dd></div>
         <div><dt>Check-out</dt><dd><?= h($b['check_out_date']) ?> (<?= $nights ?> night<?= $nights > 1 ? 's' : '' ?>, <?= (int)$b['num_guests'] ?> guest<?= (int)$b['num_guests'] > 1 ? 's' : '' ?>)</dd></div>
         <div><dt>Guest</dt><dd><?= h($b['tourist_name']) ?></dd></div>
@@ -56,9 +58,8 @@ $pm = fn($m) => paymentMethodLabel($m);
     <h2>Amounts</h2>
     <dl class="br-grid">
     <?php if ($isHost && !$isAdmin && !$sp['legacy']): ?>
-        <div><dt>Your price</dt><dd><?= kes($sp['total'] - $sp['service_fee']) ?></dd></div>
-        <div><dt>Platform commission (<?= h(pct($b['commission_rate'])) ?>%)</dt><dd>– <?= kes($sp['commission']) ?></dd></div>
         <div><dt>The guest pays you</dt><dd><strong><?= kes($sp['host_amount']) ?></strong></dd></div>
+        <?php if ($sp['mode'] === 'invoice'): ?><div><dt>Your commission</dt><dd><?= kes($sp['commission_deferred']) ?> <span class="small">(<?= h(pct($b['commission_rate'])) ?>%, invoiced to you after the completed stay)</span></dd></div><?php endif; ?>
     <?php else: ?>
         <div><dt>Booking total</dt><dd><strong><?= kes($sp['total']) ?></strong></dd></div>
         <?php if (!$sp['legacy'] && $sp['platform'] > 0): ?>

@@ -106,9 +106,9 @@ $monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'O
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><?= h($title) ?> — StayExplore Kenya</title>
   <link rel="stylesheet" href="../assets/css/style.css">
+<link rel="stylesheet" href="../assets/css/ui.css"><script src="../assets/js/ui.js" defer></script>
   <link rel="stylesheet" href="../assets/css/attractions.css">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="../assets/js/leaflet-loader.js"></script>
 <link rel="stylesheet" href="../assets/css/dark.css"><meta name="color-scheme" content="light dark"><script src="../assets/js/se-theme.js"></script><script src="../assets/js/se-i18n.js"></script></head>
 <body>
 <?php include __DIR__ . '/../includes/header.php'; ?>
@@ -149,6 +149,15 @@ $monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'O
       </div>
     </div>
   </header>
+  <?php if (count($heroUrls) > 0): ?>
+  <section class="att-gallery" aria-label="Photo gallery">
+    <h2 style="font-size:20px;margin:22px 0 10px">Photo gallery</h2>
+    <div class="gal-grid" data-gallery>
+      <?php foreach ($heroUrls as $gi => $gu): ?><button type="button" class="gal-item<?= $gi === 0 && count($heroUrls) > 2 ? ' gal-big' : '' ?>" data-full="<?= h($gu) ?>" data-alt="<?= h($attraction['name']) ?> photo <?= $gi + 1 ?>" aria-label="Open photo <?= $gi + 1 ?> of <?= count($heroUrls) ?>"><img src="<?= h($gu) ?>" alt="<?= h($attraction['name']) ?> photo <?= $gi + 1 ?>" loading="lazy"></button><?php endforeach; ?>
+    </div>
+  </section>
+  <?php endif; ?>
+
 
   <!-- Stats -->
   <section class="att-stats att-reveal" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr))">
@@ -308,11 +317,12 @@ $monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'O
 <?php include __DIR__ . '/../includes/footer.php'; ?>
 <?php if ($attraction): ?>
 <script src="../assets/js/slideshow.js"></script>
+<script src="../assets/js/lightbox.js"></script>
 <script src="../assets/js/attractions.js"></script>
 <?php if ($hasCoords): ?>
 <script src="../assets/js/map-pins.js"></script>
 <script src="../assets/js/directions.js"></script>
-<script>
+<script type="text/se-leaflet" data-target="attractionMap">
 (function () {
   var lat = <?= (float)$attraction['latitude'] ?>, lng = <?= (float)$attraction['longitude'] ?>;
   var name = <?= json_encode(html_entity_decode((string)$attraction['name'], ENT_QUOTES, 'UTF-8'), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;

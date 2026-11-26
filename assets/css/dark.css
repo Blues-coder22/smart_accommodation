@@ -17,6 +17,11 @@
 
 html[data-theme="dark"]{
   color-scheme:dark;
+  --accent:#5cc79a; --accent-strong:#8be3bc; --accent-soft:#17352a; --accent-line:#2e6a52;
+  --btn:#1b7d5d; --btn-hover:#166a50; --heading:#e8ece9; --text-tertiary:#8a968f;
+  --warn-bg:#33290f; --warn-fg:#f2c96b; --warn-line:#5c4a17;
+  --bad-bg:#3a1f1c; --bad-fg:#ff9f93; --bad-line:#6a2f29;
+  --info-bg:#10293a; --info-fg:#7cc4ee;
   --ink:#e8ece9; --text-primary:#e8ece9;
   --muted:#a3ada7; --text-secondary:#a3ada7;
   --cream:#0f1512; --surface-1:#0f1512;
@@ -626,3 +631,26 @@ html[data-theme="dark"] .se-lang-note{background:#171f1b;color:#e8ece9;border-co
 
 /* visually hidden text for screen readers (was only defined on a few pages) */
 .sr-only{position:absolute!important;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+/* v9.33: shared components follow the tokens above; these few rules keep primary buttons and scrollbars readable in dark mode */
+html[data-theme="dark"] .btn-sm-primary,html[data-theme="dark"] .fin-btn:not(.ghost):not(.danger),html[data-theme="dark"] .btn-save{background:var(--btn)!important;border-color:var(--btn)!important;color:#fff!important}
+html[data-theme="dark"] .btn-sm-primary:hover{background:var(--btn-hover)!important;border-color:var(--btn-hover)!important}
+html[data-theme="dark"] .tabs,html[data-theme="dark"] .table-scroll,html[data-theme="dark"] .fin-scroll{scrollbar-color:var(--border-strong) transparent}
+
+html[data-theme="dark"] .filter-tab.active{color:#fff!important}
+
+/* v9.33: the homepage has its own variable set (home.css). Give it dark values so it follows the theme like every other page. */
+html[data-theme="dark"]{--hx-cream:#0f1512;--hx-sand:#17201b;--hx-paper:#141c18;--hx-ink:#e8ece9;--hx-muted:#a3ada7;--hx-line:#2a3730;--hx-forest:#1b7d5d;--hx-forest2:#146048;--hx-terra:#e8956f;--hx-terra-soft:#33231c}
+html[data-theme="dark"] .hx-btn.light{background:var(--hx-forest)!important;border-color:var(--hx-forest)!important;color:#fff!important}
+html[data-theme="dark"] .hx-btn.light:hover{background:var(--hx-forest2)!important}
+html[data-theme="dark"] .hx-dots button.on{background:#fff!important;border-color:#fff!important}
+
+/* v9.33: map controls, popups and attribution follow the theme (tiles are dimmed above) */
+html[data-theme="dark"] .leaflet-bar a,html[data-theme="dark"] .leaflet-bar a:focus{background:var(--surface-2);color:var(--ink);border-color:var(--border)}
+html[data-theme="dark"] .leaflet-bar a:hover{background:var(--soft)}
+html[data-theme="dark"] .leaflet-bar a.leaflet-disabled{background:var(--soft);color:var(--text-tertiary)}
+html[data-theme="dark"] .leaflet-popup-content-wrapper,html[data-theme="dark"] .leaflet-popup-tip{background:var(--surface-2);color:var(--ink);box-shadow:0 3px 14px rgba(0,0,0,.5)}
+html[data-theme="dark"] .leaflet-popup-content a{color:var(--accent)}
+html[data-theme="dark"] .leaflet-container a.leaflet-popup-close-button{color:var(--text-secondary)}
+html[data-theme="dark"] .leaflet-control-attribution{background:rgba(15,21,18,.82)!important;color:var(--text-secondary)}
+html[data-theme="dark"] .leaflet-control-attribution a{color:var(--accent)}

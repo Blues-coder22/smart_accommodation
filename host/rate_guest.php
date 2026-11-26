@@ -62,9 +62,10 @@ if (!$done && $_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rate guest — StayExplore Kenya</title>
     <link rel="stylesheet" href="../assets/css/style.css">
+<link rel="stylesheet" href="../assets/css/ui.css"><script src="../assets/js/ui.js" defer></script>
     <style>
         .rg-wrap { max-width:640px; margin:0 auto; padding:32px 24px }
-        .rg-card { background:var(--surface-2,#fff); border:1px solid var(--border,#ddd); border-radius:8px; padding:28px }
+        .rg-card { background:var(--surface-2,var(--surface-2)); border:1px solid var(--border,var(--border)); border-radius:8px; padding:28px }
         .rg-stars { display:flex; gap:10px; margin:8px 0 18px; flex-wrap:wrap }
         .rg-stars label { display:flex; align-items:center; gap:6px; cursor:pointer; font-size:14px }
         .rg-card textarea { width:100%; min-height:110px }

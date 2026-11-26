@@ -151,7 +151,8 @@ function roleHome($role = null) {
     $base = function_exists('appBasePath') ? appBasePath() : '/smart_accommodation';
     if ($role === 'host') return $base . '/host/dashboard.php';
     if ($role === 'admin') return $base . '/admin/dashboard.php';
-    if ($role === 'tourist') return $base . '/tourist/search.php?type=accommodation';
+    // v9.38: travellers land on the homepage (map + Explore Stays / Discover Attractions) straight after signing in.
+    if ($role === 'tourist') return $base . '/index.php';
     return $base . '/index.php';
 }
 

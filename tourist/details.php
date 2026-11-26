@@ -97,7 +97,7 @@ $booked = $pdo->prepare("
     SELECT check_in_date, check_out_date 
     FROM bookings
     WHERE accommodation_id = ? 
-    AND status IN ('pending','confirmed')
+    AND status IN ('pending','accepted','payment_pending','confirmed')
 ");
 $booked->execute([$accommodation_id]);
 $booked_dates = $booked->fetchAll();
@@ -196,134 +196,109 @@ foreach (reviewCategoryLabels() as $col => $n) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= h($acc['title']) ?> — StayExplore Kenya</title>
     <link rel="stylesheet" href="../assets/css/style.css">
-    <link rel="stylesheet"
-          href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="../assets/css/ui.css"><script src="../assets/js/ui.js" defer></script>
+    <script src="../assets/js/leaflet-loader.js"></script>
     <style>
         .details-layout { max-width: 1100px; margin: 0 auto;
                           padding: 24px; }
         .details-gallery { margin-bottom: 24px; }
-        .photo-gallery { display: grid;
-                         grid-template-columns: minmax(0, 1.65fr) repeat(2, minmax(0, 1fr));
-                         grid-template-rows: repeat(2, minmax(0, 1fr));
-                         gap: 10px; border-radius: 16px;
-                         overflow: hidden; margin-bottom: 30px;
-                         height: clamp(300px, 38vw, 470px);
-                         background: #f0eee7; }
-        .photo-gallery img { display:block; width: 100%; height: 100%;
-                             min-width:0; min-height:0; object-fit: contain;
-                             background:#f0eee7; cursor: zoom-in;
-                             transition: transform .35s ease, filter .35s ease; }
-        .photo-gallery img:hover { transform: scale(1.025); filter: saturate(1.06); }
-        .photo-gallery .main-photo { grid-row: span 2; }
         .details-grid { display: grid;
                         grid-template-columns: 1fr 340px;
                         gap: 32px; }
         .details-main h1 { font-size: 26px; font-weight: 700;
-                           color: #085041; margin-bottom: 6px; }
+                           color:var(--accent-strong); margin-bottom: 6px; }
         .details-meta { display: flex; gap: 16px; align-items: center;
-                        font-size: 14px; color: #666;
+                        font-size: 14px; color:var(--text-secondary);
                         margin-bottom: 16px; }
         .rating-big { font-size: 18px; font-weight: 700;
-                      color: #085041; }
+                      color:var(--accent-strong); }
         .host-info { display: flex; align-items: center; gap: 12px;
-                     padding: 16px; background: #f9f9f9;
+                     padding: 16px; background:#f9f9f9;
                      border-radius: 10px; margin-bottom: 20px; }
         .host-avatar { width: 48px; height: 48px; border-radius: 50%;
-                       background: #126b4e; display: flex;
+                       background:var(--btn); display: flex;
                        align-items: center; justify-content: center;
                        color: white; font-size: 18px; font-weight: 700;
                        overflow: hidden; }
         .host-avatar img { width: 100%; height: 100%;
                            object-fit: cover; }
         .section-title { font-size: 18px; font-weight: 700;
-                         color: #085041; margin: 24px 0 12px; }
+                         color:var(--accent-strong); margin: 24px 0 12px; }
         .amenities-grid { display: grid;
                           grid-template-columns: repeat(
                               auto-fill, minmax(140px,1fr));
                           gap: 8px; }
         .amenity-item { display: flex; align-items: center; gap: 8px;
-                        font-size: 13px; color: #444;
-                        padding: 8px 12px; background: #f5f5f5;
+                        font-size: 13px; color:#444;
+                        padding: 8px 12px; background:#f5f5f5;
                         border-radius: 6px; }
         .rules-list { list-style: none; }
-        .rules-list li { padding: 8px 0; border-bottom: 1px solid #eee;
-                         font-size: 14px; color: #555;
+        .rules-list li { padding: 8px 0; border-bottom:1px solid var(--border);
+                         font-size: 14px; color:#555;
                          display: flex; gap: 8px; }
-        .rules-list li::before { content: "•"; color: #126b4e; }
+        .rules-list li::before { content: "•"; color:var(--accent); }
         #map { height: 280px; border-radius: 10px;
-               border: 1px solid #ddd; margin-bottom: 20px; }
+               border:1px solid var(--border); margin-bottom: 20px; }
         .booking-card { background: white; border-radius: 12px;
                         padding: 24px;
                         box-shadow: 0 2px 16px rgba(0,0,0,0.1);
                         position: sticky; top: 80px; }
-        .booking-price { font-size: 24px; font-weight: 700;
-                         color: #085041; margin-bottom: 16px; }
-        .booking-price span { font-size: 14px; font-weight: 400;
-                              color: #666; }
         .booking-form .form-group { margin-bottom: 12px; }
-        .price-breakdown { border-top: 1px solid #eee;
+        .price-breakdown { border-top:1px solid var(--border);
                            padding-top: 12px; margin-top: 12px; }
         .price-row { display: flex; justify-content: space-between;
                      font-size: 14px; margin-bottom: 6px; }
         .price-total { font-weight: 700; font-size: 15px;
-                       border-top: 1px solid #eee; padding-top: 8px;
+                       border-top:1px solid var(--border); padding-top: 8px;
                        margin-top: 8px; }
-        .review-card { padding: 16px; background: #f9f9f9;
+        .review-card { padding: 16px; background:#f9f9f9;
                        border-radius: 10px; margin-bottom: 12px; }
         .review-header { display: flex; justify-content: space-between;
                          align-items: center; margin-bottom: 8px; }
         .review-author { font-size: 14px; font-weight: 600;
-                         color: #085041; }
-        .review-date { font-size: 12px; color: #565c55; }
-        .review-stars { color: #f39c12; margin-bottom: 6px; }
-        .review-text { font-size: 14px; color: #555; line-height: 1.5; }
-        .host-reply { background: #e8f8f3; border-left: 3px solid #126b4e;
+                         color:var(--accent-strong); }
+        .review-date { font-size: 12px; color:var(--text-secondary); }
+        .review-stars { color:#f39c12; margin-bottom: 6px; }
+        .review-text { font-size: 14px; color:#555; line-height: 1.5; }
+        .host-reply { background:#e8f8f3; border-left:3px solid var(--accent);
                       padding: 10px 12px; margin-top: 10px;
                       border-radius: 0 6px 6px 0; font-size: 13px;
-                      color: #085041; }
-        .no-photos { height: 360px; background: #e8f8f3; display: flex;
-                     align-items: center; justify-content: center;
-                     font-size: 60px; border-radius: 12px;
-                     margin-bottom: 24px; }
+                      color:var(--accent-strong); }
         .nearby-attraction { display: flex; align-items: center;
                              gap: 12px; padding: 10px 0;
-                             border-bottom: 1px solid #eee;
+                             border-bottom:1px solid var(--border);
                              font-size: 14px; }
         .nearby-icon { font-size: 20px; }
         .nearby-info h4 { font-size: 14px; font-weight: 600;
-                          color: #085041; margin-bottom: 2px; }
-        .nearby-info p { font-size: 12px; color: #565c55; }
-        .details-meta .stars-under { color:#a3462a; letter-spacing:2px; font-size:17px; }
-        .rating-summary h2 { font-size:34px; margin:0; color:#0d3b2e; }
+                          color:var(--accent-strong); margin-bottom: 2px; }
+        .nearby-info p { font-size: 12px; color:var(--text-secondary); }
+        .details-meta .stars-under { color:var(--terracotta); letter-spacing:2px; font-size:17px; }
+        .rating-summary h2 { font-size:34px; margin:0; color:var(--heading); }
         .rating-bars { display:grid; gap:11px; margin-top:16px; }
         .rating-row { display:grid; grid-template-columns:92px minmax(0,1fr) 28px; align-items:center; gap:10px; font-size:12px; }
-        .rating-row > span { color:#565c55; }
+        .rating-row > span { color:var(--text-secondary); }
         .rating-row > strong { text-align:right; font-size:12px; }
         .rating-track { height:7px; background:#e8e5dc; border-radius:99px; overflow:hidden; }
         .rating-track span { display:block; height:100%; background:#a3462a; border-radius:99px; }
         .info-grid { display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-top:22px; align-items:stretch; }
-        .info-card { background:#fff; border:1px solid #e4e1d8; border-radius:12px; padding:20px; }
-        .info-card .eyebrow { font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:#a3462a; font-weight:700; }
-        .info-card h2 { font-size:22px; margin:2px 0 8px; color:#0d3b2e; }
+        .info-card { background:var(--surface-2); border:1px solid var(--border); border-radius:12px; padding:20px; }
+        .info-card .eyebrow { font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--terracotta); font-weight:700; }
+        .info-card h2 { font-size:22px; margin:2px 0 8px; color:var(--heading); }
         .amenities-grid2 { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px 16px; margin-top:12px; }
-        .amenity-item2 { display:flex; align-items:center; gap:10px; min-width:0; padding:8px 0; border-bottom:1px solid #eee; }
-        .amenity-icon { width:34px; height:34px; flex:0 0 34px; display:grid; place-items:center; border:1px solid #cfd8d1; border-radius:6px; color:#0d3b2e; font-size:11px; font-weight:700; }
+        .amenity-item2 { display:flex; align-items:center; gap:10px; min-width:0; padding:8px 0; border-bottom:1px solid var(--border); }
+        .amenity-icon { width:34px; height:34px; flex:0 0 34px; display:grid; place-items:center; border:1px solid #cfd8d1; border-radius:6px; color:var(--heading); font-size:11px; font-weight:700; }
         .amenity-item2 strong { display:block; font-size:13px; }
-        .amenity-item2 small { display:block; color:#565c55; font-size:11px; }
-        .res-price { font-size:24px; font-weight:700; color:#0d3b2e; }
-        .res-price small { font-size:13px; font-weight:400; color:#666; }
+        .amenity-item2 small { display:block; color:var(--text-secondary); font-size:11px; }
+        .res-price { font-size:24px; font-weight:700; color:var(--heading); }
+        .res-price small { font-size:13px; font-weight:400; color:var(--text-secondary); }
         .res-dates { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:16px; }
-        .res-card label { display:block; font-size:10px; letter-spacing:.1em; font-weight:700; color:#565c55; margin-bottom:5px; }
+        .res-card label { display:block; font-size:10px; letter-spacing:.1em; font-weight:700; color:var(--text-secondary); margin-bottom:5px; }
         .res-card input, .res-card select { width:100%; }
-        .fav-link { display:block; width:100%; text-align:center; margin-top:13px; background:none; border:0; cursor:pointer; font:inherit; font-size:13px; font-weight:700; color:#0d3b2e; }
-        .fav-link:hover { color:#a3462a; }
-        @media (max-width: 900px) { .info-grid { grid-template-columns:1fr; } }
+        .fav-link { display:block; width:100%; text-align:center; margin-top:13px; background:none; border:0; cursor:pointer; font:inherit; font-size:13px; font-weight:700; color:var(--heading); }
+        .fav-link:hover { color:var(--terracotta); }
+        @media (max-width: 1024px) { .info-grid { grid-template-columns:1fr; } }
         @media (max-width: 768px) {
             .details-grid { grid-template-columns: 1fr; }
-            .photo-gallery { grid-template-columns: 1fr; grid-template-rows: 280px; height:auto; }
-            .photo-gallery img { height:280px; }
-            .photo-gallery img:not(.main-photo) { display: none; }
             .booking-card { position: static; }
         }
     </style>
@@ -338,7 +313,7 @@ foreach (reviewCategoryLabels() as $col => $n) {
 
     <!-- Back link -->
     <a href="javascript:history.back()"
-       style="font-size:14px;color:#666;
+       style="font-size:14px;color:var(--text-secondary);
               display:inline-block;margin-bottom:16px">
         ← Back to results
     </a>
@@ -382,19 +357,20 @@ foreach (reviewCategoryLabels() as $col => $n) {
                 <div class="host-avatar">
                     <?php if ($acc['host_photo']): ?>
                         <img src="<?= h(profilePhotoUrl($acc['host_id'], $acc['host_photo'])) ?>"
-                             alt="Photo of <?= h($acc['host_name']) ?>">
+                             alt="Photo of <?= h($acc['host_name']) ?>" loading="lazy" decoding="async">
                     <?php else: ?>
                         <?= h(strtoupper(substr($acc['host_name'], 0, 1))) ?>
                     <?php endif; ?>
                 </div>
                 <div>
                     <div style="font-weight:600;font-size:14px">
-                        Hosted by <?= h($acc['host_name']) ?>
+                        Hosted by <a href="../view_profile.php?id=<?= (int)$acc['host_id'] ?>"><?= h($acc['host_name']) ?></a>
                         <?php if (!empty(verifiedHostIds($pdo, [$acc['host_id']]))) echo hostVerifiedBadge(); ?>
                     </div>
-                    <div style="font-size:12px;color:#565c55">
+                    <div style="font-size:12px;color:var(--text-secondary)">
                         <?= h($acc['host_phone'] ?? '') ?>
                     </div>
+                    <div style="font-size:12px"><a href="../view_profile.php?id=<?= (int)$acc['host_id'] ?>">View host profile</a> &middot; <a href="report.php?type=host&amp;target_id=<?= (int)$accommodation_id ?>">Report this host</a></div>
                 </div>
             </div>
 
@@ -410,7 +386,7 @@ foreach (reviewCategoryLabels() as $col => $n) {
                     <?php if ((int)$acc['total_reviews'] > 0): ?>
                         <div class="eyebrow">Guest rating</div>
                         <h2><?= number_format($avg,1) ?></h2>
-                        <p style="font-size:12px;color:#666;margin:0"><?= $avg >= 4.7 ? 'Excellent' : 'Very good' ?> · <?= (int)$acc['total_reviews'] ?> verified review<?= $acc['total_reviews'] != 1 ? 's' : '' ?></p>
+                        <p style="font-size:12px;color:var(--text-secondary);margin:0"><?= $avg >= 4.7 ? 'Excellent' : 'Very good' ?> · <?= (int)$acc['total_reviews'] ?> verified review<?= $acc['total_reviews'] != 1 ? 's' : '' ?></p>
                         <div class="rating-bars">
                             <?php foreach ($rating_bars as [$n, $v]): ?>
                             <div class="rating-row"><span><?= h($n) ?></span><div class="rating-track"><span style="width:<?= round($v / 5 * 100) ?>%"></span></div><strong><?= number_format($v,1) ?></strong></div>
@@ -419,7 +395,7 @@ foreach (reviewCategoryLabels() as $col => $n) {
                     <?php else: ?>
                         <div class="eyebrow">Guest rating</div>
                         <h2>New</h2>
-                        <p style="font-size:13px;color:#666">This is a new listing. Verified guest reviews will appear after the first stays.</p>
+                        <p style="font-size:13px;color:var(--text-secondary)">This is a new listing. Verified guest reviews will appear after the first stays.</p>
                     <?php endif; ?>
                 </div>
                 <div class="info-card">
@@ -432,7 +408,7 @@ foreach (reviewCategoryLabels() as $col => $n) {
                         <?php endforeach; ?>
                     </div>
                     <?php else: ?>
-                        <p style="font-size:13px;color:#666">The host has not listed amenities yet.</p>
+                        <p style="font-size:13px;color:var(--text-secondary)">The host has not listed amenities yet.</p>
                     <?php endif; ?>
                 </div>
             </section>
@@ -475,7 +451,7 @@ foreach (reviewCategoryLabels() as $col => $n) {
             <!-- Nearby Attractions -->
             <?php if (!empty($nearby)): ?>
             <h2 class="section-title">Nearby Attractions</h2>
-            <p style="font-size:12px;color:#4f5f57;line-height:1.5;margin:0 0 10px">Entry fees are set by the park or site (often the government) and paid at the gate. They are only a guide to what you may pay on the day, and they are never added to your booking.</p>
+            <p style="font-size:12px;color:var(--text-secondary);line-height:1.5;margin:0 0 10px">Entry fees are set by the park or site (often the government) and paid at the gate. They are only a guide to what you may pay on the day, and they are never added to your booking.</p>
             <?php foreach (array_slice($nearby, 0, 5) as $att): ?>
             <div class="nearby-attraction">
                 <div class="nearby-icon" style="width:8px;height:8px;border-radius:50%;background:#a3462a"></div>
@@ -496,21 +472,21 @@ foreach (reviewCategoryLabels() as $col => $n) {
                &nbsp; <a href="search.php?type=attraction" style="font-size:13px">Show all attractions</a></p>
             <?php else: ?>
             <h2 class="section-title">Nearby Attractions</h2>
-            <p style="font-size:13px;color:#666">No listed attractions close by yet. <a href="search.php?type=attraction&stay_id=<?= (int)$accommodation_id ?>&radius=500">See the closest ones</a>.</p>
+            <p style="font-size:13px;color:var(--text-secondary)">No listed attractions close by yet. <a href="search.php?type=attraction&stay_id=<?= (int)$accommodation_id ?>&radius=500">See the closest ones</a>.</p>
             <?php endif; ?>
 
             <!-- Reviews -->
             <h2 class="section-title">
                 Guest Reviews
                 <?php if ($acc['total_reviews'] > 0): ?>
-                <span style="font-size:14px;font-weight:400;color:#666">
+                <span style="font-size:14px;font-weight:400;color:var(--text-secondary)">
                     (<?= $acc['total_reviews'] ?>)
                 </span>
                 <?php endif; ?>
             </h2>
 
             <?php if (empty($reviews)): ?>
-                <p style="color:#565c55;font-size:14px">
+                <p style="color:var(--text-secondary);font-size:14px">
                     No reviews yet — be the first to review after your stay.
                 </p>
             <?php else: ?>
@@ -545,7 +521,7 @@ foreach (reviewCategoryLabels() as $col => $n) {
             <!-- Report Listing -->
             <?php if (isLoggedIn() && hasRole('tourist')): ?>
             <div style="margin-top:24px;padding-top:16px;
-                        border-top:1px solid #eee">
+                        border-top:1px solid var(--border)">
                 <a href="../contact.html"
                    style="font-size:13px;color:#e74c3c">
                     Report this listing
@@ -567,13 +543,15 @@ foreach (reviewCategoryLabels() as $col => $n) {
                     <div class="res-dates">
                         <div>
                             <label for="check_in">CHECK IN</label>
-                            <input type="date" name="check_in" min="<?= date('Y-m-d') ?>" id="check_in" required>
+                            <input type="date" name="check_in" min="<?= date('Y-m-d', strtotime('+1 day')) ?>" id="check_in" required>
                         </div>
                         <div>
                             <label for="check_out">CHECK OUT</label>
-                            <input type="date" name="check_out" min="<?= date('Y-m-d') ?>" id="check_out" required>
+                            <input type="date" name="check_out" min="<?= date('Y-m-d', strtotime('+2 days')) ?>" id="check_out" required>
                         </div>
                     </div>
+                    <p id="dateNote" class="small" role="alert" style="display:none;margin:8px 0 0;padding:8px 10px;border-radius:8px;background:var(--warn-bg,#fff8e1);color:var(--warn-fg,#7a5200)"></p>
+                    <p class="small" style="margin:8px 0 0;color:var(--text-secondary)">Bookings start from tomorrow. You cannot book today or days that have passed.</p>
                     <div style="margin-top:14px">
                         <label for="guests">GUESTS</label>
                         <select name="guests" id="guests">
@@ -594,7 +572,7 @@ foreach (reviewCategoryLabels() as $col => $n) {
                         <div class="price-row price-total"><span>Total</span><span id="total-amount"><?= moneyHtml(0) ?></span></div>
                     </div>
 
-                    <p id="bookedWarn" style="display:none;margin:12px 0 0;padding:8px 10px;background:#fdecea;color:#8a2b22;border-radius:8px;font-size:12px">Some of these nights are already booked. Please pick other dates (the shaded days in the calendar are taken).</p>
+                    <p id="bookedWarn" style="display:none;margin:12px 0 0;padding:8px 10px;background:var(--bad-bg);color:var(--bad-fg);border-radius:8px;font-size:12px">Some of these nights are already booked. Please pick other dates (the shaded days in the calendar are taken).</p>
                     <button type="submit" class="btn btn-primary btn-full" style="margin-top:16px">Reserve</button>
                 </form>
 
@@ -619,7 +597,7 @@ foreach (reviewCategoryLabels() as $col => $n) {
                     Sign in to Book
                 </a>
                 <p style="text-align:center;font-size:12px;
-                           color:#565c55;margin-top:8px">
+                           color:var(--text-secondary);margin-top:8px">
                     Don't have an account? 
                     <a href="../register.php">Sign up</a>
                 </p>
@@ -637,7 +615,7 @@ foreach (reviewCategoryLabels() as $col => $n) {
 <script src="../assets/js/map-pins.js"></script>
 <script src="../assets/js/directions.js"></script>
 <?php currencyScript(); ?>
-<script>
+<script type="text/se-leaflet" data-target="map">
 const map = L.map('map').setView(
     [<?= $acc['latitude'] ?>, <?= $acc['longitude'] ?>], 14
 );
@@ -720,6 +698,20 @@ function calcPrice() {
             document.getElementById('check_in').value;
     }
 }
+(function () {   // tell the guest at once when a chosen day is today or already past
+    var ci = document.getElementById('check_in'), co = document.getElementById('check_out'), note = document.getElementById('dateNote');
+    if (!ci || !note) return;
+    function iso(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+    function check() {
+        var t = new Date(); var today = iso(t); t.setDate(t.getDate() + 1); var tomorrow = iso(t), msg = '';
+        if (ci.value && ci.value < today) msg = 'That day has already passed. Please choose a check-in date from tomorrow onwards.';
+        else if (ci.value && ci.value === today) msg = 'You cannot book for today. The earliest check-in is tomorrow.';
+        else if (ci.value && co.value && co.value <= ci.value) msg = 'Check-out must be after check-in.';
+        note.textContent = msg; note.style.display = msg ? 'block' : 'none';
+        if (msg && ci.value && ci.value <= today) ci.value = '';
+    }
+    ci.addEventListener('change', check); co.addEventListener('change', check);
+})();
 </script>
 
 <!-- Highlight booked dates -->
@@ -746,6 +738,7 @@ document.getElementById('check_in').addEventListener('change', function() {
 </script>
 
 <script src="../assets/js/slideshow.js"></script>
+<script src="../assets/js/lightbox.js"></script>
 <script src="../assets/js/booking-calendar.js"></script>
 </body>
 </html>

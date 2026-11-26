@@ -4,6 +4,7 @@ require_once '../includes/functions.php';
 require_once '../includes/db.php';
 require_once '../includes/notifications.php';
 require_once '../includes/commission.php';
+require_once '../includes/invoice_reminders.php';
 require_once '../includes/email.php';
 if (session_status() === PHP_SESSION_NONE) session_start();
 requireLogin();
@@ -18,18 +19,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $c = (float)str_replace(',', '.', (string)($_POST['commission_rate'] ?? ''));
         $f = (float)str_replace(',', '.', (string)($_POST['service_fee'] ?? ''));
         $ins = mb_substr(trim((string)($_POST['instructions'] ?? '')), 0, 500);
-        $hold = (int)($_POST['hold_hours'] ?? 0); $reply = (int)($_POST['reply_hours'] ?? 0); $free = (int)($_POST['free_cancel_hours'] ?? -1);
-        if ($hold < 1 || $hold > 48 || $reply < 1 || $reply > 168 || $free < 0 || $free > 720) { setFlash('error', 'Time limits: payment details 1 to 48 hours, host reply 1 to 168 hours, free cancellation 0 to 720 hours.'); }
+        $payDl = (int)($_POST['payment_deadline_hours'] ?? 24); $reply = (int)($_POST['reply_hours'] ?? 0); $free = (int)($_POST['free_cancel_hours'] ?? -1);
+        if (!in_array($payDl, [12, 24, 48], true) || $reply < 1 || $reply > 168 || $free < 0 || $free > 720) { setFlash('error', 'Payment deadline must be 12, 24 or 48 hours; host reply 1 to 168 hours; free cancellation 0 to 720 hours.'); }
         elseif ($c < 0 || $c > 30 || $f < 0 || $f > 30) { setFlash('error', 'Rates must be between 0 and 30 percent.'); }
         else {
-            $mode = ($_POST['commission_mode'] ?? '') === 'invoice' ? 'invoice' : 'upfront';
+            $mode = 'invoice';   // launch model: the host pays the commission, never the guest
             $base = ($_POST['commission_base'] ?? '') === 'stay_only' ? 'stay_only' : 'stay_extras';
             $due = max(0, min(90, (int)($_POST['invoice_due_days'] ?? 7)));
             siteSettingSet('commission_mode', $mode, $admin_id); siteSettingSet('commission_base', $base, $admin_id);
             siteSettingSet('invoice_due_days', $due, $admin_id); siteSettingSet('block_overdue_hosts', isset($_POST['block_overdue_hosts']) ? '1' : '0', $admin_id);
+            siteSettingSet('invoice_reminders', isset($_POST['invoice_reminders']) ? '1' : '0', $admin_id);
+            siteSettingSet('invoice_reminder_before_days', max(0, min(30, (int)($_POST['invoice_reminder_before_days'] ?? 2))), $admin_id);
+            siteSettingSet('invoice_reminder_repeat_days', max(1, min(60, (int)($_POST['invoice_reminder_repeat_days'] ?? 7))), $admin_id);
             siteSettingSet('commission_rate_percent', $c, $admin_id); siteSettingSet('service_fee_percent', $f, $admin_id);
             if ($ins !== '') siteSettingSet('platform_pay_instructions', $ins, $admin_id);
-            siteSettingSet('booking_hold_hours', $hold, $admin_id); siteSettingSet('host_reply_hours', $reply, $admin_id); siteSettingSet('free_cancel_hours', $free, $admin_id);
+            siteSettingSet('payment_deadline_hours', $payDl, $admin_id); siteSettingSet('host_reply_hours', $reply, $admin_id); siteSettingSet('free_cancel_hours', $free, $admin_id);
             setFlash('success', 'Saved. New bookings will use these rates and time limits. Bookings already made keep their old rates.');
         }
     } elseif (in_array($act, ['hcp_accept', 'hcp_reject'], true)) {
@@ -40,6 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $pdo->prepare('UPDATE host_commission_payments SET status = ?, reviewed_at = NOW(), reviewed_by = ?, review_note = ? WHERE hcp_id = ?')->execute([$new, $admin_id, $note !== '' ? $note : null, $id]);
             notify($pdo, (int)$r['host_id'], $new === 'confirmed' ? 'Commission payment received' : 'Commission payment not accepted',
                 $new === 'confirmed' ? 'Your commission payment of KES ' . number_format($r['amount'], 2) . ' (ref ' . $r['reference'] . ') was confirmed.' : 'We could not match your commission payment (ref ' . $r['reference'] . ')' . ($note !== '' ? ': ' . $note : '') . '. Please check it and report it again.', 'host/commission.php');
+            syncCommissionInvoiceStatuses($pdo, (int)$r['host_id']);
             setFlash('success', $new === 'confirmed' ? 'Marked as received. The host has been told.' : 'Rejected. The host has been told.');
         }
     } elseif (in_array($act, ['accept', 'reject', 'refund'], true)) {
@@ -68,6 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $sum = platformSummary($pdo);
+$cs = commissionPlatformSummary($pdo);
 $perHost = $pdo->query("SELECT u.full_name, COUNT(*) AS n, SUM(pp.commission_amount) AS commission, SUM(pp.service_fee) AS fee, SUM(pp.amount) AS total
     FROM platform_payments pp JOIN users u ON u.user_id = pp.host_id WHERE pp.status = 'confirmed' GROUP BY u.user_id, u.full_name ORDER BY total DESC")->fetchAll(PDO::FETCH_ASSOC);
 $pending = $pdo->query("SELECT pp.*, u.full_name AS tourist, a.title FROM platform_payments pp JOIN users u ON u.user_id = pp.tourist_id
@@ -81,9 +87,15 @@ $lq->execute($filter ? [$filter] : []); $ledger = $lq->fetchAll(PDO::FETCH_ASSOC
 $cRate = commissionRatePercent(); $fRate = serviceFeePercent(); $cMode = commissionMode(); $cBase = commissionBase();
 $hcpPending = $pdo->query("SELECT c.*, u.full_name FROM host_commission_payments c JOIN users u ON u.user_id = c.host_id WHERE c.status = 'pending' ORDER BY c.created_at ASC")->fetchAll(PDO::FETCH_ASSOC);
 $invoiceHosts = [];
-foreach ($pdo->query("SELECT DISTINCT a.host_id, u.full_name FROM bookings b JOIN accommodations a ON a.accommodation_id = b.accommodation_id JOIN users u ON u.user_id = a.host_id WHERE b.commission_mode = 'invoice' AND b.commission_amount > 0")->fetchAll(PDO::FETCH_ASSOC) as $ih) {
-    $l = hostCommissionLedger($pdo, (int)$ih['host_id']); $ih += ['due' => $l['due'], 'paid' => $l['paid'], 'outstanding' => $l['outstanding'], 'overdue' => $l['overdue']]; $invoiceHosts[] = $ih;
+foreach ($pdo->query("SELECT DISTINCT ci.host_id, u.full_name FROM commission_invoices ci JOIN users u ON u.user_id = ci.host_id WHERE ci.status <> 'void'")->fetchAll(PDO::FETCH_ASSOC) as $ih) {
+    $l = hostCommissionLedger($pdo, (int)$ih['host_id']);
+    $ih += ['due' => $l['due'], 'paid' => $l['paid'], 'pending' => $l['pending'], 'outstanding' => $l['outstanding'], 'overdue' => $l['overdue'], 'n' => count($l['items'])];
+    $invoiceHosts[] = $ih;
 }
+usort($invoiceHosts, function ($a, $b) { return $b['outstanding'] <=> $a['outstanding']; });
+$overdueInv = $pdo->query("SELECT ci.*, u.full_name, a.title FROM commission_invoices ci JOIN users u ON u.user_id = ci.host_id JOIN bookings b ON b.booking_id = ci.booking_id JOIN accommodations a ON a.accommodation_id = b.accommodation_id
+    WHERE ci.status NOT IN ('paid','void') AND ci.due_date < CURDATE() ORDER BY ci.due_date ASC LIMIT 100")->fetchAll(PDO::FETCH_ASSOC);
+$hcpHistory = $pdo->query("SELECT c.*, u.full_name FROM host_commission_payments c JOIN users u ON u.user_id = c.host_id ORDER BY c.created_at DESC LIMIT 60")->fetchAll(PDO::FETCH_ASSOC);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -92,6 +104,7 @@ foreach ($pdo->query("SELECT DISTINCT a.host_id, u.full_name FROM bookings b JOI
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Revenue and commission — StayExplore Kenya</title>
     <link rel="stylesheet" href="../assets/css/style.css">
+<link rel="stylesheet" href="../assets/css/ui.css"><script src="../assets/js/ui.js" defer></script>
     <link rel="stylesheet" href="../assets/css/finance.css">
 <link rel="stylesheet" href="../assets/css/dark.css"><meta name="color-scheme" content="light dark"><script src="../assets/js/se-theme.js"></script><script src="../assets/js/se-i18n.js"></script></head>
 <body>
@@ -99,46 +112,47 @@ foreach ($pdo->query("SELECT DISTINCT a.host_id, u.full_name FROM bookings b JOI
         <?= showFlash() ?>
         <div class="page-tag">Admin</div>
         <h1 class="page-title">Revenue and commission</h1>
-        <p class="page-sub"><?= $cMode === 'invoice' ? '<strong>Current mode: invoice after the stay.</strong> New bookings: the guest pays the host in full and the host owes you the commission after check-out. The text below describes the <em>with the booking</em> mode, which still applies to bookings made in that mode. ' : '' ?><strong>How the money moves:</strong> for every booking the guest pays <em>two</em> things, each straight to its owner. The host's share (stay and extras, minus your commission) goes to the <strong>host</strong>. Your share (the guest service fee plus the commission) comes straight to <strong>you</strong>. You never touch the host's money, and hosts owe you nothing afterwards. A payment counts as <strong>received</strong> only after you check it against your M-Pesa or bank statement and accept it below.</p>
+        <p class="page-sub">Guests pay hosts directly. Each host pays StayExplore Kenya its commission by invoice, calculated when the host confirms the guest&rsquo;s payment and due after check-out. Guests never see or pay commission.</p>
 
-        <p><a class="fin-btn ghost" href="revenue_report.php">Print revenue report</a></p>
+        <p class="no-print"><a class="fin-btn ghost" href="revenue_report.php">Print revenue report</a></p>
         <div class="fin-cards">
-            <div class="fin-card accent"><div class="fin-label">Received by the platform</div><div class="fin-value"><?= kes($sum['received']) ?></div><div class="fin-note">service fees <?= kes($sum['received_fee']) ?> + commission <?= kes($sum['received_commission']) ?></div></div>
-            <div class="fin-card warn"><div class="fin-label">Waiting for your check</div><div class="fin-value"><?= kes($sum['awaiting']) ?></div><div class="fin-note"><?= (int)$sum['awaiting_n'] ?> payment(s) reported by guests</div></div>
-            <div class="fin-card"><div class="fin-label">Refunded to guests</div><div class="fin-value"><?= kes($sum['refunded']) ?></div><div class="fin-note">cancelled bookings</div></div>
-            <div class="fin-card"><div class="fin-label">Current rates</div><div class="fin-value"><?= h(pct($cRate)) ?>% + <?= h(pct($fRate)) ?>%</div><div class="fin-note">commission + service fee</div></div>
+            <div class="fin-card accent"><div class="fin-label">Total commission generated</div><div class="fin-value"><?= kes($cs['generated']) ?></div><div class="fin-note"><?= (int)$cs['invoices'] ?> invoice(s)</div></div>
+            <div class="fin-card warn"><div class="fin-label">Outstanding host commission</div><div class="fin-value"><?= kes($cs['outstanding']) ?></div><div class="fin-note">invoiced, not yet paid</div></div>
+            <div class="fin-card"><div class="fin-label">Awaiting verification</div><div class="fin-value"><?= kes($cs['awaiting']) ?></div><div class="fin-note"><?= (int)$cs['awaiting_n'] ?> payment(s) to check</div></div>
+            <div class="fin-card accent"><div class="fin-label">Confirmed payments</div><div class="fin-value"><?= kes($cs['confirmed']) ?></div><div class="fin-note">verified by you</div></div>
+            <div class="fin-card warn"><div class="fin-label">Overdue invoices</div><div class="fin-value"><?= (int)$cs['overdue_n'] ?></div><div class="fin-note"><?= kes($cs['overdue_amount']) ?> past due</div></div>
         </div>
 
         <form method="POST" class="fin-box">
             <h2>Rates, time limits and payment instructions</h2>
-            <p class="small">The <strong>commission</strong> is a percentage of the host's price, taken out of what the guest pays the host. The <strong>service fee</strong> is a percentage added to the guest's total. Both go to you. They apply to <em>new</em> bookings only.</p>
+            <p class="small">The <strong>commission</strong> is a percentage of the host's price. The guest pays the host in full; the host pays you the commission separately, by invoice. The optional <strong>guest service fee</strong> should stay at 0 for the launch. Changes apply to <em>new</em> bookings only.</p>
             <input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken()) ?>"><input type="hidden" name="action" value="save_rates">
-            <label class="fin-field" for="cmode">How commission is collected</label>
-            <select class="fin-input" style="max-width:420px" id="cmode" name="commission_mode">
-                <option value="upfront"<?= $cMode === 'upfront' ? ' selected' : '' ?>>With the booking: the guest pays your commission to you when booking</option>
-                <option value="invoice"<?= $cMode === 'invoice' ? ' selected' : '' ?>>Invoice after the stay: the guest pays the host in full, the host pays you the commission later</option>
-            </select>
             <label class="fin-field" for="cbase">Commission is a percentage of</label>
             <select class="fin-input" style="max-width:420px" id="cbase" name="commission_base">
                 <option value="stay_extras"<?= $cBase === 'stay_extras' ? ' selected' : '' ?>>Stay + host extras (the host's whole price)</option>
                 <option value="stay_only"<?= $cBase === 'stay_only' ? ' selected' : '' ?>>The accommodation price only (nights × price per night)</option>
             </select>
-            <label class="fin-field" for="idd">Invoice mode: days after check-out the host has to pay</label>
+            <label class="fin-field" for="idd">Days after check-out the host has to pay each invoice</label>
             <input class="fin-input" style="max-width:140px" id="idd" name="invoice_due_days" value="<?= (int)invoiceDueDays() ?>" inputmode="numeric">
-            <label class="fin-field"><input type="checkbox" name="block_overdue_hosts" value="1"<?= blockOverdueHosts() ? ' checked' : '' ?>> Invoice mode: pause new bookings for hosts with overdue commission</label>
+            <label class="fin-field"><input type="checkbox" name="block_overdue_hosts" value="1"<?= blockOverdueHosts() ? ' checked' : '' ?>> Pause new bookings for hosts with overdue commission</label>
+            <label class="fin-field"><input type="checkbox" name="invoice_reminders" value="1"<?= invoiceRemindersOn() ? ' checked' : '' ?>> Email hosts reminders about unpaid commission invoices</label>
+            <label class="fin-field" for="irb">Send the first reminder this many days before the due date (another on the due date)</label>
+            <input class="fin-input" style="max-width:140px" id="irb" name="invoice_reminder_before_days" value="<?= (int)invoiceReminderBefore() ?>" inputmode="numeric">
+            <label class="fin-field" for="irr">While overdue, repeat the reminder every this many days</label>
+            <input class="fin-input" style="max-width:140px" id="irr" name="invoice_reminder_repeat_days" value="<?= (int)invoiceReminderRepeat() ?>" inputmode="numeric">
             <label class="fin-field" for="cr">Commission (% of the base chosen above)</label>
             <input class="fin-input" style="max-width:140px" id="cr" name="commission_rate" value="<?= h(pct($cRate)) ?>" inputmode="decimal" required>
             <label class="fin-field" for="sf">Guest service fee (% added to the total)</label>
             <input class="fin-input" style="max-width:140px" id="sf" name="service_fee" value="<?= h(pct($fRate)) ?>" inputmode="decimal" required>
             <h2 style="margin-top:18px">Booking time limits</h2>
-            <label class="fin-field" for="hh">Hours a guest has to enter payment details before the dates are released</label>
-            <input class="fin-input" style="max-width:140px" id="hh" name="hold_hours" value="<?= (int)bookingHoldHours() ?>" inputmode="numeric" required>
+            <label class="fin-field" for="pdl">Hours a guest has to pay the host after acceptance (then the dates are released)</label>
+            <select class="fin-input" style="max-width:140px" id="pdl" name="payment_deadline_hours"><?php foreach ([12, 24, 48] as $hrs): ?><option value="<?= $hrs ?>"<?= paymentDeadlineHours() === $hrs ? ' selected' : '' ?>><?= $hrs ?> hours</option><?php endforeach; ?></select>
             <label class="fin-field" for="rh">Hours a host has to accept or decline a request</label>
             <input class="fin-input" style="max-width:140px" id="rh" name="reply_hours" value="<?= (int)hostReplyHours() ?>" inputmode="numeric" required>
             <label class="fin-field" for="fc">Free cancellation until this many hours before check-in</label>
             <input class="fin-input" style="max-width:140px" id="fc" name="free_cancel_hours" value="<?= (int)freeCancelHours() ?>" inputmode="numeric" required>
-            <label class="fin-field" for="ins">Where guests send your share (shown on the payment page)</label>
-            <textarea class="fin-input" id="ins" name="instructions" rows="3" maxlength="500"><?= h(siteSettingGet('platform_pay_instructions', COMMISSION_PAY_INSTRUCTIONS)) ?></textarea>
+            <label class="fin-field" for="ins">How hosts pay you (shown to hosts on their Commission page)</label>
+            <textarea class="fin-input" id="ins" name="instructions" rows="3" maxlength="500"><?= h(commissionPayInstructions()) ?></textarea>
             <div class="fin-actions"><button class="fin-btn" type="submit">Save</button></div>
         </form>
 
@@ -160,9 +174,27 @@ foreach ($pdo->query("SELECT DISTINCT a.host_id, u.full_name FROM bookings b JOI
 
         <?php if ($invoiceHosts): ?>
         <div class="fin-box">
-            <h2>Commission owed by hosts (invoice mode)</h2>
-            <div class="fin-scroll"><table class="fin-table"><thead><tr><th>Host</th><th class="num">Due after stays</th><th class="num">Paid</th><th class="num">Outstanding</th><th class="num">Overdue</th></tr></thead><tbody>
-            <?php foreach ($invoiceHosts as $ih): ?><tr><td><?= h($ih['full_name']) ?></td><td class="num"><?= kes($ih['due']) ?></td><td class="num"><?= kes($ih['paid']) ?></td><td class="num"><strong><?= kes($ih['outstanding']) ?></strong></td><td class="num"><?= $ih['overdue'] > 0 ? '<span class="fin-pill void">' . kes($ih['overdue']) . '</span>' : '–' ?></td></tr><?php endforeach; ?>
+            <h2>Host commission report</h2>
+            <div class="fin-scroll"><table class="fin-table stack-sm"><thead><tr><th>Host</th><th class="num">Invoiced</th><th class="num">Confirmed paid</th><th class="num">Awaiting check</th><th class="num">Outstanding</th><th class="num">Overdue</th></tr></thead><tbody>
+            <?php foreach ($invoiceHosts as $ih): ?><tr><td data-label="Host"><?= h($ih['full_name']) ?></td><td data-label="Invoiced" class="num"><?= kes($ih['due']) ?></td><td data-label="Confirmed paid" class="num"><?= kes($ih['paid']) ?></td><td data-label="Awaiting check" class="num"><?= kes($ih['pending']) ?></td><td data-label="Outstanding" class="num"><strong><?= kes($ih['outstanding']) ?></strong></td><td data-label="Overdue" class="num"><?= $ih['overdue'] > 0 ? '<span class="fin-pill void">' . kes($ih['overdue']) . '</span>' : '&mdash;' ?></td></tr><?php endforeach; ?>
+            </tbody></table></div>
+        </div>
+        <?php endif; ?>
+
+        <?php if ($overdueInv): ?>
+        <div class="fin-box">
+            <h2>Overdue invoices</h2>
+            <div class="fin-scroll"><table class="fin-table stack-sm"><thead><tr><th>Invoice</th><th>Host</th><th>Stay</th><th>Due</th><th class="num">Amount</th></tr></thead><tbody>
+            <?php foreach ($overdueInv as $o): ?><tr><td data-label="Invoice"><?= h($o['invoice_no']) ?></td><td data-label="Host"><?= h($o['full_name']) ?></td><td data-label="Stay"><?= h($o['title']) ?></td><td data-label="Due"><?= h(date('d M Y', strtotime($o['due_date']))) ?></td><td data-label="Amount" class="num"><?= kes($o['amount']) ?></td></tr><?php endforeach; ?>
+            </tbody></table></div>
+        </div>
+        <?php endif; ?>
+
+        <?php if ($hcpHistory): ?>
+        <div class="fin-box">
+            <h2>Commission transaction history</h2>
+            <div class="fin-scroll"><table class="fin-table stack-sm"><thead><tr><th>Date</th><th>Host</th><th>Reference</th><th>Method</th><th class="num">Amount</th><th>Status</th></tr></thead><tbody>
+            <?php foreach ($hcpHistory as $m): ?><tr><td data-label="Date"><?= h(date('d M Y', strtotime($m['created_at']))) ?></td><td data-label="Host"><?= h($m['full_name']) ?></td><td data-label="Reference"><?= h($m['reference']) ?></td><td data-label="Method"><?= h(str_replace('_', ' ', (string)$m['method'])) ?></td><td data-label="Amount" class="num"><?= kes($m['amount']) ?></td><td data-label="Status"><span class="fin-pill <?= $m['status'] === 'confirmed' ? 'settled' : ($m['status'] === 'rejected' ? 'rejected' : 'pending') ?>"><?= h(['confirmed' => 'Confirmed', 'rejected' => 'Rejected', 'pending' => 'To check'][$m['status']] ?? $m['status']) ?></span></td></tr><?php endforeach; ?>
             </tbody></table></div>
         </div>
         <?php endif; ?>
@@ -187,8 +219,9 @@ foreach ($pdo->query("SELECT DISTINCT a.host_id, u.full_name FROM bookings b JOI
         </div>
         <?php endif; ?>
 
+        <?php if ($perHost || $ledger || $pending): ?>
         <div class="fin-box">
-            <h2>Earned by host's bookings (received only)</h2>
+            <h2>Earlier guest-paid platform shares (bookings made before the host-paid arrangement)</h2>
             <div class="fin-scroll"><table class="fin-table">
                 <thead><tr><th>Host</th><th class="num">Bookings</th><th class="num">Commission</th><th class="num">Service fees</th><th class="num">Total received</th></tr></thead>
                 <tbody>
@@ -199,7 +232,7 @@ foreach ($pdo->query("SELECT DISTINCT a.host_id, u.full_name FROM bookings b JOI
         </div>
 
         <div class="fin-box">
-            <h2>Platform payments</h2>
+            <h2>Earlier platform payments</h2>
             <p class="small">Show: <a href="revenue.php">All</a> · <a href="?status=pending">Waiting</a> · <a href="?status=confirmed">Received</a> · <a href="?status=rejected">Rejected</a> · <a href="?status=refunded">Refunded</a></p>
             <div class="fin-scroll"><table class="fin-table">
                 <thead><tr><th>Booking</th><th>Guest</th><th>Host</th><th class="num">Service fee</th><th class="num">Commission</th><th class="num">Total</th><th>Status</th><th>Evidence</th></tr></thead>
@@ -227,6 +260,7 @@ foreach ($pdo->query("SELECT DISTINCT a.host_id, u.full_name FROM bookings b JOI
                 </tbody>
             </table></div>
         </div>
+        <?php endif; ?>
 <?php appShellEnd(); ?>
 </body>
 </html>

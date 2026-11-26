@@ -29,24 +29,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     redirect('commission.php');
 }
-$ledger = hostCommissionLedger($pdo, $host_id);
-$mode = commissionMode();
-$hasInvoice = $ledger['due'] > 0 || $ledger['pending'] > 0;
+$summary = hostCommissionSummary($pdo, $host_id);
+$ledger  = $summary['ledger'];
 $hcp = $pdo->prepare('SELECT * FROM host_commission_payments WHERE host_id = ? ORDER BY created_at DESC LIMIT 50'); $hcp->execute([$host_id]); $myPayments = $hcp->fetchAll(PDO::FETCH_ASSOC);
+$invoices = array_reverse($ledger['items']);   // newest first for display
+$room = max(0.0, $ledger['outstanding'] - $ledger['pending']);
 
-$q = $pdo->prepare("SELECT b.booking_id, b.check_in_date, b.check_out_date, b.status, b.total_amount, b.service_fee, b.commission_amount, b.commission_rate,
-        a.title, pp.status AS pp_status
-    FROM bookings b JOIN accommodations a ON a.accommodation_id = b.accommodation_id
-    LEFT JOIN platform_payments pp ON pp.booking_id = b.booking_id
-    WHERE a.host_id = ? AND b.commission_amount IS NOT NULL AND b.commission_mode = 'upfront' AND b.status <> 'cancelled' ORDER BY b.created_at DESC LIMIT 200");
-$q->execute([$host_id]); $rows = $q->fetchAll(PDO::FETCH_ASSOC);
-$tPrice = $tComm = $tNet = 0.0;
-foreach ($rows as &$r) {
-    $r['price'] = (float)$r['total_amount'] - (float)$r['service_fee'];           // what the host charged
-    $r['net']   = $r['price'] - (float)$r['commission_amount'];                    // what the guest pays the host
-    $tPrice += $r['price']; $tComm += (float)$r['commission_amount']; $tNet += $r['net'];
-}
-unset($r);
+// Bookings made before v9.33 under the old "guest pays commission with the booking" arrangement keep their original terms.
+$q = $pdo->prepare("SELECT b.booking_id, b.check_in_date, b.status, b.total_amount, b.service_fee, b.commission_amount, a.title, pp.status AS pp_status
+    FROM bookings b JOIN accommodations a ON a.accommodation_id = b.accommodation_id LEFT JOIN platform_payments pp ON pp.booking_id = b.booking_id
+    WHERE a.host_id = ? AND b.commission_amount IS NOT NULL AND b.commission_mode = 'upfront' AND b.status <> 'cancelled' ORDER BY b.created_at DESC LIMIT 100");
+$q->execute([$host_id]); $legacyRows = $q->fetchAll(PDO::FETCH_ASSOC);
+$rate = commissionRatePercent();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -55,6 +49,7 @@ unset($r);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Commission — StayExplore Kenya</title>
     <link rel="stylesheet" href="../assets/css/style.css">
+<link rel="stylesheet" href="../assets/css/ui.css"><script src="../assets/js/ui.js" defer></script>
     <link rel="stylesheet" href="../assets/css/finance.css">
 <link rel="stylesheet" href="../assets/css/dark.css"><meta name="color-scheme" content="light dark"><script src="../assets/js/se-theme.js"></script><script src="../assets/js/se-i18n.js"></script></head>
 <body>
@@ -62,73 +57,100 @@ unset($r);
         <?= showFlash() ?>
         <div class="page-tag">Hosting</div>
         <h1 class="page-title">Commission</h1>
-        <p class="page-sub"><?= $mode === 'invoice' ? 'Bookings made while the platform is in <strong>invoice mode</strong> are in the box below; the table at the bottom lists bookings where the guest paid the commission with the booking. ' : '' ?>The platform keeps <strong><?= h(pct(commissionRatePercent())) ?>%</strong> of your price as commission. <strong>You do not pay it and never send it anywhere:</strong> the guest pays you your price minus the commission, and pays the commission (plus a service fee) straight to StayExplore Kenya. You keep everything the guest pays you.</p>
-        <?php if ($mode === 'invoice' || $hasInvoice): ?>
+        <p class="page-sub">Guests pay you directly for their accommodation. Your agreed platform commission is worked out automatically the moment you confirm a guest&rsquo;s payment, and is payable separately to StayExplore Kenya by the due date shown on each invoice.</p>
+
+        <div class="fin-box how-box">
+            <h2>How it works</h2>
+            <ol class="how-list">
+                <li><strong>Guests pay you.</strong> After you accept a request the guest pays you the full price, and you confirm when it arrives. StayExplore Kenya never holds that money.</li>
+                <li><strong>Commission is <?= h(pct($rate)) ?>%.</strong> It is <?= h(pct($rate)) ?>% of <?= commissionBase() === 'stay_only' ? 'the accommodation price' : 'your price for the stay plus any extras you charge' ?>, using the rate saved on each booking when it was made.</li>
+                <li><strong>It is calculated</strong> as soon as you mark the guest&rsquo;s payment as received, so you can see what is coming. <strong>It is due</strong> <?= (int)invoiceDueDays() ?> day(s) after check-out. If the booking is cancelled, or you set the payment back to unpaid, the commission is removed. Declined, unpaid, cancelled and no-show bookings carry no commission.</li>
+                <li><strong>You pay by invoice.</strong> Each invoice is due <?= (int)invoiceDueDays() ?> days after check-out. Pay by M-Pesa or bank transfer, then report the reference below. StayExplore Kenya verifies it and your balance updates.</li>
+            </ol>
+            <p class="small">Your commission is between you and StayExplore Kenya. Guests never see it and must never be asked to pay it.</p>
+        </div>
+
+        <div class="fin-cards">
+            <div class="fin-card"><div class="fin-label">Total commission earned</div><div class="fin-value"><?= kes($summary['earned']) ?></div><div class="fin-note">on stays whose payment you confirmed</div></div>
+            <div class="fin-card warn"><div class="fin-label">Outstanding</div><div class="fin-value"><?= kes($summary['outstanding']) ?></div><div class="fin-note"><?= $summary['overdue'] > 0 ? 'of which overdue ' . kes($summary['overdue']) : 'nothing overdue' ?></div></div>
+            <div class="fin-card"><div class="fin-label">Pending verification</div><div class="fin-value"><?= kes($summary['pending_payments']) ?></div><div class="fin-note">reported, awaiting check</div></div>
+            <div class="fin-card accent"><div class="fin-label">Confirmed payments</div><div class="fin-value"><?= kes($summary['confirmed_payments']) ?></div><div class="fin-note"><?= (int)$summary['confirmed_count'] ?> payment<?= $summary['confirmed_count'] == 1 ? '' : 's' ?></div></div>
+        </div>
+
         <div class="fin-box">
-            <h2>Commission you owe after stays</h2>
-            <p class="small">For bookings made in invoice mode the guest pays you the <strong>full price</strong>. After the stay ends, the commission is due to StayExplore Kenya within <strong><?= (int)invoiceDueDays() ?> days</strong> of check-out. <?= $ledger['overdue'] > 0 && blockOverdueHosts() ? '<strong>Your listings are paused for new bookings until the overdue amount is paid.</strong>' : (blockOverdueHosts() ? 'Listings of hosts with overdue commission are paused for new bookings.' : '') ?></p>
-            <div class="fin-cards">
-                <div class="fin-card"><div class="fin-label">Commission due so far</div><div class="fin-value"><?= kes($ledger['due']) ?></div></div>
-                <div class="fin-card accent"><div class="fin-label">Paid and confirmed</div><div class="fin-value"><?= kes($ledger['paid']) ?></div></div>
-                <div class="fin-card warn"><div class="fin-label">Outstanding balance</div><div class="fin-value"><?= kes($ledger['outstanding']) ?></div><div class="fin-note"><?= $ledger['overdue'] > 0 ? 'of which overdue ' . kes($ledger['overdue']) : 'nothing overdue' ?><?= $ledger['pending'] > 0 ? ' · ' . kes($ledger['pending']) . ' waiting for confirmation' : '' ?></div></div>
-            </div>
-            <?php if ($ledger['items']): ?>
-            <div class="fin-scroll"><table class="fin-table">
-                <thead><tr><th>Booking</th><th>Stay</th><th class="num">Commission</th><th>Due by</th><th class="num">Unpaid</th></tr></thead>
-                <tbody><?php foreach ($ledger['items'] as $it): ?>
-                    <tr><td><?= h(bookingLabel($it['booking_id'])) ?></td><td><?= h($it['title']) ?><br><span class="small"><?= h($it['check_in_date']) ?> to <?= h($it['check_out_date']) ?></span></td>
-                        <td class="num"><?= kes($it['commission_amount']) ?> <span class="small">(<?= h(pct($it['commission_rate'])) ?>%)</span></td>
-                        <td><?= h($it['due_date']) ?><?= $it['overdue'] ? ' <span class="fin-pill void">Overdue</span>' : '' ?></td>
-                        <td class="num"><strong><?= kes($it['unpaid']) ?></strong></td></tr>
-                <?php endforeach; ?></tbody>
+            <h2>Commission invoices</h2>
+            <?php if (!$invoices): ?>
+                <p class="small">No invoices yet. An invoice appears here automatically as soon as you confirm a guest&rsquo;s payment.</p>
+            <?php else: ?>
+            <div class="fin-scroll"><table class="fin-table stack-sm">
+                <thead><tr><th>Invoice</th><th>Stay</th><th>Due</th><th class="num">Amount</th><th>Status</th><th></th></tr></thead>
+                <tbody>
+                <?php foreach ($invoices as $i): ?>
+                    <tr>
+                        <td data-label="Invoice"><?= h($i['invoice_no']) ?></td>
+                        <td data-label="Stay"><?= h($i['title']) ?><div class="small"><?= h(date('d M', strtotime($i['check_in_date']))) ?> &ndash; <?= h(date('d M Y', strtotime($i['check_out_date']))) ?></div></td>
+                        <td data-label="Due"><?= h(date('d M Y', strtotime($i['due_date']))) ?></td>
+                        <td data-label="Amount" class="num"><?= kes($i['amount']) ?></td>
+                        <td data-label="Status"><?php if ($i['state'] === 'paid'): ?><span class="fin-pill ok">Paid</span><?php elseif ($i['overdue']): ?><span class="fin-pill bad">Overdue</span><?php elseif ($i['state'] === 'partial'): ?><span class="fin-pill warn">Part-paid</span><?php else: ?><span class="fin-pill warn">Unpaid</span><?php endif; ?></td>
+                        <td data-label=""><a class="btn-sm" href="commission_invoice.php?no=<?= h(urlencode($i['invoice_no'])) ?>" target="_blank" rel="noopener">View / print</a></td>
+                    </tr>
+                <?php endforeach; ?>
+                </tbody>
             </table></div>
             <?php endif; ?>
-            <?php if ($ledger['outstanding'] - $ledger['pending'] > 0.009): ?>
-            <form method="POST" style="margin-top:14px">
-                <input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken()) ?>">
-                <p class="small"><?= nl2br(h(siteSettingGet('platform_pay_instructions', COMMISSION_PAY_INSTRUCTIONS))) ?></p>
-                <label class="fin-field" for="ca">Amount you paid (KES)</label>
-                <input class="fin-input" style="max-width:180px" id="ca" name="amount" value="<?= h(number_format(max(0.0, $ledger['outstanding'] - $ledger['pending']), 2, '.', '')) ?>" inputmode="decimal" required>
-                <label class="fin-field" for="cm">How you paid</label>
-                <select class="fin-input" style="max-width:220px" id="cm" name="method" required><option value="mpesa">M-Pesa</option><option value="bank_transfer">Bank transfer</option></select>
-                <label class="fin-field" for="cref">M-Pesa code or bank reference</label>
-                <input class="fin-input" style="max-width:260px" id="cref" name="reference" maxlength="120" required>
-                <div class="fin-actions"><button class="fin-btn" type="submit">Report my payment</button></div>
+        </div>
+
+        <?php if ($room > 0.004): ?>
+        <div class="fin-box">
+            <h2>Pay StayExplore Kenya</h2>
+            <p class="small"><?= nl2br(h(commissionPayInstructions())) ?></p>
+            <form method="POST" class="fin-form">
+                <input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
+                <div class="form-row">
+                    <div class="form-group"><label for="c_amount">Amount paid (KES)</label><input id="c_amount" type="number" name="amount" step="0.01" min="1" max="<?= h(number_format($room, 2, '.', '')) ?>" value="<?= h(number_format($room, 2, '.', '')) ?>" required></div>
+                    <div class="form-group"><label for="c_method">Method</label><select id="c_method" name="method" required><option value="mpesa">M-Pesa</option><option value="bank_transfer">Bank transfer</option></select></div>
+                    <div class="form-group"><label for="c_ref">M-Pesa code or bank reference</label><input id="c_ref" type="text" name="reference" maxlength="120" minlength="4" required placeholder="e.g. QGH7XXXXXX"></div>
+                </div>
+                <button type="submit" class="btn-save">Report payment</button>
+                <div class="small">It reduces your balance once StayExplore Kenya has checked it. Only enter a payment you really made.</div>
             </form>
-            <?php endif; ?>
-            <?php if ($myPayments): ?>
-            <h2 style="margin-top:18px">Your commission payments</h2>
-            <div class="fin-scroll"><table class="fin-table"><thead><tr><th>Date</th><th>Reference</th><th class="num">Amount</th><th>Status</th></tr></thead><tbody>
-            <?php foreach ($myPayments as $m): ?><tr><td><?= h(date('j M Y', strtotime($m['created_at']))) ?></td><td><?= h($m['reference']) ?></td><td class="num"><?= kes($m['amount']) ?></td>
-                <td><span class="fin-pill <?= $m['status'] === 'confirmed' ? 'settled' : ($m['status'] === 'rejected' ? 'void' : 'pending') ?>"><?= h(['pending' => 'Being checked', 'confirmed' => 'Received', 'rejected' => 'Not accepted'][$m['status']]) ?></span><?= $m['review_note'] ? '<div class="small">' . h($m['review_note']) . '</div>' : '' ?></td></tr><?php endforeach; ?>
-            </tbody></table></div>
-            <?php endif; ?>
         </div>
         <?php endif; ?>
-        <div class="fin-cards">
-            <div class="fin-card"><div class="fin-label">Your prices (active bookings)</div><div class="fin-value"><?= kes($tPrice) ?></div></div>
-            <div class="fin-card warn"><div class="fin-label">Commission to the platform</div><div class="fin-value"><?= kes($tComm) ?></div><div class="fin-note">paid by guests, not by you</div></div>
-            <div class="fin-card accent"><div class="fin-label">Guests pay you</div><div class="fin-value"><?= kes($tNet) ?></div></div>
-        </div>
+
+        <?php if ($myPayments): ?>
         <div class="fin-box">
-            <h2>Your bookings</h2>
-            <div class="fin-scroll"><table class="fin-table">
-                <thead><tr><th>Booking</th><th>Stay</th><th class="num">Your price</th><th class="num">Commission</th><th class="num">Guest pays you</th><th>Platform payment</th></tr></thead>
+            <h2>Payment history</h2>
+            <div class="fin-scroll"><table class="fin-table stack-sm">
+                <thead><tr><th>Date</th><th>Reference</th><th>Method</th><th class="num">Amount</th><th>Status</th></tr></thead>
                 <tbody>
-                <?php if (!$rows): ?><tr><td colspan="6">No bookings with commission yet.</td></tr><?php endif; ?>
-                <?php foreach ($rows as $r): ?>
+                <?php foreach ($myPayments as $m): ?>
                     <tr>
-                        <td><?= h(bookingLabel($r['booking_id'])) ?><br><span class="small"><?= h($r['check_in_date']) ?> to <?= h($r['check_out_date']) ?></span></td>
-                        <td><?= h($r['title']) ?></td>
-                        <td class="num"><?= kes($r['price']) ?></td>
-                        <td class="num">– <?= kes($r['commission_amount']) ?> <span class="small">(<?= h(pct($r['commission_rate'])) ?>%)</span></td>
-                        <td class="num"><strong><?= kes($r['net']) ?></strong></td>
-                        <td><span class="fin-pill <?= $r['pp_status'] === 'confirmed' ? 'settled' : 'pending' ?>"><?= h(['confirmed' => 'Guest paid the platform', 'pending' => 'Being checked', 'rejected' => 'Not accepted', 'refunded' => 'Refunded'][$r['pp_status'] ?? ''] ?? 'Not yet paid') ?></span></td>
+                        <td data-label="Date"><?= h(date('d M Y', strtotime($m['created_at']))) ?></td>
+                        <td data-label="Reference"><?= h($m['reference']) ?></td>
+                        <td data-label="Method"><?= h(str_replace('_', ' ', (string)$m['method'])) ?></td>
+                        <td data-label="Amount" class="num"><?= kes($m['amount']) ?></td>
+                        <td data-label="Status"><?php if ($m['status'] === 'confirmed'): ?><span class="fin-pill ok">Confirmed</span><?php elseif ($m['status'] === 'rejected'): ?><span class="fin-pill bad">Not accepted</span><?php if (!empty($m['review_note'])): ?><div class="small"><?= h($m['review_note']) ?></div><?php endif; ?><?php else: ?><span class="fin-pill warn">Being checked</span><?php endif; ?></td>
                     </tr>
                 <?php endforeach; ?>
                 </tbody>
             </table></div>
         </div>
+        <?php endif; ?>
+
+        <?php if ($legacyRows): ?>
+        <div class="fin-box">
+            <h2>Earlier bookings (before this arrangement)</h2>
+            <p class="small">These bookings were made when guests paid the platform share together with the booking. They keep the terms they were made under.</p>
+            <div class="fin-scroll"><table class="fin-table stack-sm">
+                <thead><tr><th>Stay</th><th>Check-in</th><th class="num">Commission</th><th>Status</th></tr></thead>
+                <tbody>
+                <?php foreach ($legacyRows as $r): ?>
+                    <tr><td data-label="Stay"><?= h($r['title']) ?></td><td data-label="Check-in"><?= h(date('d M Y', strtotime($r['check_in_date']))) ?></td><td data-label="Commission" class="num"><?= kes($r['commission_amount']) ?></td><td data-label="Status"><?= h(['confirmed' => 'Received', 'pending' => 'Being checked', 'rejected' => 'Not accepted', 'refunded' => 'Refunded'][$r['pp_status']] ?? 'Awaiting guest') ?></td></tr>
+                <?php endforeach; ?>
+                </tbody>
+            </table></div>
+        </div>
+        <?php endif; ?>
 <?php appShellEnd(); ?>
 </body>
 </html>

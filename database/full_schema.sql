@@ -180,17 +180,6 @@ CREATE TABLE `bookings` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
-CREATE TABLE `sms_log` (
-  `sms_id` int(11) NOT NULL AUTO_INCREMENT,
-  `user_id` int(11) DEFAULT NULL,
-  `phone` varchar(20) NOT NULL,
-  `ip` varchar(45) DEFAULT NULL,
-  `status` varchar(20) NOT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  PRIMARY KEY (`sms_id`),
-  KEY `idx_phone` (`phone`,`created_at`),
-  KEY `idx_ip` (`ip`,`created_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 CREATE TABLE `host_agreements` (
   `agreement_id` int(11) NOT NULL AUTO_INCREMENT,
   `host_id` int(11) NOT NULL,
@@ -564,6 +553,7 @@ CREATE TABLE `users` (
   `account_deleted_at` datetime DEFAULT NULL,
   `profile_photo_data` mediumblob DEFAULT NULL,
   `profile_photo_mime` varchar(50) DEFAULT NULL,
+  `host_intro` text DEFAULT NULL,
   PRIMARY KEY (`user_id`),
   UNIQUE KEY `email` (`email`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;

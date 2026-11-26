@@ -12,6 +12,7 @@ if (!defined('ATTRACTION_RATING_RADIUS_KM')) define('ATTRACTION_RATING_RADIUS_KM
 
 if (!function_exists('ensureAttractionReviewsTable')) {
     function ensureAttractionReviewsTable($pdo) {
+        if (function_exists('schemaIsUpgraded') && schemaIsUpgraded()) return;   // v9.33: tables are created once by the upgrade, not on every request
         static $done = false;
         if ($done) return;
         $done = true;

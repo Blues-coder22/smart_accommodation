@@ -1,0 +1,18 @@
+Explore Stays|||Gundua Malazi
+Discover Attractions|||Gundua Vivutio
+Find a stay or an attraction on the map|||Tafuta malazi au kivutio kwenye ramani
+Search anywhere in Kenya|||Tafuta popote nchini Kenya
+Show on map|||Onyesha kwenye ramani
+Use my location|||Tumia mahali nilipo
+Expand map|||Panua ramani
+Close map|||Funga ramani
+Across Kenya|||Kote nchini Kenya
+Clear destination|||Futa unakoenda
+Preferences|||Mapendeleo
+Your account|||Akaunti yako
+Help|||Msaada
+Home|||Mwanzo
+Traveller account|||Akaunti ya msafiri
+Traveller|||Msafiri
+Stays and attractions across Kenya|||Malazi na vivutio kote nchini Kenya
+No destination needed. Add one above and we pass it on.|||Huhitaji kuweka unakoenda. Ukiongeza hapo juu, tutalipeleka.

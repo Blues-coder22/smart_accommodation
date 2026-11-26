@@ -116,21 +116,16 @@ $tstats = $tstats->fetch();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Profile — StayExplore Kenya</title>
     <link rel="stylesheet" href="../assets/css/style.css">
+<link rel="stylesheet" href="../assets/css/ui.css"><script src="../assets/js/ui.js" defer></script>
     <style>
-        .page-wrap   { max-width:700px; margin:0 auto;
-                       padding:32px 24px }
-        .page-tag    { font-size:11px; font-weight:600;
-                       letter-spacing:.06em; color:#126b4e;
-                       text-transform:uppercase; margin-bottom:8px }
-        .page-title  { font-size:26px; font-weight:400;
-                       margin-bottom:24px }
+        
         .profile-header { display:flex; align-items:center;
                           gap:20px; background:var(--surface-2);
                           border:1px solid var(--border);
                           border-radius:8px; padding:20px;
                           margin-bottom:20px }
         .avatar      { width:72px; height:72px; border-radius:50%;
-                       background:#126b4e; display:flex;
+                       background:var(--btn); display:flex;
                        align-items:center; justify-content:center;
                        color:#fff; font-size:28px; font-weight:600;
                        overflow:hidden; flex-shrink:0 }
@@ -152,7 +147,7 @@ $tstats = $tstats->fetch();
                        border-radius:8px; padding:12px;
                        text-align:center }
         .stat-num    { font-size:22px; font-weight:500;
-                       color:#085041 }
+                       color:var(--accent-strong) }
         .stat-label  { font-size:11px; color:var(--text-secondary);
                        margin-top:2px }
         .form-card   { background:var(--surface-2);
@@ -173,17 +168,17 @@ $tstats = $tstats->fetch();
                             color:var(--text-primary);
                             background:var(--surface-2) }
         .form-group input:focus { outline:none;
-                                  border-color:#126b4e }
+                                  border-color:var(--accent) }
         .form-row    { display:grid;
                        grid-template-columns:1fr 1fr; gap:12px }
-        .btn-save    { padding:9px 22px; background:#085041;
+        .btn-save    { padding:9px 22px; background:var(--btn-hover);
                        color:#fff; border:none; border-radius:6px;
                        font-size:13px; font-weight:500; cursor:pointer }
-        .success-msg { background:#E1F5EE; border:1px solid #9FE1CB;
+        .success-msg { background:var(--accent-soft); border:1px solid var(--accent-line);
                        border-radius:6px; padding:10px 14px;
-                       font-size:13px; color:#0F6E56;
+                       font-size:13px; color:var(--accent-strong);
                        margin-bottom:14px }
-        @media(max-width:600px){
+        @media(max-width:768px){
             .stats-row { grid-template-columns:repeat(2,1fr) }
             .form-row  { grid-template-columns:1fr }
         }
@@ -193,7 +188,7 @@ $tstats = $tstats->fetch();
 
 <?php include '../includes/header.php'; ?>
 
-<div class="page-wrap">
+<div class="page-wrap narrow">
 
     <div class="page-tag">Account</div>
     <h1 class="page-title">My profile</h1>
@@ -203,7 +198,7 @@ $tstats = $tstats->fetch();
         <div class="avatar">
             <?php if ($user['profile_photo']): ?>
                 <img src="<?= h(profilePhotoUrl($user['user_id'], $user['profile_photo'])) ?>"
-                         alt="Your profile photo">
+                         alt="Your profile photo" loading="lazy" decoding="async">
             <?php else: ?>
                 <?= h(strtoupper(substr($user['full_name'], 0, 1))) ?>
             <?php endif; ?>
@@ -337,7 +332,7 @@ $tstats = $tstats->fetch();
     </div>
 
     <div class="form-card" style="border:1px solid #e6b7b7">
-        <h3 style="color:#a12b2b">Close account</h3>
+        <h3 style="color:var(--bad-fg)">Close account</h3>
         <p style="font-size:13px;color:var(--text-secondary)">Closing your account signs you out, and you will not be able to sign in again. We keep your booking, payment and review history for our records. If you are a host, your approved properties are paused so they cannot get new bookings. Contact the admin if you want your account opened again.</p>
         <?php if (!empty($close_errors)): ?>
             <div class="alert alert-error" style="margin-bottom:14px">

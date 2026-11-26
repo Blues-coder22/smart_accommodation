@@ -170,39 +170,17 @@ $my_reports = $my_reports->fetchAll();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Reports — StayExplore Kenya</title>
     <link rel="stylesheet" href="../assets/css/style.css">
+<link rel="stylesheet" href="../assets/css/ui.css"><script src="../assets/js/ui.js" defer></script>
     <style>
-        
-        .dash-wrap   { display:grid;
-                       grid-template-columns:200px 1fr; flex:1 }
         .sidebar     { background:var(--surface-2);
                        border-right:1px solid var(--border);
                        padding:24px 0; position:sticky;
                        top:52px; height:calc(100vh - 52px);
                        overflow-y:auto }
-        .sidebar-role{ font-size:10px; font-weight:700;
-                       letter-spacing:.08em; color:#126b4e;
-                       text-transform:uppercase;
-                       padding:0 20px; margin-bottom:12px }
-        .sidebar-link{ display:flex; align-items:center; gap:10px;
-                       padding:9px 20px; font-size:13px;
-                       color:var(--text-secondary);
-                       text-decoration:none; width:100% }
-        .sidebar-link:hover { color:var(--text-primary);
-                              background:var(--surface-1) }
-        .sidebar-link.active { color:#085041; font-weight:500;
-                               background:#E1F5EE;
-                               border-left:3px solid #126b4e }
         .main        { padding:28px }
         .page-layout { display:grid;
                        grid-template-columns:1fr 260px;
                        gap:20px; align-items:start }
-        .page-tag    { font-size:11px; font-weight:600;
-                       letter-spacing:.06em; color:#b42318;
-                       text-transform:uppercase; margin-bottom:8px }
-        .page-title  { font-size:26px; font-weight:400;
-                       margin-bottom:4px }
-        .page-sub    { font-size:13px; color:var(--text-secondary);
-                       margin-bottom:24px }
         .form-card   { background:var(--surface-2);
                        border:1px solid var(--border);
                        border-radius:8px; padding:24px;
@@ -228,7 +206,7 @@ $my_reports = $my_reports->fetchAll();
         .form-group input:focus,
         .form-group select:focus,
         .form-group textarea:focus { outline:none;
-                                     border-color:#126b4e }
+                                     border-color:var(--accent) }
         .file-zone   { border:0.5px dashed var(--border-strong);
                        border-radius:6px; padding:16px;
                        text-align:center }
@@ -245,14 +223,14 @@ $my_reports = $my_reports->fetchAll();
                        border-radius:8px; padding:16px;
                        margin-bottom:12px }
         .side-card.urgent { border-color:#DC2626;
-                            background:#FEF2F2 }
+                            background:var(--bad-bg) }
         .side-card h4{ font-size:13px; font-weight:600;
                        margin-bottom:6px }
-        .side-card.urgent h4 { color:#b42318 }
+        .side-card.urgent h4 { color:var(--bad-fg) }
         .side-card p { font-size:13px; color:var(--text-secondary);
                        line-height:1.5 }
         .emergency   { font-size:20px; font-weight:700;
-                       color:#b42318; margin:6px 0 }
+                       color:var(--bad-fg); margin:6px 0 }
         .history-card{ background:var(--surface-2);
                        border:1px solid var(--border);
                        border-radius:8px; overflow:hidden }
@@ -269,24 +247,23 @@ $my_reports = $my_reports->fetchAll();
         .status-pill { display:inline-block; font-size:10px;
                        font-weight:600; padding:2px 7px;
                        border-radius:3px; float:right }
-        .s-pending   { background:#FFF8E1; color:#7a5200;
-                       border:1px solid #F9D57C }
-        .s-reviewed  { background:#E1F5EE; color:#0F6E56;
-                       border:1px solid #9FE1CB }
+        .s-pending   { background:var(--warn-bg); color:var(--warn-fg);
+                       border:1px solid var(--warn-line) }
+        .s-reviewed  { background:var(--accent-soft); color:var(--accent-strong);
+                       border:1px solid var(--accent-line) }
         .s-resolved  { background:#F0F4FF; color:#1A4DB3;
                        border:1px solid #B3C5F5 }
         .success-card{ background:var(--surface-2);
                        border:1px solid var(--border);
                        border-radius:8px; padding:40px;
                        text-align:center }
-        .success-icon{ width:52px; height:52px; background:#E1F5EE;
+        .success-icon{ width:52px; height:52px; background:var(--accent-soft);
                        border-radius:50%; display:flex;
                        align-items:center; justify-content:center;
                        margin:0 auto 16px;
-                       border:1px solid #9FE1CB }
+                       border:1px solid var(--accent-line) }
         .success-icon svg { width:22px; height:22px; stroke:#126b4e }
-        @media(max-width:1000px){
-            .dash-wrap { grid-template-columns:1fr }
+        @media(max-width:1024px){
             .sidebar   { display:none }
             .page-layout { grid-template-columns:1fr }
         }
@@ -326,7 +303,7 @@ $my_reports = $my_reports->fetchAll();
             </p>
             <div style="display:flex;gap:10px;justify-content:center">
                 <a href="report.php"
-                   style="padding:9px 20px;background:#085041;
+                   style="padding:9px 20px;background:var(--btn-hover);
                           color:#fff;border-radius:6px;
                           font-size:13px;font-weight:500;
                           text-decoration:none">

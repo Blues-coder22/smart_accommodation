@@ -1,0 +1,36 @@
+# Entries whose English text no longer appears in the source after v9.32. Not built (file name does not match sw_*.txt). Restore a line into sw_*.txt if it is still needed.
+Sign Out|||Toka
+It only takes a minute. Verify your email to get started.|||Inachukua dakika moja tu. Thibitisha barua pepe yako ili kuanza.
+Account type|||Aina ya akaunti
+Select role|||Chagua jukumu
+Tourist — search, book and review stays|||Mtalii — tafuta, hifadhi na toa maoni kuhusu malazi
+Host — list and manage properties|||Mwenyeji — tangaza na simamia mali
+Confirm password|||Thibitisha nenosiri
+Email and password are required|||Barua pepe na nenosiri vinahitajika
+Sign in to manage your trips, saved places or properties.|||Ingia ili kusimamia safari zako, maeneo uliyohifadhi au mali zako.
+Please confirm your email first. Open the link we sent, on any device, and this page will sign you in.|||Tafadhali thibitisha barua pepe yako kwanza. Fungua kiungo tulichotuma, kwenye kifaa chochote, na ukurasa huu utakuingiza.
+You're verified.|||Umethibitishwa.
+Thanks for confirming your email.|||Asante kwa kuthibitisha barua pepe yako.
+If you were signing up on another device, go back to it. It will sign you in automatically within a few seconds, no password needed.|||Ikiwa ulikuwa unajisajili kwenye kifaa kingine, rudi huko. Kitakuingiza kiotomatiki ndani ya sekunde chache, bila nenosiri.
+Open the link we emailed you on any device. This page notices and signs you in by itself.|||Fungua kiungo tulichokutumia kwa barua pepe kwenye kifaa chochote. Ukurasa huu utagundua na kukuingiza wenyewe.
+Waiting for you to confirm.|||Tunasubiri uthibitishe.
+We sent a link to|||Tumetuma kiungo kwa
+. You can open it on your phone or any other device, you do not have to come back to this one first.|||. Unaweza kukifungua kwenye simu yako au kifaa kingine chochote, si lazima urudi kwenye hiki kwanza.
+Phone can't open the link?|||Simu haiwezi kufungua kiungo?
+No problem: type the 6-digit code from the same email here.|||Hakuna shida: andika hapa msimbo wa tarakimu 6 kutoka kwenye barua pepe hiyo hiyo.
+Wrong email? Start again|||Barua pepe si sahihi? Anza upya
+This page has timed out. Press "Send the email again", or sign in.|||Ukurasa huu umeisha muda. Bonyeza "Tuma barua pepe tena", au ingia.
+A new email is on its way. Older links no longer work.|||Barua pepe mpya iko njiani. Viungo vya zamani havifanyi kazi tena.
+Link not opening on your phone?|||Kiungo hakifunguki kwenye simu yako?
+Type this code on the page where you registered:|||Andika msimbo huu kwenye ukurasa uliojisajili:
+Nothing yet. Updates about your bookings and payments will appear here, as well as in your email.|||Bado hakuna kitu. Taarifa kuhusu uhifadhi na malipo yako zitaonekana hapa, na pia kwenye barua pepe yako.
+Privacy Policy|||Sera ya Faragha
+Help Centre|||Kituo cha Msaada
+Your verification request was sent. An administrator will review it and email you the result.|||Ombi lako la uthibitisho limetumwa. Msimamizi atalikagua na kukutumia matokeo kwa barua pepe.
+Hosts cannot make bookings. Please use a tourist account.|||Wenyeji hawawezi kuhifadhi. Tafadhali tumia akaunti ya mtalii.
+Message tourist|||Tuma ujumbe kwa mtalii
+The tourist has not submitted payment details yet.|||Mtalii bado hajawasilisha maelezo ya malipo.
+Booking confirmed. The tourist has been notified.|||Uhifadhi umethibitishwa. Mtalii amearifiwa.
+Tourists can book these dates|||Watalii wanaweza kuhifadhi tarehe hizi
+Verification helps protect guests and hosts. An administrator checks your ID, then your listings show a "Verified host" badge. Only administrators can see your ID photo, and it is erased as soon as they decide.|||Uthibitisho husaidia kulinda wageni na wenyeji. Msimamizi hukagua kitambulisho chako, kisha matangazo yako huonyesha nembo ya "Mwenyeji aliyethibitishwa". Ni wasimamizi pekee wanaoweza kuona picha ya kitambulisho chako, na hufutwa mara tu wanapofanya uamuzi.
+Verification is optional and helps protect guests and hosts. An administrator checks your ID, then a "Verified guest" badge appears next to your name. Only administrators can see your ID photo, and it is erased as soon as they decide.|||Uthibitisho ni hiari na husaidia kulinda wageni na wenyeji. Msimamizi hukagua kitambulisho chako, kisha nembo ya "Mgeni aliyethibitishwa" huonekana karibu na jina lako. Ni wasimamizi pekee wanaoweza kuona picha ya kitambulisho chako, na hufutwa mara tu wanapofanya uamuzi.

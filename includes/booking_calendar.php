@@ -9,7 +9,7 @@ if (!function_exists('calendarNightStates')) {
     function calendarNightStates($pdo, $accommodation_id, $from, $to) {
         $states = [];
         $q = $pdo->prepare("SELECT check_in_date, check_out_date, status FROM bookings
-                            WHERE accommodation_id = ? AND status IN ('pending','confirmed')
+                            WHERE accommodation_id = ? AND status IN ('pending','accepted','payment_pending','confirmed')
                               AND check_out_date > ? AND check_in_date <= ?");
         $q->execute([(int)$accommodation_id, $from, $to]);
         foreach ($q->fetchAll(PDO::FETCH_ASSOC) as $b) {
