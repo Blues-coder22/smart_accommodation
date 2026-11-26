@@ -89,7 +89,7 @@ html[data-theme="dark"] .tn .se-bell-count,html[data-theme="dark"] .tn-badge{col
   .tn-scrim:not([hidden]){display:block}
   html.tn-locked,html.tn-locked body{overflow:hidden}
 
-  .tn-panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:2px 0 14px;border-bottom:1px solid var(--tn-line)}
+  .tn-panel-head{display:flex;align-items:center;justify-content:flex-end;gap:12px;padding:2px 0 14px;border-bottom:1px solid var(--tn-line)}
   .tn-close{display:grid;place-items:center;width:42px;height:42px;border:1px solid var(--tn-line);border-radius:12px;background:transparent}
   .tn-hello{display:flex;align-items:center;gap:12px;margin:14px 0 4px;padding:12px;border-radius:14px;background:var(--tn-soft)}
   .tn-hello strong{display:block;font-size:15px}

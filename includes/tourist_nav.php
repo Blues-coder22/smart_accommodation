@@ -98,7 +98,6 @@ $tnBadge = function ($n, $live = false) { return '<span class="tn-badge" ' . ($l
     <!-- Main navigation: a row on desktop, the drawer on phones -->
     <div class="tn-panel" id="tnPanel" role="dialog" aria-modal="false" aria-label="Menu">
       <div class="tn-panel-head">
-        <a class="tn-brand" href="<?= h($tnHome) ?>"><span class="tn-mark">SE</span><span class="tn-name">StayExplore</span></a>
         <button class="tn-close" type="button" data-tn-close aria-label="Close menu"><?= tnIcon('close') ?></button>
       </div>
       <div class="tn-hello"><?= $tnAvatar ?><span><strong><?= h($tnFirst) ?></strong><small>Traveller account</small></span></div>
