@@ -4,6 +4,10 @@ require_once '../includes/functions.php';
 require_once '../includes/db.php';
 require_once '../includes/upload_helpers.php';
 require_once '../includes/email.php';
+require_once '../includes/commission.php';      // siteSettingGet()
+require_once '../includes/notifications.php';   // notifyAdmins()
+require_once '../includes/report_safety.php';   // v9.38.1: history and abuse limits
+ensureReportManagementTables($pdo);
 
 if (session_status() === PHP_SESSION_NONE) session_start();
 
@@ -52,6 +56,7 @@ $my_stays = $my_stays->fetchAll();
 
 $errors  = [];
 $success = false;
+$isCritical = false; $suspend = 0; $listingSuspended = false;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     requireCsrf();
@@ -62,6 +67,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (empty($description) || strlen($description) < 20) {
         $errors[] = 'Please provide more details (at least 20 characters).';
+    }
+    if (empty($errors)) {   // v9.38.1: limits per person (daily cap, no duplicate open report, paused after repeated false reports)
+        $abuse = reportAbuseCheck($pdo, (int)$_SESSION['user_id'], $type, (int)$target_id, $incident_t);
+        if ($abuse !== '') $errors[] = $abuse;
     }
 
     // Handle evidence upload
@@ -136,35 +145,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             VALUES (?, ?, ?, ?, ?, ?, 'pending', ?)
         ");
 
-        // Auto-suspend the listing only for critical incidents
-        $suspend = ($type === 'incident' && in_array($incident_t, $critical_types, true)) ? 1 : 0;
+        // v9.38.1: a critical incident ALERTS the admin as urgent; it does not suspend the listing by itself, because any guest could
+        // otherwise take a host offline with one unverified report. The admin suspends from the report once they have looked at it.
+        // Emergency auto-suspension is kept only if the site setting 'report_auto_suspend' is deliberately switched on (default off).
+        $isCritical = ($type === 'incident' && in_array($incident_t, $critical_types, true));
+        $suspend    = ($isCritical && siteSettingGet('report_auto_suspend', '0') === '1') ? 1 : 0;
 
-        $stmt->execute([
-            $_SESSION['user_id'],
-            $type,
-            $target_id,
-            $description,
-            $evidence,
-            $incident_t,
-            $suspend
-        ]);
-
-        $report_id = $pdo->lastInsertId();
-
-        // Suspend listing if critical incident
-        if ($suspend && $target_id) {
-            $pdo->prepare("
-                UPDATE accommodations
-                SET status = 'suspended'
-                WHERE accommodation_id = ?
-            ")->execute([$target_id]);
+        // The report and (only under the emergency policy) the suspension are saved together or not at all.
+        $pdo->beginTransaction();
+        try {
+            $stmt->execute([
+                $_SESSION['user_id'],
+                $type,
+                $target_id,
+                $description,
+                $evidence,
+                $incident_t,
+                $suspend
+            ]);
+            $report_id = $pdo->lastInsertId();
+            if ($suspend && $target_id) {
+                $pdo->prepare("UPDATE accommodations SET status = 'suspended' WHERE accommodation_id = ?")->execute([$target_id]);
+            }
+            $pdo->commit();
+            logReportEvent($pdo, (int)$report_id, (int)$_SESSION['user_id'], 'submitted', null, '');   // start of the report history
+        } catch (Throwable $e) {
+            if ($pdo->inTransaction()) $pdo->rollBack();
+            error_log('Report submit failed: ' . $e->getMessage());
+            $errors[] = 'We could not save your report just now. Please try again.';
         }
+    }
 
-        // Notify admin
+    if (empty($errors)) {
+        $listingSuspended = (bool)$suspend;   // what the guest is told below
+        // In-app alert for every admin, flagged urgent for a critical incident.
+        notifyAdmins($pdo, ($isCritical ? 'URGENT: critical incident report' : 'New report to review'),
+            'Report #RPT' . str_pad((string)$report_id, 5, '0', STR_PAD_LEFT) . ' about ' . ($target_name !== '' ? $target_name : 'a listing') . ($incident_t ? ' (' . str_replace('_', ' ', $incident_t) . ')' : '') . '. '
+            . ($isCritical ? ($suspend ? 'The listing was suspended under the emergency policy. Please review now.' : 'The listing is still live. Please investigate and suspend it from the report if needed.') : 'Please review it.'),
+            'admin/reports.php');
+
+        // Notify admin by email
         $admin = adminNotificationRecipient($pdo);
 
         if ($admin) {
-            $urgency = $suspend ? '*** URGENT *** ' : '';
+            $urgency = $isCritical ? '*** URGENT *** ' : '';
             sendEmail(
                 $admin['email'],
                 $urgency . 'New Report Submitted — StayExplore Kenya',
@@ -180,7 +204,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ? "<p style='color:red'><strong>
                        The listing has been automatically suspended
                        pending your review.</strong></p>"
-                    : "") . "
+                    : ($isCritical
+                        ? "<p style='color:red'><strong>
+                           This is a critical incident. The listing has NOT been suspended automatically: please investigate and
+                           suspend it from the admin panel if the report warrants it.</strong></p>"
+                        : "")) . "
                 <p>Please log in to the admin panel to review this report.</p>
                 "
             );
@@ -288,9 +316,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <p style="font-size:14px;color:var(--text-secondary);
                            margin-bottom:20px;line-height:1.6">
                     Our trust team will review your report within 24 hours.
-                    <?php if ($report_type === 'incident'): ?>
+                    <?php if (!empty($listingSuspended)): ?>
                         The listing has been temporarily suspended
                         while we investigate.
+                    <?php elseif ($report_type === 'incident'): ?>
+                        We have alerted our team about this incident and will act on it as soon as possible.
                     <?php endif; ?>
                     If anyone is in immediate danger,
                     please call <strong>999</strong> or <strong>112</strong>.
@@ -474,6 +504,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         </div>
 
+    <?php endif; ?>
+
+    <?php
+    // v9.38.1: the person's own earlier reports and how each ended
+    $mine = $pdo->prepare("SELECT report_id, report_type, incident_type, status, outcome, admin_action, created_at FROM reports WHERE reporter_id = ? ORDER BY report_id DESC LIMIT 10");
+    $mine->execute([(int)$_SESSION['user_id']]); $mine = $mine->fetchAll(PDO::FETCH_ASSOC);
+    $typeNames = ['listing' => 'Listing', 'review' => 'Review', 'tourist' => 'Guest', 'incident' => 'Incident'];
+    ?>
+    <?php if ($mine): ?>
+    <section style="max-width:900px;margin:32px auto 0;padding:0 16px" aria-label="Your previous reports">
+        <h2 style="font-size:1.1rem">Your previous reports</h2>
+        <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.9rem">
+            <thead><tr><th style="text-align:left;padding:8px">Report</th><th style="text-align:left;padding:8px">Sent</th><th style="text-align:left;padding:8px">About</th><th style="text-align:left;padding:8px">Status</th></tr></thead>
+            <tbody>
+            <?php foreach ($mine as $m): ?>
+                <tr style="border-top:1px solid var(--border)">
+                    <td style="padding:8px">#RPT<?= str_pad((string)$m['report_id'], 5, '0', STR_PAD_LEFT) ?></td>
+                    <td style="padding:8px"><?= h(date('j M Y', strtotime($m['created_at']))) ?></td>
+                    <td style="padding:8px"><?= h($typeNames[$m['report_type']] ?? ucfirst($m['report_type'])) ?><?= $m['incident_type'] ? ': ' . h(str_replace('_', ' ', $m['incident_type'])) : '' ?></td>
+                    <td style="padding:8px"><?php
+                        if ($m['status'] === 'pending') echo 'Received. Waiting for review.';
+                        elseif ($m['status'] === 'reviewed') echo 'Under investigation.';
+                        else { echo h(reportOutcomeForReporter($m['outcome'] ?? ($m['status'] === 'resolved' ? 'substantiated' : 'unsubstantiated'))); if (!empty($m['admin_action'])) echo ' ' . h($m['admin_action']); }
+                    ?></td>
+                </tr>
+            <?php endforeach; ?>
+            </tbody>
+        </table></div>
+    </section>
     <?php endif; ?>
 
 </div>

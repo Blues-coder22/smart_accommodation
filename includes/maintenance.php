@@ -58,10 +58,14 @@ if (!function_exists('runMaintenance')) {
             $q = $pdo->query("SELECT b.booking_id FROM bookings b WHERE b.status = 'confirmed' AND b.check_out_date < CURDATE()
                 AND EXISTS (SELECT 1 FROM payments p WHERE p.booking_id = b.booking_id AND p.payment_status = 'confirmed') LIMIT 300");
             foreach ($q->fetchAll(PDO::FETCH_COLUMN) as $id) {
-                if (transitionBooking($pdo, (int)$id, 'completed', 'system', null, ['event' => 'auto_completed', 'expect' => 'confirmed', 'note' => 'Stay ended'])['ok']) $out['completed']++;
+                if (transitionBooking($pdo, (int)$id, 'completed', 'system', null, ['event' => 'auto_completed', 'expect' => 'confirmed', 'note' => 'Stay ended'])['ok']) {
+                    $out['completed']++;
+                    try { notifyUserOfBooking($pdo, (int)$id, 'tourist', 'Your stay is complete', bookingLabel((int)$id) . ' is now completed. You can leave a review of your stay.', 'tourist/bookings.php'); } catch (Throwable $e) {}   // v9.38.1
+                }
             }
             // 5. Commission invoices and overdue notices (host-facing only)
             $out['invoices'] = issueCommissionInvoices($pdo);
+            try { notifyNewCommissionInvoices($pdo); } catch (Throwable $e) {}   // v9.38.1: the host hears about each new invoice
             // v9.37: reminder emails (before the due date, on it, and while overdue) plus the matching notifications.
             require_once __DIR__ . '/invoice_reminders.php';
             $rem = sendInvoiceReminders($pdo);

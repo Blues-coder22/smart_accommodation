@@ -4,6 +4,7 @@ require_once '../includes/functions.php';
 require_once '../includes/db.php';
 require_once '../includes/commission.php';
 require_once '../includes/booking_workflow.php';
+require_once '../includes/report_helpers.php';
 
 if (session_status() === PHP_SESSION_NONE) session_start();
 
@@ -13,33 +14,40 @@ requireRole('host');
 $host_id = $_SESSION['user_id'];
 
 // Overview stats
+// v9.38.1: each figure is its own subquery. The old single query joined bookings, payments and reviews together, so a payment was counted once per
+// published review (earnings overstated) and the rating was weighted by the number of bookings.
 $stats = $pdo->prepare("
     SELECT
-        COUNT(DISTINCT b.booking_id) AS total_bookings,
-        COUNT(DISTINCT CASE WHEN b.status = 'pending'
-              THEN b.booking_id END) AS pending_bookings,
-        COUNT(DISTINCT CASE WHEN b.status = 'confirmed'
-              THEN b.booking_id END) AS confirmed_bookings,
-        COALESCE(SUM(CASE WHEN p.payment_status = 'confirmed'
-              THEN p.amount END), 0) AS total_earnings,
-        COALESCE(AVG(r.rating), 0) AS avg_rating,
-        COUNT(DISTINCT r.review_id) AS total_reviews,
-        COUNT(DISTINCT a.accommodation_id) AS total_listings,
-        COUNT(DISTINCT CASE WHEN a.status = 'pending'
-              THEN a.accommodation_id END) AS pending_listings
-    FROM accommodations a
-    LEFT JOIN bookings b ON b.accommodation_id = a.accommodation_id
-    LEFT JOIN payments p ON p.booking_id = b.booking_id
-    LEFT JOIN reviews r
-        ON r.accommodation_id = a.accommodation_id
-        AND r.is_published = 1
-    WHERE a.host_id = ?
+        (SELECT COUNT(*) FROM bookings b JOIN accommodations a ON a.accommodation_id = b.accommodation_id WHERE a.host_id = ?) AS total_bookings,
+        (SELECT COUNT(*) FROM bookings b JOIN accommodations a ON a.accommodation_id = b.accommodation_id WHERE a.host_id = ? AND b.status = 'pending') AS pending_bookings,
+        (SELECT COUNT(*) FROM bookings b JOIN accommodations a ON a.accommodation_id = b.accommodation_id WHERE a.host_id = ? AND b.status = 'confirmed') AS confirmed_bookings,
+        (SELECT COALESCE(SUM(p.amount), 0) FROM payments p JOIN bookings b ON b.booking_id = p.booking_id JOIN accommodations a ON a.accommodation_id = b.accommodation_id
+            WHERE a.host_id = ? AND p.payment_status = 'confirmed') AS total_earnings,
+        (SELECT COALESCE(AVG(r.rating), 0) FROM reviews r JOIN accommodations a ON a.accommodation_id = r.accommodation_id WHERE a.host_id = ? AND r.is_published = 1) AS avg_rating,
+        (SELECT COUNT(*) FROM reviews r JOIN accommodations a ON a.accommodation_id = r.accommodation_id WHERE a.host_id = ? AND r.is_published = 1) AS total_reviews,
+        (SELECT COUNT(*) FROM accommodations WHERE host_id = ?) AS total_listings,
+        (SELECT COUNT(*) FROM accommodations WHERE host_id = ? AND status = 'pending') AS pending_listings
 ");
-$stats->execute([$host_id]);
+$stats->execute(array_fill(0, 8, $host_id));
 $stats = $stats->fetch();
 $comm = hostCommissionSummary($pdo, (int)$host_id);
 $agreementOk = hostAgreementAccepted($pdo, (int)$host_id);
 $awaitingPay = (int)$pdo->query("SELECT COUNT(*) FROM bookings b JOIN accommodations a ON a.accommodation_id = b.accommodation_id WHERE a.host_id = " . (int)$host_id . " AND b.status = 'payment_pending'")->fetchColumn();
+
+// v9.38.1: summary for a chosen period (default last 30 days); the cards above stay all-time.
+$per = reportPeriod('last_30'); $prHost = [$host_id, $per['from'], $per['to']];
+$pbq = $pdo->prepare("SELECT b.status, COUNT(*) AS n, COALESCE(SUM(b.total_amount),0) AS v FROM bookings b JOIN accommodations a ON a.accommodation_id = b.accommodation_id
+    WHERE a.host_id = ? AND DATE(b.created_at) BETWEEN ? AND ? GROUP BY b.status");
+$pbq->execute($prHost);
+$pBook = ['all' => 0, 'value' => 0.0, 'won' => 0, 'lost' => 0];
+foreach ($pbq->fetchAll(PDO::FETCH_ASSOC) as $r) {
+    $pBook['all'] += (int)$r['n']; $pBook['value'] += (float)$r['v'];
+    if (in_array($r['status'], ['confirmed', 'completed'], true)) $pBook['won'] += (int)$r['n'];
+    elseif (in_array($r['status'], ['cancelled', 'rejected', 'declined', 'expired', 'no_show'], true)) $pBook['lost'] += (int)$r['n'];
+}
+$pe = $pdo->prepare("SELECT COALESCE(SUM(CASE WHEN payment_status='confirmed' THEN amount END),0) AS got, COALESCE(SUM(CASE WHEN payment_status='pending' THEN amount END),0) AS waiting
+    FROM payments WHERE host_id = ? AND DATE(payment_date) BETWEEN ? AND ?");
+$pe->execute($prHost); $pEarn = $pe->fetch(PDO::FETCH_ASSOC);
 
 // Recent bookings
 $recent = $pdo->prepare("
@@ -286,6 +294,23 @@ foreach ($chart_values as $i => $value) {
         </div>
 
         <h2 class="strip-title">Commission <a href="commission.php">Details</a></h2>
+        <section class="section-card" style="margin-bottom:24px" aria-label="Summary for a period">
+            <h2 style="margin:0 0 6px">Summary for a period</h2>
+            <p style="margin:0 0 12px;opacity:.8"><?= h($per['label']) ?>: <?= h(date('j M Y', strtotime($per['from']))) ?> to <?= h(date('j M Y', strtotime($per['to']))) ?>. Bookings are counted by the day they were made; payments by the day they were reported.</p>
+            <?= reportFilterHtml($per) ?>
+            <div class="stats-grid" style="margin-bottom:12px">
+                <div class="stat-card accent"><div class="stat-label">Bookings made</div><div class="stat-value"><?= (int)$pBook['all'] ?></div><div class="stat-note">KES <?= number_format($pBook['value'], 2) ?> booked</div></div>
+                <div class="stat-card"><div class="stat-label">Confirmed or completed</div><div class="stat-value"><?= (int)$pBook['won'] ?></div><div class="stat-note"><?= (int)$pBook['lost'] ?> cancelled, declined or expired</div></div>
+                <div class="stat-card"><div class="stat-label">Earnings confirmed</div><div class="stat-value">KES <?= number_format((float)$pEarn['got'], 2) ?></div><div class="stat-note">KES <?= number_format((float)$pEarn['waiting'], 2) ?> still to confirm</div></div>
+            </div>
+            <div class="no-print" style="display:flex;gap:10px;flex-wrap:wrap">
+                <?php $ex = http_build_query(['from' => $per['from'], 'to' => $per['to']]); ?>
+                <strong style="align-self:center">Download CSV:</strong>
+                <a href="export.php?type=bookings&amp;<?= h($ex) ?>">My bookings</a> &middot;
+                <a href="export.php?type=payments&amp;<?= h($ex) ?>">My payments</a>
+            </div>
+        </section>
+
         <div class="stats-grid">
             <div class="stat-card"><div class="stat-label">Commission earned</div><div class="stat-value">KES <?= number_format($comm['earned']) ?></div><div class="stat-note">on confirmed payments</div></div>
             <div class="stat-card"><div class="stat-label">Outstanding</div><div class="stat-value">KES <?= number_format($comm['outstanding']) ?></div><div class="stat-note <?= $comm['overdue'] > 0 ? 'warn' : '' ?>"><?= $comm['overdue'] > 0 ? 'KES ' . number_format($comm['overdue']) . ' overdue' : 'nothing overdue' ?></div></div>

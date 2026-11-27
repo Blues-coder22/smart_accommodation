@@ -9,6 +9,7 @@ require_once __DIR__ . '/../includes/functions.php';
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/notifications.php';
 require_once __DIR__ . '/../includes/support.php';
+require_once __DIR__ . '/../includes/message_guard.php';
 if (session_status() === PHP_SESSION_NONE) session_start();
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
@@ -42,7 +43,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $max = $kind === 'support' ? 2000 : 1000;
     $len = function_exists('mb_strlen') ? mb_strlen($body, 'UTF-8') : strlen($body);
     if ($body === '' || $len > $max) chatOut(['ok' => false, 'error' => 'Write a message between 1 and ' . number_format($max) . ' characters.'], 422);
-    if ($kind === 'support') {
+    if ($kind === 'thread') {
+        $toId = (int)(((int)$thread['host_id'] === $uid) ? $thread['tourist_id'] : $thread['host_id']);
+        $prob = messageAccountProblem($pdo, $uid, $toId);
+        if ($prob !== '') chatOut(['ok' => false, 'error' => $prob], 403);
+    }
+    if (messageRateLimited($pdo, $msgTable, $uid)) chatOut(['ok' => false, 'error' => 'You are sending messages very quickly. Please wait a moment and try again.'], 429);
+    $dupId = messageRecentDuplicateId($pdo, $msgTable, $id, $uid, $body);   // same text just sent: return it, do not save it twice
+    if ($dupId) {
+        $newId = $dupId;
+    } elseif ($kind === 'support') {
         $newId = supportAddMessage($pdo, $id, $uid, $role === 'admin', $body);
     } else {
         $pdo->prepare('INSERT INTO messages (thread_id, sender_id, body) VALUES (?,?,?)')->execute([$id, $uid, $body]);

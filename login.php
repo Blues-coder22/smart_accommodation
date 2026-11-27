@@ -6,6 +6,10 @@ require_once 'includes/functions.php';
 // This lets a user switch from a tourist session to a host/admin account by signing in again.
 
 $errors = [];
+// Sent here because the account was suspended, banned or closed while signed in (see seAccountStillActive in includes/auth.php).
+$accountNotice = ['suspended' => 'Your account has been suspended, so you were signed out.', 'banned' => 'Your account has been banned, so you were signed out.',
+                  'closed' => 'This account has been closed.', 'changed' => 'Your account was changed. Please sign in again.'];
+if ($_SERVER['REQUEST_METHOD'] !== 'POST' && isset($_GET['account'], $accountNotice[(string)$_GET['account']])) $errors[] = $accountNotice[(string)$_GET['account']];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     requireCsrf();

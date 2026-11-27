@@ -344,6 +344,41 @@ if (!function_exists('runSchemaUpgradeV933')) {
     }
 }
 
+// ===================== v9.38.1: tell the host when a commission invoice is issued =====================
+if (!function_exists('notifyNewCommissionInvoices')) {
+    /**
+     * Invoices were created silently, so a host first heard about one when a reminder arrived. Each new invoice is now announced once
+     * (one notification per host per run, listing how many and the total). The first run only marks the invoices that already exist as
+     * announced, so nobody receives a flood about old invoices. Run by the maintenance job; safe to repeat.
+     */
+    function notifyNewCommissionInvoices($pdo) {
+        $sent = 0;
+        try {
+            if (!$pdo->query("SHOW COLUMNS FROM commission_invoices LIKE 'notified_at'")->fetch()) {
+                $pdo->exec("ALTER TABLE commission_invoices ADD COLUMN notified_at DATETIME NULL DEFAULT NULL");
+                $pdo->exec("UPDATE commission_invoices SET notified_at = NOW()");
+                return 0;
+            }
+            require_once __DIR__ . '/notifications.php';
+            $rows = $pdo->query("SELECT invoice_id, host_id, invoice_no, amount, due_date FROM commission_invoices WHERE notified_at IS NULL AND status <> 'void' ORDER BY invoice_id LIMIT 500")->fetchAll(PDO::FETCH_ASSOC);
+            $byHost = [];
+            foreach ($rows as $r) $byHost[(int)$r['host_id']][] = $r;
+            foreach ($byHost as $hid => $list) {
+                $total = array_sum(array_map(fn($x) => (float)$x['amount'], $list));
+                $due = min(array_map(fn($x) => $x['due_date'], $list));
+                $n = count($list);
+                notify($pdo, $hid, $n === 1 ? 'New commission invoice' : $n . ' new commission invoices',
+                    ($n === 1 ? 'Invoice ' . $list[0]['invoice_no'] : $n . ' invoices') . ' for KES ' . number_format($total, 2) . ' ' . ($n === 1 ? 'has' : 'have') . ' been issued, due ' . date('j M Y', strtotime($due)) . '. You can see and pay it under Commission.',
+                    'host/commission.php');
+                $ids = array_map(fn($x) => (int)$x['invoice_id'], $list);
+                $pdo->exec('UPDATE commission_invoices SET notified_at = NOW() WHERE invoice_id IN (' . implode(',', $ids) . ')');
+                $sent++;
+            }
+        } catch (Throwable $e) { error_log('notifyNewCommissionInvoices: ' . $e->getMessage()); }
+        return $sent;
+    }
+}
+
 // ===================== v9.33: commission invoiced to the host after an eligible completed stay =====================
 if (!function_exists('issueCommissionInvoices')) {
     /**
@@ -432,7 +467,7 @@ if (!function_exists('hostCommissionLedger')) {
             $out += $it['unpaid']; if ($it['overdue']) $overdue += $it['unpaid'];
         }
         unset($it);
-        return ['due' => $due, 'paid' => (float)$pay['paid'], 'pending' => (float)$pay['pending'], 'outstanding' => $out, 'overdue' => $overdue, 'items' => $items];
+        return ['due' => $due, 'paid' => (float)$pay['paid'], 'pending' => (float)$pay['pending'], 'outstanding' => $out, 'overdue' => $overdue, 'credit' => max(0.0, round($credit, 2)), 'items' => $items];   // credit = confirmed money not matched to any live invoice (overpayment, or the invoice was voided)
     }
 }
 if (!function_exists('syncCommissionInvoiceStatuses')) {
@@ -454,18 +489,28 @@ if (!function_exists('hostCommissionSummary')) {
     }
 }
 if (!function_exists('commissionPlatformSummary')) {
-    /** Totals across all hosts for the admin dashboard. */
+    /**
+     * Totals across all hosts for the admin dashboard.
+     * v9.38.1: outstanding, overdue and credit are the SUM of each host ledger (hostCommissionLedger), so the admin figures reconcile
+     * exactly with what every host sees. (Before, they were worked out from different columns and could disagree.)
+     */
     function commissionPlatformSummary($pdo) {
         ensureCommissionTables($pdo); issueCommissionInvoices($pdo);
-        $inv = $pdo->query("SELECT COALESCE(SUM(amount),0) AS generated, COUNT(*) AS n,
-                COALESCE(SUM(CASE WHEN status <> 'void' AND due_date < CURDATE() THEN amount - paid_amount END),0) AS overdue_amount,
-                COALESCE(SUM(CASE WHEN status <> 'void' AND status <> 'paid' AND due_date < CURDATE() THEN 1 END),0) AS overdue_n
-            FROM commission_invoices WHERE status <> 'void'")->fetch(PDO::FETCH_ASSOC);
+        $inv = $pdo->query("SELECT COALESCE(SUM(amount),0) AS generated, COUNT(*) AS n FROM commission_invoices WHERE status <> 'void'")->fetch(PDO::FETCH_ASSOC);
         $pay = $pdo->query("SELECT COALESCE(SUM(CASE WHEN status='confirmed' THEN amount END),0) AS confirmed,
                 COALESCE(SUM(CASE WHEN status='pending' THEN amount END),0) AS awaiting, COALESCE(SUM(CASE WHEN status='pending' THEN 1 END),0) AS awaiting_n
             FROM host_commission_payments")->fetch(PDO::FETCH_ASSOC);
+        $out = 0.0; $overdueAmt = 0.0; $overdueN = 0; $credit = 0.0;
+        $hosts = $pdo->query("SELECT host_id FROM commission_invoices UNION SELECT host_id FROM host_commission_payments")->fetchAll(PDO::FETCH_COLUMN);
+        foreach ($hosts as $hid) {
+            try {
+                $l = hostCommissionLedger($pdo, (int)$hid);
+                $out += $l['outstanding']; $overdueAmt += $l['overdue']; $credit += $l['credit'];
+                foreach ($l['items'] as $it) if (!empty($it['overdue'])) $overdueN++;
+            } catch (Throwable $e) { error_log('commissionPlatformSummary host ' . $hid . ': ' . $e->getMessage()); }
+        }
         return ['generated' => (float)$inv['generated'], 'invoices' => (int)$inv['n'], 'confirmed' => (float)$pay['confirmed'], 'awaiting' => (float)$pay['awaiting'], 'awaiting_n' => (int)$pay['awaiting_n'],
-                'outstanding' => max(0.0, (float)$inv['generated'] - (float)$pay['confirmed']), 'overdue_amount' => (float)$inv['overdue_amount'], 'overdue_n' => (int)$inv['overdue_n']];
+                'outstanding' => $out, 'overdue_amount' => $overdueAmt, 'overdue_n' => $overdueN, 'credit' => round($credit, 2)];
     }
 }
 if (!function_exists('hostIsBlockedForCommission')) {

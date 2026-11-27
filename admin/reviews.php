@@ -56,6 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     SET is_published = 1, is_flagged = 0
                     WHERE review_id = ?
                 ")->execute([$review_id]);
+                try { require_once '../includes/review_notify.php'; notifyHostsOfNewReviews($pdo); } catch (Throwable $e) {}   // v9.38.1
                 setFlash('success', 'Review published.');
                 break;
 

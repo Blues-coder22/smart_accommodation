@@ -135,9 +135,40 @@ function verifyEmail($token) {
     return ['success' => true, 'user_id' => (int)$user['user_id'], 'role' => strtolower(trim((string)$user['role']))];
 }
 
-// Check if user is logged in
+/**
+ * v9.38.1: a session only counts while the account behind it is still allowed in. Before, someone suspended, banned or closed
+ * while signed in kept using the site until they logged out, because only the sign-in step checked the account status.
+ * The status is re-read at most every 15 seconds per session, so a suspension by an admin takes effect within about 15 seconds
+ * (and the lookup stays cheap for pages that poll). If the lookup itself fails, the person is NOT signed out (fail open) and the error is logged.
+ */
+function seAccountStillActive() {
+    global $pdo;
+    static $memo = null;
+    if ($memo !== null) return $memo;
+    if (!empty($_SESSION['_acct_ok_until']) && (int)$_SESSION['_acct_ok_until'] > time()) return $memo = true;
+    $reason = '';
+    try {
+        $q = $pdo->prepare('SELECT status, account_closed_at, role FROM users WHERE user_id = ?');
+        $q->execute([(int)$_SESSION['user_id']]);
+        $u = $q->fetch(PDO::FETCH_ASSOC);
+        if (!$u)                                   $reason = 'closed';
+        elseif (!empty($u['account_closed_at']))   $reason = 'closed';
+        elseif ($u['status'] === 'suspended')      $reason = 'suspended';
+        elseif ($u['status'] === 'banned')         $reason = 'banned';
+        elseif (isset($_SESSION['role']) && strtolower(trim((string)$u['role'])) !== strtolower(trim((string)$_SESSION['role']))) $reason = 'changed';
+    } catch (Throwable $e) {
+        error_log('seAccountStillActive: ' . $e->getMessage());
+        return $memo = true;
+    }
+    if ($reason === '') { $_SESSION['_acct_ok_until'] = time() + 15; return $memo = true; }
+    $GLOBALS['se_account_block'] = $reason;
+    seEndCurrentSession();   // only this role session ends; other roles signed in elsewhere are untouched
+    return $memo = false;
+}
+
+// Check if user is logged in (and the account is still active)
 function isLoggedIn() {
-    return isset($_SESSION['user_id']);
+    return isset($_SESSION['user_id']) && seAccountStillActive();
 }
 
 // Check user role
@@ -161,7 +192,8 @@ function requireLogin() {
     if (!isLoggedIn()) {
         $_SESSION['return_url'] = $_SERVER['REQUEST_URI'];
         $base = function_exists('appBasePath') ? appBasePath() : '/smart_accommodation';
-        header('Location: ' . $base . '/login.php');
+        $why = !empty($GLOBALS['se_account_block']) ? '?account=' . urlencode($GLOBALS['se_account_block']) : '';
+        header('Location: ' . $base . '/login.php' . $why);
         exit;
     }
 }

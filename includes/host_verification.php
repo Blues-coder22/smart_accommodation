@@ -109,5 +109,9 @@ function submitHostVerification($pdo, $host_id, array $post, $file, $role = 'hos
         deleteVerificationPhoto($photo);
         return ['success' => false, 'errors' => ['Your request could not be saved right now. Please try again.']];
     }
+    try {   // v9.38.1: the admin is told there is an ID to check (it used to be found only by opening the users page)
+        require_once __DIR__ . '/notifications.php';
+        notifyAdmins($pdo, 'Verification to check', ($role === 'host' ? 'A host' : 'A guest') . ' sent an ID to be verified.', 'admin/users.php');
+    } catch (Throwable $e) { error_log('verification notify: ' . $e->getMessage()); }
     return ['success' => true, 'errors' => []];
 }

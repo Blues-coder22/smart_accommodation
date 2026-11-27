@@ -1,6 +1,7 @@
 <?php
 require_once '../includes/auth.php';
 require_once '../includes/functions.php';
+require_once '../includes/notifications.php';   // v9.38.1: in-app alert to the admin
 require_once '../includes/db.php';
 require_once '../includes/onsite_experience.php';
 require_once '../includes/upload_helpers.php';
@@ -135,6 +136,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Notify admin only after the listing and at least one photo were saved
         if ($uploaded > 0) {
+        notifyAdmins($pdo, 'New listing to approve', '"' . $title . '" in ' . $location_name . ' was submitted by ' . ($_SESSION['full_name'] ?? 'a host') . ' and is waiting for your approval.', 'admin/listings.php');
         $admin = adminNotificationRecipient($pdo);
 
         if ($admin) {

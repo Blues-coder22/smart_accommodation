@@ -3,6 +3,8 @@ require_once '../includes/auth.php';
 require_once '../includes/functions.php';
 require_once '../includes/db.php';
 require_once '../includes/notifications.php';
+require_once '../includes/host_refunds.php';
+ensureHostRefundsTable($pdo);
 require_once '../includes/commission.php';
 ensureCommissionTables($pdo);
 require_once '../includes/booking_workflow.php';
@@ -96,12 +98,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 setFlash('success', 'Booking cancelled. The guest has been told your reason' . ($payStatus === 'confirmed' ? ' and reminded to expect a refund from you.' : '.'));
                 break;
 
+            case 'record_refund':
+                // v9.38.1: the host says they sent the guest a refund for a cancelled booking. The guest and the admin are told.
+                $rr = hostRecordRefund($pdo, $booking_id, $host_id, str_replace(',', '.', (string)($_POST['amount'] ?? '')), (string)($_POST['method'] ?? ''), (string)($_POST['reference'] ?? ''), (string)($_POST['note'] ?? ''));
+                setFlash($rr['ok'] ? 'success' : 'error', $rr['ok'] ? 'Refund recorded. The guest was told and the admin can see it.' : $rr['error']);
+                break;
+
             case 'no_show':
                 if ($booking['status'] === 'confirmed' && $booking['check_in_date'] > date('Y-m-d')) {
                     setFlash('warning', 'A no-show can only be recorded from the check-in day (' . date('d M Y', strtotime($booking['check_in_date'])) . ') onwards.');
                 } else {
                     $r = transitionBooking($pdo, $booking_id, 'no_show', 'host', $host_id, ['event' => 'no_show', 'note' => 'Host recorded the guest as a no-show']);
                     setFlash($r['ok'] ? 'success' : 'error', $r['ok'] ? 'No-show recorded for this booking.' : $r['error']);
+                    if ($r['ok']) {   // v9.38.1: the guest is told, and the admin sees it (a no-show can affect refunds)
+                        notifyUserOfBooking($pdo, $booking_id, 'tourist', 'Marked as a no-show', bookingLabel($booking_id) . ' was recorded by your host as a no-show. If this is a mistake, please contact support.', 'tourist/bookings.php');
+                        notifyAdmins($pdo, 'No-show recorded', bookingLabel($booking_id) . ' was recorded as a no-show by the host.', 'admin/bookings.php');
+                    }
                 }
                 break;
 
@@ -114,6 +126,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 $r = transitionBooking($pdo, $booking_id, 'completed', 'host', $host_id, ['event' => $early ? 'early_completion' : 'completed', 'note' => $early ? $reason : 'Host marked the stay as completed']);
                 if (!$r['ok']) { setFlash('error', $r['error']); break; }
+                notifyUserOfBooking($pdo, $booking_id, 'tourist', 'Your stay is complete', bookingLabel($booking_id) . ' is marked completed' . ($early ? ' early by your host' : '') . '. You can leave a review of your stay.', 'tourist/bookings.php');   // v9.38.1
                 if ($early) {
                     // Allowed, but recorded: the admin can see it and the guest is told so they can object.
                     try {
@@ -217,7 +230,11 @@ $bookings = $pdo->prepare("
            (SELECT p.payment_status FROM payments p WHERE p.booking_id=b.booking_id ORDER BY p.payment_id DESC LIMIT 1) AS payment_status,
            (SELECT pp.status FROM platform_payments pp WHERE pp.booking_id=b.booking_id LIMIT 1) AS pp_status,
            (SELECT p.payment_method FROM payments p WHERE p.booking_id=b.booking_id ORDER BY p.payment_id DESC LIMIT 1) AS payment_method,
-           (SELECT p.payment_reference FROM payments p WHERE p.booking_id=b.booking_id ORDER BY p.payment_id DESC LIMIT 1) AS payment_reference
+           (SELECT p.payment_reference FROM payments p WHERE p.booking_id=b.booking_id ORDER BY p.payment_id DESC LIMIT 1) AS payment_reference,
+           (SELECT p.amount FROM payments p WHERE p.booking_id=b.booking_id AND p.payment_status='confirmed' ORDER BY p.payment_id DESC LIMIT 1) AS paid_amount,
+           (SELECT hr.amount FROM host_refunds hr WHERE hr.booking_id=b.booking_id) AS host_refund_amount,
+           (SELECT hr.method FROM host_refunds hr WHERE hr.booking_id=b.booking_id) AS host_refund_method,
+           (SELECT hr.reference FROM host_refunds hr WHERE hr.booking_id=b.booking_id) AS host_refund_ref
     FROM bookings b
     JOIN accommodations a ON a.accommodation_id = b.accommodation_id
     JOIN users u ON u.user_id = b.tourist_id
@@ -570,6 +587,30 @@ $counts = $counts->fetch();
                                 Cancel booking
                             </button>
                         </form>
+                    <?php endif; ?>
+
+                    <?php if ($b['status'] === 'cancelled' && (float)($b['paid_amount'] ?? 0) > 0): ?>
+                        <?php if ($b['host_refund_amount'] !== null): ?>
+                            <span class="btn-sm" style="cursor:default">Refund recorded: KES <?= number_format((float)$b['host_refund_amount'], 2) ?> (<?= h(str_replace('_', ' ', (string)$b['host_refund_method'])) ?><?= $b['host_refund_ref'] ? ', ref ' . h($b['host_refund_ref']) : '' ?>)</span>
+                        <?php else: ?>
+                            <details style="width:100%">
+                                <summary class="btn-sm" style="cursor:pointer;display:inline-block">Record a refund to the guest</summary>
+                                <form method="POST" style="margin-top:8px;display:grid;gap:8px;max-width:360px">
+                                    <input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
+                                    <input type="hidden" name="booking_ref" value="<?= h(bookingRef($b['booking_id'])) ?>">
+                                    <input type="hidden" name="action" value="record_refund">
+                                    <label>Amount you refunded (KES), up to <?= number_format((float)$b['paid_amount'], 2) ?>
+                                        <input name="amount" inputmode="decimal" required value="<?= h(number_format((float)$b['paid_amount'], 2, '.', '')) ?>"></label>
+                                    <label>How you sent it
+                                        <select name="method" required><option value="mpesa">M-Pesa</option><option value="bank_transfer">Bank transfer</option><option value="cash">Cash</option></select></label>
+                                    <label>Transaction reference (not needed for cash)
+                                        <input name="reference" maxlength="120"></label>
+                                    <label>Note for the record (optional)
+                                        <input name="note" maxlength="300"></label>
+                                    <button type="submit" class="btn-sm">Save refund record</button>
+                                </form>
+                            </details>
+                        <?php endif; ?>
                     <?php endif; ?>
 
                     <!-- Flag tourist -->

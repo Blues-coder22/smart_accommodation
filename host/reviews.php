@@ -3,6 +3,7 @@ require_once '../includes/auth.php';
 require_once '../includes/functions.php';
 require_once '../includes/db.php';
 require_once '../includes/review_extras.php';
+require_once '../includes/notifications.php';
 ensureReviewExtraColumns($pdo);
 
 if (session_status() === PHP_SESSION_NONE) session_start();
@@ -24,18 +25,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
     if (!empty($reply)) {
         // Verify review belongs to host's property
         $check = $pdo->prepare("
-            SELECT r.review_id FROM reviews r
+            SELECT r.review_id, r.tourist_id, r.host_reply AS old_reply, a.title FROM reviews r
             JOIN accommodations a
                 ON a.accommodation_id = r.accommodation_id
             WHERE r.review_id = ? AND a.host_id = ?
         ");
         $check->execute([$review_id, $host_id]);
 
-        if ($check->fetch()) {
+        if ($rv = $check->fetch()) {
             $pdo->prepare("
                 UPDATE reviews SET host_reply = ?
                 WHERE review_id = ?
             ")->execute([$reply, $review_id]);
+            if (trim((string)$rv['old_reply']) === '') {   // v9.38.1: the guest hears about the host's FIRST reply (later edits stay quiet)
+                notify($pdo, (int)$rv['tourist_id'], 'The host replied to your review', 'The host of "' . $rv['title'] . '" replied to your review.', 'tourist/bookings.php');
+            }
             setFlash('success', 'Reply posted successfully.');
         }
     }

@@ -4,6 +4,7 @@ require_once '../includes/functions.php';
 require_once '../includes/db.php';
 require_once '../includes/commission.php';
 require_once '../includes/booking_workflow.php';
+require_once '../includes/report_helpers.php';
 
 if (session_status() === PHP_SESSION_NONE) session_start();
 
@@ -33,6 +34,25 @@ $stats = $pdo->query("
          AND is_published = 0) AS flagged_reviews,
         (SELECT COUNT(*) FROM attractions) AS total_attractions
 ")->fetch();
+
+// v9.38.1: summary for a chosen period (default last 30 days). The headline cards above stay all-time.
+ensureCommissionTables($pdo);
+$per = reportPeriod('last_30'); $pr = [$per['from'], $per['to']];
+$pq = $pdo->prepare("SELECT status, COUNT(*) AS n, COALESCE(SUM(total_amount),0) AS v FROM bookings WHERE DATE(created_at) BETWEEN ? AND ? GROUP BY status");
+$pq->execute($pr);
+$pBook = ['all' => 0, 'value' => 0.0, 'won' => 0, 'lost' => 0];
+foreach ($pq->fetchAll(PDO::FETCH_ASSOC) as $r) {
+    $pBook['all'] += (int)$r['n']; $pBook['value'] += (float)$r['v'];
+    if (in_array($r['status'], ['confirmed', 'completed'], true)) $pBook['won'] += (int)$r['n'];
+    elseif (in_array($r['status'], ['cancelled', 'rejected', 'declined', 'expired', 'no_show'], true)) $pBook['lost'] += (int)$r['n'];
+}
+$pGuestPaid = $pPlatform = $pRefunded = $pCommission = 0.0;
+try {
+    $q = $pdo->prepare("SELECT COALESCE(SUM(amount),0) FROM payments WHERE payment_status = 'confirmed' AND DATE(payment_date) BETWEEN ? AND ?"); $q->execute($pr); $pGuestPaid = (float)$q->fetchColumn();
+    $q = $pdo->prepare("SELECT COALESCE(SUM(CASE WHEN status='confirmed' THEN amount END),0), COALESCE(SUM(CASE WHEN status='refunded' THEN COALESCE(refunded_amount, amount) END),0)
+        FROM platform_payments WHERE status IN ('confirmed','refunded') AND DATE(COALESCE(reviewed_at, created_at)) BETWEEN ? AND ?"); $q->execute($pr); [$pPlatform, $pRefunded] = array_map('floatval', $q->fetch(PDO::FETCH_NUM));
+    $q = $pdo->prepare("SELECT COALESCE(SUM(amount),0) FROM host_commission_payments WHERE status = 'confirmed' AND DATE(COALESCE(reviewed_at, created_at)) BETWEEN ? AND ?"); $q->execute($pr); $pCommission = (float)$q->fetchColumn();
+} catch (Throwable $e) { error_log('dashboard period summary: ' . $e->getMessage()); }
 
 // Recent activity — latest bookings
 $recent = $pdo->query("
@@ -275,6 +295,29 @@ $monthly = $pdo->query("
                 </div>
             </div>
         </div>
+
+        <!-- v9.38.1: period summary + exports -->
+        <section class="section-card" style="margin-bottom:24px" aria-label="Summary for a period">
+            <h2 style="margin:0 0 6px">Summary for a period</h2>
+            <p style="margin:0 0 12px;opacity:.8"><?= h($per['label']) ?>: <?= h(date('j M Y', strtotime($per['from']))) ?> to <?= h(date('j M Y', strtotime($per['to']))) ?>. Bookings are counted by the day they were made; payments by the day they were confirmed.</p>
+            <?= reportFilterHtml($per) ?>
+            <div class="stats-grid" style="margin-bottom:12px">
+                <div class="stat-card accent"><div class="stat-label">Bookings made</div><div class="stat-value"><?= (int)$pBook['all'] ?></div><div class="stat-note">KES <?= number_format($pBook['value'], 2) ?> booked</div></div>
+                <div class="stat-card"><div class="stat-label">Confirmed or completed</div><div class="stat-value"><?= (int)$pBook['won'] ?></div><div class="stat-note"><?= (int)$pBook['lost'] ?> cancelled, declined or expired</div></div>
+                <div class="stat-card"><div class="stat-label">Guest payments confirmed</div><div class="stat-value">KES <?= number_format($pGuestPaid, 2) ?></div><div class="stat-note">paid to hosts</div></div>
+                <div class="stat-card"><div class="stat-label">Guest service fees received</div><div class="stat-value">KES <?= number_format($pPlatform - $pRefunded, 2) ?></div><div class="stat-note"><?= serviceFeePercent() > 0 ? 'after KES ' . number_format($pRefunded, 2) . ' refunded' : 'service fee is switched off, so guests pay none' ?></div></div>
+                <div class="stat-card"><div class="stat-label">Commission paid by hosts</div><div class="stat-value">KES <?= number_format($pCommission, 2) ?></div><div class="stat-note">confirmed in this period</div></div>
+            </div>
+            <div class="no-print" style="display:flex;gap:10px;flex-wrap:wrap">
+                <?php $ex = http_build_query(['from' => $per['from'], 'to' => $per['to']]); ?>
+                <strong style="align-self:center">Download CSV:</strong>
+                <a href="export.php?type=bookings&amp;<?= h($ex) ?>">Bookings</a> &middot;
+                <a href="export.php?type=payments&amp;<?= h($ex) ?>">Guest payments</a> &middot;
+                <a href="export.php?type=platform_payments&amp;<?= h($ex) ?>">Platform payments</a> &middot;
+                <a href="export.php?type=commission&amp;<?= h($ex) ?>">Commission payments</a> &middot;
+                <a href="revenue_report.php?<?= h($ex) ?>">Printable revenue report</a>
+            </div>
+        </section>
 
         <!-- Second Stats Row -->
         <div class="stats-grid" style="margin-bottom:24px">

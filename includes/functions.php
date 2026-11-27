@@ -269,6 +269,7 @@ function publishDueReviews($pdo, $force = false) {
         $stmt = $pdo->prepare(sprintf($base, ""));
         $stmt->execute();
     }
+    try { require_once __DIR__ . '/review_notify.php'; notifyHostsOfNewReviews($pdo); } catch (Throwable $e) {}   // v9.38.1: hosts hear about newly visible reviews
     return $stmt->rowCount();
 }
 

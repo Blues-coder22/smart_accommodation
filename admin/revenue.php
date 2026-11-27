@@ -4,6 +4,7 @@ require_once '../includes/functions.php';
 require_once '../includes/db.php';
 require_once '../includes/notifications.php';
 require_once '../includes/commission.php';
+require_once '../includes/finance_audit.php';
 require_once '../includes/invoice_reminders.php';
 require_once '../includes/email.php';
 if (session_status() === PHP_SESSION_NONE) session_start();
@@ -41,11 +42,70 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $st = $pdo->prepare("SELECT * FROM host_commission_payments WHERE hcp_id = ? AND status = 'pending'"); $st->execute([$id]); $r = $st->fetch(PDO::FETCH_ASSOC);
         if ($r) {
             $new = $act === 'hcp_accept' ? 'confirmed' : 'rejected';
-            $pdo->prepare('UPDATE host_commission_payments SET status = ?, reviewed_at = NOW(), reviewed_by = ?, review_note = ? WHERE hcp_id = ?')->execute([$new, $admin_id, $note !== '' ? $note : null, $id]);
+            // v9.38.1: the decision only applies while the payment is still 'pending' (a double click or a second admin changes nothing), and it is logged.
+            $done = false;
+            try {
+                $pdo->beginTransaction();
+                $u = $pdo->prepare("UPDATE host_commission_payments SET status = ?, reviewed_at = NOW(), reviewed_by = ?, review_note = ? WHERE hcp_id = ? AND status = 'pending'");
+                $u->execute([$new, $admin_id, $note !== '' ? $note : null, $id]);
+                if ($u->rowCount() === 1) { logFinanceEvent($pdo, 'host_commission_payment', $id, (int)$r['host_id'], $admin_id, 'admin', $act === 'hcp_accept' ? 'accepted' : 'rejected', 'pending', $new, $r['amount'], 'ref ' . $r['reference'] . ($note !== '' ? ' | ' . $note : '')); $pdo->commit(); $done = true; }
+                else $pdo->rollBack();
+            } catch (Throwable $e) { if ($pdo->inTransaction()) $pdo->rollBack(); error_log('hcp decision: ' . $e->getMessage()); }
+            if (!$done) { setFlash('info', 'This payment was already handled or could not be saved, so nothing changed.'); redirect('revenue.php'); }
             notify($pdo, (int)$r['host_id'], $new === 'confirmed' ? 'Commission payment received' : 'Commission payment not accepted',
                 $new === 'confirmed' ? 'Your commission payment of KES ' . number_format($r['amount'], 2) . ' (ref ' . $r['reference'] . ') was confirmed.' : 'We could not match your commission payment (ref ' . $r['reference'] . ')' . ($note !== '' ? ': ' . $note : '') . '. Please check it and report it again.', 'host/commission.php');
             syncCommissionInvoiceStatuses($pdo, (int)$r['host_id']);
             setFlash('success', $new === 'confirmed' ? 'Marked as received. The host has been told.' : 'Rejected. The host has been told.');
+        }
+    } elseif ($act === 'hcp_reverse') {
+        // v9.38.1: an admin can reverse a CONFIRMED host commission payment (a bounced deposit, a payment recorded by mistake).
+        // It is never deleted: the payment is marked rejected with the reason, the host balance goes back up, the host is told, and the audit trail records it.
+        $id = (int)($_POST['hcp_id'] ?? 0); $note = mb_substr(trim((string)($_POST['review_note'] ?? '')), 0, 300);
+        $q = $pdo->prepare('SELECT * FROM host_commission_payments WHERE hcp_id = ?'); $q->execute([$id]); $r = $q->fetch(PDO::FETCH_ASSOC);
+        if (!$r) { setFlash('error', 'Payment not found.'); }
+        elseif (mb_strlen($note) < 3) { setFlash('error', 'Give a short reason for the reversal (at least 3 characters). It is kept in the audit trail.'); }
+        else {
+            $done = false;
+            try {
+                $pdo->beginTransaction();
+                $u = $pdo->prepare("UPDATE host_commission_payments SET status = 'rejected', reviewed_at = NOW(), reviewed_by = ?, review_note = ? WHERE hcp_id = ? AND status = 'confirmed'");
+                $u->execute([$admin_id, 'Reversed by admin: ' . $note, $id]);
+                if ($u->rowCount() === 1) { logFinanceEvent($pdo, 'host_commission_payment', $id, (int)$r['host_id'], $admin_id, 'admin', 'reversed', 'confirmed', 'rejected', $r['amount'], 'ref ' . $r['reference'] . ' | ' . $note); $pdo->commit(); $done = true; }
+                else $pdo->rollBack();
+            } catch (Throwable $e) { if ($pdo->inTransaction()) $pdo->rollBack(); error_log('hcp reverse: ' . $e->getMessage()); }
+            if ($done) {
+                notify($pdo, (int)$r['host_id'], 'Commission payment reversed', 'Your commission payment of KES ' . number_format((float)$r['amount'], 2) . ' (ref ' . $r['reference'] . ') was reversed: ' . $note . '. Your balance has been updated.', 'host/commission.php');
+                syncCommissionInvoiceStatuses($pdo, (int)$r['host_id']);
+                setFlash('success', 'Payment reversed. The host\'s balance has been updated and the host has been told.');
+            } else { setFlash('info', 'Only a confirmed payment can be reversed, and this one was already changed or could not be saved.'); }
+        }
+    } elseif ($act === 'hcp_record') {
+        // v9.38.1: the admin records money received from a host that the host did not report themselves (e.g. a bank deposit).
+        $hid = (int)($_POST['host_id'] ?? 0); $amt = round((float)str_replace(',', '.', (string)($_POST['amount'] ?? '')), 2);
+        $method = (string)($_POST['method'] ?? ''); $ref = mb_substr(trim((string)($_POST['reference'] ?? '')), 0, 120); $note = mb_substr(trim((string)($_POST['review_note'] ?? '')), 0, 300);
+        $hq = $pdo->prepare("SELECT full_name FROM users WHERE user_id = ? AND role = 'host'"); $hq->execute([$hid]); $hostName = $hq->fetchColumn();
+        if (!$hostName) { setFlash('error', 'Choose a host.'); }
+        elseif (!in_array($method, ['mpesa', 'bank_transfer'], true) || mb_strlen($ref) < 4) { setFlash('error', 'Choose M-Pesa or bank transfer and enter the reference from your statement (at least 4 characters).'); }
+        elseif ($amt <= 0) { setFlash('error', 'Enter the amount received.'); }
+        elseif (mb_strlen($note) < 3) { setFlash('error', 'Add a short note saying why you are recording this yourself (at least 3 characters).'); }
+        else {
+            $dup = $pdo->prepare("SELECT 1 FROM host_commission_payments WHERE reference = ? AND status <> 'rejected' LIMIT 1"); $dup->execute([$ref]);
+            if ($dup->fetchColumn()) { setFlash('error', 'That reference is already recorded for a payment.'); }
+            else {
+                $newId = 0;
+                try {
+                    $pdo->beginTransaction();
+                    $pdo->prepare("INSERT INTO host_commission_payments (host_id, amount, method, reference, status, reviewed_at, reviewed_by, review_note) VALUES (?,?,?,?, 'confirmed', NOW(), ?, ?)")->execute([$hid, $amt, $method, $ref, $admin_id, 'Recorded by admin: ' . $note]);
+                    $newId = (int)$pdo->lastInsertId();
+                    logFinanceEvent($pdo, 'host_commission_payment', $newId, $hid, $admin_id, 'admin', 'recorded', null, 'confirmed', $amt, 'ref ' . $ref . ' | ' . $note);
+                    $pdo->commit();
+                } catch (Throwable $e) { if ($pdo->inTransaction()) $pdo->rollBack(); error_log('hcp record: ' . $e->getMessage()); $newId = 0; }
+                if ($newId) {
+                    notify($pdo, $hid, 'Commission payment received', 'StayExplore Kenya recorded your commission payment of KES ' . number_format($amt, 2) . ' (ref ' . $ref . ').', 'host/commission.php');
+                    syncCommissionInvoiceStatuses($pdo, $hid);
+                    setFlash('success', 'Recorded for ' . $hostName . '. It now counts toward their balance and the host has been told.');
+                } else { setFlash('error', 'Could not record the payment. Nothing was saved.'); }
+            }
         }
     } elseif (in_array($act, ['accept', 'reject', 'refund'], true)) {
         $id = opaqueIdDecode('plat', $_POST['platform_payment_ref'] ?? '');
@@ -57,8 +117,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($act === 'refund' && mb_strlen($note) < 3) { setFlash('error', 'Enter the refund reference or a short note (at least 3 characters).'); }
             else {
                 $new = ['accept' => 'confirmed', 'reject' => 'rejected', 'refund' => 'refunded'][$act];
-                $pdo->prepare("UPDATE platform_payments SET status = ?, reviewed_at = NOW(), reviewed_by = ?, review_note = ? WHERE platform_payment_id = ?")->execute([$new, $admin_id, $note !== '' ? $note : null, $id]);
-                if ($act === 'refund') $pdo->prepare('UPDATE platform_payments SET refunded_amount = COALESCE(refund_due, amount) WHERE platform_payment_id = ?')->execute([$id]);
+                // v9.38.1: guarded by the status we read (no double decisions), refund amount set in the same step, and logged.
+                $done = false;
+                try {
+                    $pdo->beginTransaction();
+                    $u = $pdo->prepare("UPDATE platform_payments SET status = ?, reviewed_at = NOW(), reviewed_by = ?, review_note = ? WHERE platform_payment_id = ? AND status = ?");
+                    $u->execute([$new, $admin_id, $note !== '' ? $note : null, $id, $from]);
+                    if ($u->rowCount() === 1) {
+                        if ($act === 'refund') $pdo->prepare('UPDATE platform_payments SET refunded_amount = COALESCE(refund_due, amount) WHERE platform_payment_id = ?')->execute([$id]);
+                        logFinanceEvent($pdo, 'platform_payment', $id, (int)$r['host_id'], $admin_id, 'admin', ['accept' => 'accepted', 'reject' => 'rejected', 'refund' => 'refunded'][$act], $from, $new, $act === 'refund' ? ($r['refund_due'] ?? $r['amount']) : $r['amount'], 'ref ' . $r['reference'] . ($note !== '' ? ' | ' . $note : ''));
+                        $pdo->commit(); $done = true;
+                    } else $pdo->rollBack();
+                } catch (Throwable $e) { if ($pdo->inTransaction()) $pdo->rollBack(); error_log('platform decision: ' . $e->getMessage()); }
+                if (!$done) { setFlash('info', 'This payment was already handled or could not be saved, so nothing changed.'); redirect('revenue.php'); }
                 notify($pdo, (int)$r['tourist_id'], ['accept' => 'Payment received by StayExplore Kenya', 'reject' => 'Payment not accepted', 'refund' => 'Refund sent'][$act],
                     ['accept' => 'Your payment of KES ' . number_format($r['amount'], 2) . ' for ' . bookingLabel($r['booking_id']) . ' was confirmed. Your receipt is ready.', 'reject' => 'We could not match your payment for ' . bookingLabel($r['booking_id']) . ($note !== '' ? ': ' . $note : '') . '. Please check the reference and pay again.', 'refund' => 'A refund of KES ' . number_format((float)($r['refund_due'] ?? $r['amount']), 2) . ' for ' . bookingLabel($r['booking_id']) . ' was sent. Reference: ' . $note][$act], 'tourist/bookings.php');
                 if ($act !== 'refund') {
@@ -95,6 +166,8 @@ foreach ($pdo->query("SELECT DISTINCT ci.host_id, u.full_name FROM commission_in
 usort($invoiceHosts, function ($a, $b) { return $b['outstanding'] <=> $a['outstanding']; });
 $overdueInv = $pdo->query("SELECT ci.*, u.full_name, a.title FROM commission_invoices ci JOIN users u ON u.user_id = ci.host_id JOIN bookings b ON b.booking_id = ci.booking_id JOIN accommodations a ON a.accommodation_id = b.accommodation_id
     WHERE ci.status NOT IN ('paid','void') AND ci.due_date < CURDATE() ORDER BY ci.due_date ASC LIMIT 100")->fetchAll(PDO::FETCH_ASSOC);
+$recordHosts = $pdo->query("SELECT user_id, full_name FROM users WHERE role = 'host' ORDER BY full_name")->fetchAll(PDO::FETCH_ASSOC);
+$auditRows = financeAuditRecent($pdo, 40);
 $hcpHistory = $pdo->query("SELECT c.*, u.full_name FROM host_commission_payments c JOIN users u ON u.user_id = c.host_id ORDER BY c.created_at DESC LIMIT 60")->fetchAll(PDO::FETCH_ASSOC);
 ?>
 <!DOCTYPE html>
@@ -122,6 +195,7 @@ $hcpHistory = $pdo->query("SELECT c.*, u.full_name FROM host_commission_payments
             <div class="fin-card accent"><div class="fin-label">Confirmed payments</div><div class="fin-value"><?= kes($cs['confirmed']) ?></div><div class="fin-note">verified by you</div></div>
             <div class="fin-card warn"><div class="fin-label">Overdue invoices</div><div class="fin-value"><?= (int)$cs['overdue_n'] ?></div><div class="fin-note"><?= kes($cs['overdue_amount']) ?> past due</div></div>
         </div>
+        <?php if (!empty($cs['credit']) && $cs['credit'] > 0.004): ?><p class="small" role="status"><strong>Reconciliation note:</strong> <?= kes($cs['credit']) ?> of confirmed host payments is not matched to any live invoice (an overpayment, or the invoice was voided after payment). Check these hosts before refunding or carrying the credit forward.</p><?php endif; ?>
 
         <form method="POST" class="fin-box">
             <h2>Rates, time limits and payment instructions</h2>
@@ -155,6 +229,22 @@ $hcpHistory = $pdo->query("SELECT c.*, u.full_name FROM host_commission_payments
             <textarea class="fin-input" id="ins" name="instructions" rows="3" maxlength="500"><?= h(commissionPayInstructions()) ?></textarea>
             <div class="fin-actions"><button class="fin-btn" type="submit">Save</button></div>
         </form>
+
+        <div class="fin-box">
+            <h2>Record a commission payment received</h2>
+            <p class="small">Use this when a host paid you but did not report it (for example a bank deposit you found on your statement). It counts immediately toward that host&rsquo;s balance and is written to the audit trail with your name and note.</p>
+            <form method="POST">
+                <input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken()) ?>"><input type="hidden" name="action" value="hcp_record">
+                <label class="fin-field" for="rcHost">Host</label>
+                <select class="fin-input" id="rcHost" name="host_id" required><option value="">Choose a host</option><?php foreach ($recordHosts as $rh): ?><option value="<?= (int)$rh['user_id'] ?>"><?= h($rh['full_name']) ?></option><?php endforeach; ?></select>
+                <label class="fin-field" for="rcAmt">Amount received (KES)</label><input class="fin-input" id="rcAmt" name="amount" inputmode="decimal" required>
+                <label class="fin-field" for="rcMethod">Method</label>
+                <select class="fin-input" id="rcMethod" name="method" required><option value="mpesa">M-Pesa</option><option value="bank_transfer">Bank transfer</option></select>
+                <label class="fin-field" for="rcRef">Reference on your statement</label><input class="fin-input" id="rcRef" name="reference" maxlength="120" required>
+                <label class="fin-field" for="rcNote">Why you are recording it (kept in the audit trail)</label><input class="fin-input" id="rcNote" name="review_note" maxlength="300" required>
+                <div class="fin-actions"><button class="fin-btn" type="submit">Record payment</button></div>
+            </form>
+        </div>
 
         <?php if ($hcpPending): ?>
         <div class="fin-box">
@@ -193,8 +283,16 @@ $hcpHistory = $pdo->query("SELECT c.*, u.full_name FROM host_commission_payments
         <?php if ($hcpHistory): ?>
         <div class="fin-box">
             <h2>Commission transaction history</h2>
-            <div class="fin-scroll"><table class="fin-table stack-sm"><thead><tr><th>Date</th><th>Host</th><th>Reference</th><th>Method</th><th class="num">Amount</th><th>Status</th></tr></thead><tbody>
-            <?php foreach ($hcpHistory as $m): ?><tr><td data-label="Date"><?= h(date('d M Y', strtotime($m['created_at']))) ?></td><td data-label="Host"><?= h($m['full_name']) ?></td><td data-label="Reference"><?= h($m['reference']) ?></td><td data-label="Method"><?= h(str_replace('_', ' ', (string)$m['method'])) ?></td><td data-label="Amount" class="num"><?= kes($m['amount']) ?></td><td data-label="Status"><span class="fin-pill <?= $m['status'] === 'confirmed' ? 'settled' : ($m['status'] === 'rejected' ? 'rejected' : 'pending') ?>"><?= h(['confirmed' => 'Confirmed', 'rejected' => 'Rejected', 'pending' => 'To check'][$m['status']] ?? $m['status']) ?></span></td></tr><?php endforeach; ?>
+            <div class="fin-scroll"><table class="fin-table stack-sm"><thead><tr><th>Date</th><th>Host</th><th>Reference</th><th>Method</th><th class="num">Amount</th><th>Status</th><th>Action</th></tr></thead><tbody>
+            <?php foreach ($hcpHistory as $m): ?><tr><td data-label="Date"><?= h(date('d M Y', strtotime($m['created_at']))) ?></td><td data-label="Host"><?= h($m['full_name']) ?></td><td data-label="Reference"><?= h($m['reference']) ?></td><td data-label="Method"><?= h(str_replace('_', ' ', (string)$m['method'])) ?></td><td data-label="Amount" class="num"><?= kes($m['amount']) ?></td><td data-label="Status"><span class="fin-pill <?= $m['status'] === 'confirmed' ? 'settled' : ($m['status'] === 'rejected' ? 'rejected' : 'pending') ?>"><?= h(($m['status'] === 'rejected' && strpos((string)$m['review_note'], 'Reversed by admin') === 0) ? 'Reversed' : (['confirmed' => 'Confirmed', 'rejected' => 'Rejected', 'pending' => 'To check'][$m['status']] ?? $m['status'])) ?></span></td>
+                <td data-label="Action"><?php if ($m['status'] === 'confirmed'): ?>
+                    <form method="POST" onsubmit="return confirm('Reverse this confirmed payment? The host balance will go back up.');">
+                        <input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken()) ?>"><input type="hidden" name="action" value="hcp_reverse"><input type="hidden" name="hcp_id" value="<?= (int)$m['hcp_id'] ?>">
+                        <label class="sr-only" for="rv<?= (int)$m['hcp_id'] ?>">Reason for reversal</label>
+                        <input class="fin-input" id="rv<?= (int)$m['hcp_id'] ?>" name="review_note" maxlength="300" placeholder="Reason (required)" required>
+                        <button class="fin-btn" type="submit">Reverse</button>
+                    </form>
+                <?php elseif ($m['review_note']): ?><span class="small"><?= h($m['review_note']) ?></span><?php else: ?>—<?php endif; ?></td></tr><?php endforeach; ?>
             </tbody></table></div>
         </div>
         <?php endif; ?>
@@ -259,6 +357,22 @@ $hcpHistory = $pdo->query("SELECT c.*, u.full_name FROM host_commission_payments
                 <?php endforeach; ?>
                 </tbody>
             </table></div>
+        </div>
+        <?php endif; ?>
+        <?php if ($auditRows): ?>
+        <div class="fin-box">
+            <h2>Recent finance activity (audit trail)</h2>
+            <p class="small">Every accept, reject, refund and manual recording, with who did it. Entries cannot be edited.</p>
+            <div class="fin-scroll"><table class="fin-table stack-sm"><thead><tr><th>When</th><th>Who</th><th>Host</th><th>What</th><th class="num">Amount</th><th>Note</th></tr></thead><tbody>
+            <?php foreach ($auditRows as $a): ?><tr>
+                <td data-label="When"><?= h(date('d M Y, H:i', strtotime($a['created_at']))) ?></td>
+                <td data-label="Who"><?= h($a['actor_name'] ?: ucfirst($a['actor_role'])) ?></td>
+                <td data-label="Host"><?= h($a['host_name'] ?: '—') ?></td>
+                <td data-label="What"><?= h(str_replace('_', ' ', $a['entity'])) ?> #<?= (int)$a['entity_id'] ?>: <?= h($a['action']) ?><?= $a['old_status'] ? ' (' . h($a['old_status']) . ' &rarr; ' . h($a['new_status']) . ')' : '' ?></td>
+                <td class="num" data-label="Amount"><?= $a['amount'] !== null ? kes($a['amount']) : '—' ?></td>
+                <td data-label="Note"><?= h((string)$a['note']) ?></td>
+            </tr><?php endforeach; ?>
+            </tbody></table></div>
         </div>
         <?php endif; ?>
 <?php appShellEnd(); ?>

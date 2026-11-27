@@ -3,12 +3,12 @@ require_once '../includes/auth.php';
 require_once '../includes/functions.php';
 require_once '../includes/db.php';
 require_once '../includes/commission.php';
+require_once '../includes/report_helpers.php';
 if (session_status() === PHP_SESSION_NONE) session_start();
 requireLogin();
 requireRole('admin');
 ensureCommissionTables($pdo);
-$from = preg_match('/^\d{4}-\d{2}-\d{2}$/', $_GET['from'] ?? '') ? $_GET['from'] : date('Y-m-01');
-$to   = preg_match('/^\d{4}-\d{2}-\d{2}$/', $_GET['to'] ?? '') ? $_GET['to'] : date('Y-m-d');
+$per = reportPeriod('this_month'); $from = $per['from']; $to = $per['to'];   // v9.38.1: validated, swapped if reversed, quick ranges
 $q = $pdo->prepare("SELECT pp.*, t.full_name AS guest, h.full_name AS host_name, a.title FROM platform_payments pp JOIN users t ON t.user_id = pp.tourist_id JOIN users h ON h.user_id = pp.host_id
     JOIN bookings b ON b.booking_id = pp.booking_id JOIN accommodations a ON a.accommodation_id = b.accommodation_id
     WHERE pp.status IN ('confirmed','refunded') AND DATE(COALESCE(pp.reviewed_at, pp.created_at)) BETWEEN ? AND ? ORDER BY COALESCE(pp.reviewed_at, pp.created_at)");
@@ -34,11 +34,12 @@ arsort($perHost);
 <?php require_once __DIR__ . '/../includes/app_shell.php'; appShellStart(); ?>
         <div class="page-tag no-print">Admin</div>
         <h1 class="page-title">Revenue report</h1>
-        <form method="GET" class="fin-box no-print" style="display:flex;gap:12px;flex-wrap:wrap;align-items:end">
-            <div><label class="fin-field" for="f">From</label><input class="fin-input" style="max-width:170px" type="date" id="f" name="from" value="<?= h($from) ?>"></div>
-            <div><label class="fin-field" for="t">To</label><input class="fin-input" style="max-width:170px" type="date" id="t" name="to" value="<?= h($to) ?>"></div>
-            <button class="fin-btn" type="submit">Show</button><button class="fin-btn ghost" type="button" onclick="window.print()">Print or save as PDF</button><a class="fin-btn ghost" href="revenue.php">Back</a>
-        </form>
+        <div class="fin-box no-print">
+            <?= reportFilterHtml($per) ?>
+            <button class="fin-btn ghost" type="button" onclick="window.print()">Print or save as PDF</button>
+            <a class="fin-btn ghost" href="export.php?type=platform_payments&amp;<?= h(http_build_query(['from' => $from, 'to' => $to])) ?>">Download CSV</a>
+            <a class="fin-btn ghost" href="revenue.php">Back</a>
+        </div>
         <p class="page-sub">Platform payments accepted between <?= h($from) ?> and <?= h($to) ?>, printed <?= h(date('j M Y, H:i')) ?> by <?= h($_SESSION['full_name'] ?? 'the admin') ?>. Only payments you checked and accepted are counted as received.</p>
         <div class="fin-cards">
             <div class="fin-card accent"><div class="fin-label">Received</div><div class="fin-value"><?= kes($total) ?></div><div class="fin-note">fees <?= kes($fee) ?> + commission <?= kes($comm) ?></div></div>
