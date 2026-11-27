@@ -131,7 +131,7 @@ $rate = commissionRatePercent();
                         <td data-label="Reference"><?= h($m['reference']) ?></td>
                         <td data-label="Method"><?= h(str_replace('_', ' ', (string)$m['method'])) ?></td>
                         <td data-label="Amount" class="num"><?= kes($m['amount']) ?></td>
-                        <td data-label="Status"><?php if ($m['status'] === 'confirmed'): ?><span class="fin-pill ok">Confirmed</span><?php elseif ($m['status'] === 'rejected'): ?><span class="fin-pill bad">Not accepted</span><?php if (!empty($m['review_note'])): ?><div class="small"><?= h($m['review_note']) ?></div><?php endif; ?><?php else: ?><span class="fin-pill warn">Being checked</span><?php endif; ?></td>
+                        <td data-label="Status"><?php if ($m['status'] === 'confirmed'): ?><span class="fin-pill ok">Confirmed</span><?php if (!empty($m['review_note'])): ?><div class="small">Note from StayExplore Kenya: <?= h(preg_replace('/^Recorded by admin:\s*/', '', (string)$m['review_note'])) ?></div><?php endif; ?><?php elseif ($m['status'] === 'rejected'): ?><span class="fin-pill bad">Not accepted</span><?php if (!empty($m['review_note'])): ?><div class="small"><?= h($m['review_note']) ?></div><?php endif; ?><?php else: ?><span class="fin-pill warn">Being checked</span><?php endif; ?></td>
                     </tr>
                 <?php endforeach; ?>
                 </tbody>

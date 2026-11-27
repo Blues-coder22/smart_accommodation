@@ -151,6 +151,7 @@ $existingAttractions = $pdo->query("SELECT attraction_id, name, latitude, longit
 <details style="margin-top:12px"><summary style="cursor:pointer;font-size:13px">Enter the exact location instead</summary><div class="osm-grid" style="margin-top:12px"><div><label for="osmLat">Latitude</label><input id="osmLat" type="number" step="any" value="-1.2921" min="-90" max="90"></div><div><label for="osmLng">Longitude</label><input id="osmLng" type="number" step="any" value="36.8219" min="-180" max="180"></div></div><p class="osm-muted">You can also click the map below.</p></details>
 <div id="osmAdminMap" class="osm-map" aria-label="Map: click to place the pin, click an orange dot to add that place"></div>
 <p id="osmSearchStatus" class="osm-muted" role="status" aria-live="polite">Ready to search. Details may be incomplete, so please check each place before approving.</p>
+<p class="osm-muted" style="margin-top:-4px">Map not loading places? <a id="osmGoogleLink" href="https://www.google.com/maps/search/?api=1&amp;query=tourist+attractions+Kenya" target="_blank" rel="noopener">Look this area up on Google Maps</a> (opens a new tab, free), then use &ldquo;Add attraction&rdquo; on the Manage attractions page to add what you find.</p>
 <details class="osm-help"><summary>How does this work?</summary>
 <ol>
 <li><strong>Pick an area.</strong> Type a town or area (for example &ldquo;Naivasha&rdquo;) and press <em>Find places</em>, or click the map to place a pin yourself.</li>
@@ -222,6 +223,7 @@ $existingAttractions = $pdo->query("SELECT attraction_id, name, latitude, longit
  const candidateLayer=L.layerGroup().addTo(map);
  const $=id=>document.getElementById(id);
  const statusEl=$('osmSearchStatus');
+ function updateGoogleLink(areaText,pt,typeLabel){const a=$('osmGoogleLink');if(!a)return;const where=areaText||(pt&&Number.isFinite(pt.lat)?pt.lat.toFixed(5)+','+pt.lng.toFixed(5):'Kenya');a.href='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent((typeLabel||'tourist attractions')+' near '+where);}
  const EXISTING=<?= json_encode(array_map(function($a){return ['id'=>(int)$a['attraction_id'],'name'=>html_entity_decode((string)$a['name'],ENT_QUOTES,'UTF-8'),'lat'=>(float)$a['latitude'],'lng'=>(float)$a['longitude']];},$existingAttractions), JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_AMP|JSON_HEX_QUOT|JSON_INVALID_UTF8_SUBSTITUTE) ?>;
  let results=[];
  let manualCenter=false;   // true once the admin placed the pin by hand
@@ -299,6 +301,7 @@ $existingAttractions = $pdo->query("SELECT attraction_id, name, latitude, longit
   const add=document.createElement('a');add.className='btn btn-sm btn-primary';add.textContent='Add attraction';add.href=addUrl(p.name,category(p.tags),placeArea(p.tags),p.lat,p.lng);row.appendChild(add);
   row.appendChild(button('Find photos','btn btn-sm btn-outline',()=>openPhotoFinder(p)));
   row.appendChild(button('Add to review list','btn btn-sm btn-outline',()=>{const cb=document.querySelector('#osmResults input[data-index="'+results.indexOf(p)+'"]');if(cb){cb.checked=true;syncSelected();cb.closest('.osm-result').scrollIntoView({block:'nearest',behavior:'smooth'});}map.closePopup();}));
+  const gm=document.createElement('a');gm.className='btn btn-sm btn-outline';gm.textContent='Google Maps';gm.target='_blank';gm.rel='noopener';gm.href='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(p.name+' '+p.lat+','+p.lng);row.appendChild(gm);
   box.appendChild(row);return box;
  }
  function render(){
@@ -342,6 +345,7 @@ $existingAttractions = $pdo->query("SELECT attraction_id, name, latitude, longit
   if(!useName&&!validPoint(p)){alert('Click the map to place the pin first.');return;}
   busy=true;btn.disabled=true;
   if(useName){
+   updateGoogleLink(area,null,type.label);
    statusEl.textContent='Finding “'+area+'” on the map…';
    try{
     const geoResponse=await fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=ke&q='+encodeURIComponent(area));
@@ -352,14 +356,23 @@ $existingAttractions = $pdo->query("SELECT attraction_id, name, latitude, longit
     manualCenter=false;setCenter(p.lat,p.lng);map.setView([p.lat,p.lng],Math.max(12,Number(geo[0].zoom)||12));
    }catch(e){busy=false;btn.disabled=false;statusEl.textContent=e.message||'Could not find that area. Click the map to place the pin instead.';return;}
   }else{map.setView([p.lat,p.lng],Math.max(map.getZoom(),13));}
+  updateGoogleLink(area,p,type.label);
   statusEl.textContent='Looking for '+type.label.toLowerCase()+' within '+(radius>=1000?radius/1000+' km':radius+' m')+'…';
   results=[];candidateLayer.clearLayers();render();
   const around='(around:'+radius+','+p.lat+','+p.lng+');';
   const query='[out:json][timeout:25];('+type.filters.map(f=>'nwr["name"]'+f+around).join('')+');out center tags;';
-  const endpoints=['https://overpass-api.de/api/interpreter','https://overpass.private.coffee/api/interpreter'];let data=null;
-  for(const endpoint of endpoints){try{const response=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8','Accept':'application/json'},body:'data='+encodeURIComponent(query)});if(!response.ok)throw new Error('HTTP '+response.status);data=await response.json();break;}catch(e){}}
+  const endpoints=['https://overpass-api.de/api/interpreter','https://overpass.kumi.systems/api/interpreter','https://maps.mail.ru/osm/tools/overpass/api/interpreter','https://overpass.private.coffee/api/interpreter'];let data=null;const failures=[];
+  for(const endpoint of endpoints){
+   statusEl.textContent='Looking for '+type.label.toLowerCase()+' within '+(radius>=1000?radius/1000+' km':radius+' m')+'… (server '+(endpoints.indexOf(endpoint)+1)+' of '+endpoints.length+')';
+   try{const response=await timedFetch(endpoint,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8','Accept':'application/json'},body:'data='+encodeURIComponent(query)},30000);
+    if(!response.ok)throw new Error('HTTP '+response.status);
+    const j=await response.json();
+    // Overpass reports "timed out" / "out of memory" inside a normal reply with no places in it: treat that as a failure and try the next server.
+    if(!j||!Array.isArray(j.elements)||(j.remark&&/timed out|out of memory|error/i.test(j.remark)&&!j.elements.length))throw new Error(j&&j.remark?j.remark:'empty reply');
+    data=j;break;}catch(e){failures.push(e.name==='AbortError'?'timed out':(e.message||'failed'));}
+  }
   busy=false;btn.disabled=false;
-  if(!data||!Array.isArray(data.elements)){statusEl.textContent='The place search isn’t available right now. Please try again in a minute.';return;}
+  if(!data||!Array.isArray(data.elements)){statusEl.textContent='The place search isn’t available right now ('+failures.join(', ')+'). Try a smaller radius or one place type, wait a minute, or use the Google Maps link below.';return;}
   const seen=new Set();
   results=data.elements.map(el=>{
    const tags=el.tags||{},pt=Number.isFinite(el.lat)&&Number.isFinite(el.lon)?{lat:el.lat,lng:el.lon}:el.center?{lat:el.center.lat,lng:el.center.lon}:null;

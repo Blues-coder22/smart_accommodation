@@ -53,7 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } catch (Throwable $e) { if ($pdo->inTransaction()) $pdo->rollBack(); error_log('hcp decision: ' . $e->getMessage()); }
             if (!$done) { setFlash('info', 'This payment was already handled or could not be saved, so nothing changed.'); redirect('revenue.php'); }
             notify($pdo, (int)$r['host_id'], $new === 'confirmed' ? 'Commission payment received' : 'Commission payment not accepted',
-                $new === 'confirmed' ? 'Your commission payment of KES ' . number_format($r['amount'], 2) . ' (ref ' . $r['reference'] . ') was confirmed.' : 'We could not match your commission payment (ref ' . $r['reference'] . ')' . ($note !== '' ? ': ' . $note : '') . '. Please check it and report it again.', 'host/commission.php');
+                $new === 'confirmed' ? 'Your commission payment of KES ' . number_format($r['amount'], 2) . ' (ref ' . $r['reference'] . ') was confirmed.' . ($note !== '' ? ' Note from StayExplore Kenya: ' . $note : '') : 'We could not match your commission payment (ref ' . $r['reference'] . ')' . ($note !== '' ? ': ' . $note : '') . '. Please check it and report it again.', 'host/commission.php');
             syncCommissionInvoiceStatuses($pdo, (int)$r['host_id']);
             setFlash('success', $new === 'confirmed' ? 'Marked as received. The host has been told.' : 'Rejected. The host has been told.');
         }
@@ -101,7 +101,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $pdo->commit();
                 } catch (Throwable $e) { if ($pdo->inTransaction()) $pdo->rollBack(); error_log('hcp record: ' . $e->getMessage()); $newId = 0; }
                 if ($newId) {
-                    notify($pdo, $hid, 'Commission payment received', 'StayExplore Kenya recorded your commission payment of KES ' . number_format($amt, 2) . ' (ref ' . $ref . ').', 'host/commission.php');
+                    notify($pdo, $hid, 'Commission payment received', 'StayExplore Kenya recorded your commission payment of KES ' . number_format($amt, 2) . ' (ref ' . $ref . '). Note from StayExplore Kenya: ' . $note, 'host/commission.php');
                     syncCommissionInvoiceStatuses($pdo, $hid);
                     setFlash('success', 'Recorded for ' . $hostName . '. It now counts toward their balance and the host has been told.');
                 } else { setFlash('error', 'Could not record the payment. Nothing was saved.'); }
@@ -241,7 +241,7 @@ $hcpHistory = $pdo->query("SELECT c.*, u.full_name FROM host_commission_payments
                 <label class="fin-field" for="rcMethod">Method</label>
                 <select class="fin-input" id="rcMethod" name="method" required><option value="mpesa">M-Pesa</option><option value="bank_transfer">Bank transfer</option></select>
                 <label class="fin-field" for="rcRef">Reference on your statement</label><input class="fin-input" id="rcRef" name="reference" maxlength="120" required>
-                <label class="fin-field" for="rcNote">Why you are recording it (kept in the audit trail)</label><input class="fin-input" id="rcNote" name="review_note" maxlength="300" required>
+                <label class="fin-field" for="rcNote">Note (the host can read this, and it is kept in the audit trail)</label><input class="fin-input" id="rcNote" name="review_note" maxlength="300" required>
                 <div class="fin-actions"><button class="fin-btn" type="submit">Record payment</button></div>
             </form>
         </div>
