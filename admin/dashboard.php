@@ -5,7 +5,6 @@ require_once '../includes/db.php';
 require_once '../includes/commission.php';
 require_once '../includes/booking_workflow.php';
 require_once '../includes/report_helpers.php';
-require_once '../includes/chart_helpers.php';
 
 if (session_status() === PHP_SESSION_NONE) session_start();
 
@@ -55,22 +54,6 @@ try {
     $q = $pdo->prepare("SELECT COALESCE(SUM(amount),0) FROM host_commission_payments WHERE status = 'confirmed' AND DATE(COALESCE(reviewed_at, created_at)) BETWEEN ? AND ?"); $q->execute($pr); $pCommission = (float)$q->fetchColumn();
 } catch (Throwable $e) { error_log('dashboard period summary: ' . $e->getMessage()); }
 
-// v9.38.1: chart data for the same period
-$cb = chartBuckets($per['from'], $per['to']); $cKeys = $cb['keys']; $cUnit = $cb['unit'];
-$cLabels = array_map(fn($k) => chartLabel($k, $cUnit), $cKeys);
-$bx = $cb['expr']('b.created_at');
-$cBook = chartSeries($pdo, "SELECT $bx AS k, COUNT(*) AS made, SUM(b.status IN ('confirmed','completed')) AS won FROM bookings b WHERE DATE(b.created_at) BETWEEN ? AND ? GROUP BY k", $pr, $cKeys, ['made', 'won']);
-$px = $cb['expr']('p.payment_date'); $hx = $cb['expr']('COALESCE(c.reviewed_at, c.created_at)'); $ux = $cb['expr']('u.created_at');
-$cGuestPaid = chartSeries($pdo, "SELECT $px AS k, SUM(p.amount) AS v FROM payments p WHERE p.payment_status = 'confirmed' AND DATE(p.payment_date) BETWEEN ? AND ? GROUP BY k", $pr, $cKeys, ['v']);
-$cCommission = chartSeries($pdo, "SELECT $hx AS k, SUM(c.amount) AS v FROM host_commission_payments c WHERE c.status = 'confirmed' AND DATE(COALESCE(c.reviewed_at, c.created_at)) BETWEEN ? AND ? GROUP BY k", $pr, $cKeys, ['v']);
-$cUsers = chartSeries($pdo, "SELECT $ux AS k, SUM(u.role = 'tourist') AS guests, SUM(u.role = 'host') AS hosts FROM users u WHERE u.role IN ('tourist','host') AND DATE(u.created_at) BETWEEN ? AND ? GROUP BY k", $pr, $cKeys, ['guests', 'hosts']);
-$cStatus = []; $cTop = [];
-try {
-    $q = $pdo->prepare("SELECT status, COUNT(*) AS n FROM bookings WHERE DATE(created_at) BETWEEN ? AND ? GROUP BY status ORDER BY n DESC"); $q->execute($pr);
-    foreach ($q->fetchAll(PDO::FETCH_ASSOC) as $r) $cStatus[] = ['label' => ucfirst(str_replace('_', ' ', $r['status'])), 'value' => (int)$r['n']];
-    $q = $pdo->prepare("SELECT a.title, COUNT(*) AS n FROM bookings b JOIN accommodations a ON a.accommodation_id = b.accommodation_id WHERE b.status IN ('confirmed','completed') AND DATE(b.created_at) BETWEEN ? AND ? GROUP BY a.accommodation_id, a.title ORDER BY n DESC LIMIT 5"); $q->execute($pr);
-    foreach ($q->fetchAll(PDO::FETCH_ASSOC) as $r) $cTop[] = ['label' => $r['title'], 'value' => (int)$r['n']];
-} catch (Throwable $e) { error_log('dashboard chart lists: ' . $e->getMessage()); }
 
 // Recent activity — latest bookings
 $recent = $pdo->query("
@@ -232,6 +215,21 @@ $monthly = $pdo->query("
             .stats-grid { grid-template-columns:repeat(2,1fr) }
             .content-grid { grid-template-columns:1fr }
         }
+
+        .progress-cta { display:block; margin-top:16px; padding:16px 18px;
+                        background:var(--surface-2); border:1px solid var(--border);
+                        border-left:3px solid var(--accent); border-radius:8px;
+                        text-decoration:none; color:inherit; position:relative;
+                        transition:transform .15s ease, box-shadow .15s ease }
+        .progress-cta:hover, .progress-cta:focus-visible { transform:translateY(-2px); box-shadow:0 6px 18px rgba(0,0,0,.12) }
+        .progress-cta:focus-visible { outline:2px solid var(--accent); outline-offset:2px }
+        .progress-cta-eyebrow { display:block; font-size:10px; font-weight:700; letter-spacing:.1em;
+                                text-transform:uppercase; color:var(--accent); margin-bottom:6px }
+        .progress-cta-title { display:block; font-size:16px; font-weight:600; margin-bottom:4px; padding-right:44px }
+        .progress-cta-text { display:block; font-size:12px; color:var(--text-secondary); line-height:1.45; margin-bottom:12px }
+        .progress-cta-go { display:inline-block; font-size:13px; font-weight:600; color:var(--accent) }
+        .progress-cta-art { position:absolute; top:14px; right:16px; width:34px; height:28px; color:var(--accent) }
+        @media (prefers-reduced-motion:reduce) { .progress-cta { transition:none } .progress-cta:hover { transform:none } }
     </style>
 <link rel="stylesheet" href="../assets/css/dark.css"><meta name="color-scheme" content="light dark"><script src="../assets/js/se-theme.js"></script><script src="../assets/js/se-i18n.js"></script></head>
 <body>
@@ -334,19 +332,6 @@ $monthly = $pdo->query("
                 <a href="export.php?type=platform_payments&amp;<?= h($ex) ?>">Platform payments</a> &middot;
                 <a href="export.php?type=commission&amp;<?= h($ex) ?>">Commission payments</a> &middot;
                 <a href="revenue_report.php?<?= h($ex) ?>">Printable revenue report</a>
-            </div>
-        </section>
-
-        <!-- v9.38.1: charts for the chosen period -->
-        <section class="section-card" style="margin-bottom:24px" aria-label="Charts for the period">
-            <h2 style="margin:0 0 4px">Charts for this period</h2>
-            <p style="margin:0 0 14px;opacity:.8"><?= h($per['label']) ?>, grouped by <?= h($cUnit) ?>. The date filter above changes these too.</p>
-            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:22px">
-                <div><h3 style="margin:0 0 6px;font-size:1rem">Bookings made</h3><?= svgBarChart($cLabels, [['name' => 'Bookings made', 'values' => $cBook['made']], ['name' => 'Confirmed or completed', 'values' => $cBook['won']]], ['title' => 'Bookings made and confirmed or completed over time']) ?></div>
-                <div><h3 style="margin:0 0 6px;font-size:1rem">Money confirmed (KES)</h3><?= svgBarChart($cLabels, [['name' => 'Guest payments to hosts', 'values' => $cGuestPaid['v']], ['name' => 'Commission paid by hosts', 'values' => $cCommission['v']]], ['title' => 'Guest payments and host commission payments over time', 'money' => true]) ?></div>
-                <div><h3 style="margin:0 0 6px;font-size:1rem">New accounts</h3><?= svgBarChart($cLabels, [['name' => 'New guests', 'values' => $cUsers['guests']], ['name' => 'New hosts', 'values' => $cUsers['hosts']]], ['title' => 'New guest and host accounts over time']) ?></div>
-                <div><h3 style="margin:0 0 6px;font-size:1rem">Bookings by status</h3><?= htmlBarList($cStatus, ['title' => 'Bookings by status']) ?></div>
-                <div><h3 style="margin:0 0 6px;font-size:1rem">Most booked stays</h3><?= htmlBarList($cTop, ['title' => 'Most booked stays', 'empty' => 'No confirmed or completed bookings in this period.']) ?></div>
             </div>
         </section>
 
@@ -616,6 +601,15 @@ $monthly = $pdo->query("
                         <?php endif; ?>
                     </div>
                 </div>
+
+        <?php $insightsQs = !empty($_GET) ? '?' . http_build_query($_GET) : ''; ?>
+        <a class="progress-cta" href="insights.php<?= h($insightsQs) ?>">
+            <svg class="progress-cta-art" viewBox="0 0 34 28" aria-hidden="true"><rect x="1" y="17" width="6" height="10" rx="1.5" fill="currentColor" fill-opacity=".45"/><rect x="11" y="10" width="6" height="17" rx="1.5" fill="currentColor" fill-opacity=".7"/><rect x="21" y="1" width="6" height="26" rx="1.5" fill="currentColor"/></svg>
+            <span class="progress-cta-eyebrow">Platform growth</span>
+            <strong class="progress-cta-title">Watch the platform grow</strong>
+            <span class="progress-cta-text">Bookings, money in and new sign-ups over time, all in charts.</span>
+            <span class="progress-cta-go">View platform growth &rarr;</span>
+        </a>
 
             </div>
         </div>
