@@ -12,8 +12,23 @@ requireLogin();
 requireRole('admin');
 ensureCommissionTables($pdo);
 
-// Same period filter as the overview (default: last 30 days). The filter and the chart data are unchanged from the overview.
+// Same period filter as the overview (default: last 30 days).
 $per = reportPeriod('last_30'); $pr = [$per['from'], $per['to']];
+$pq = $pdo->prepare("SELECT status, COUNT(*) AS n, COALESCE(SUM(total_amount),0) AS v FROM bookings WHERE DATE(created_at) BETWEEN ? AND ? GROUP BY status");
+$pq->execute($pr);
+$pBook = ['all' => 0, 'value' => 0.0, 'won' => 0, 'lost' => 0];
+foreach ($pq->fetchAll(PDO::FETCH_ASSOC) as $r) {
+    $pBook['all'] += (int)$r['n']; $pBook['value'] += (float)$r['v'];
+    if (in_array($r['status'], ['confirmed', 'completed'], true)) $pBook['won'] += (int)$r['n'];
+    elseif (in_array($r['status'], ['cancelled', 'rejected', 'declined', 'expired', 'no_show'], true)) $pBook['lost'] += (int)$r['n'];
+}
+$pGuestPaid = $pPlatform = $pRefunded = $pCommission = 0.0;
+try {
+    $q = $pdo->prepare("SELECT COALESCE(SUM(amount),0) FROM payments WHERE payment_status = 'confirmed' AND DATE(payment_date) BETWEEN ? AND ?"); $q->execute($pr); $pGuestPaid = (float)$q->fetchColumn();
+    $q = $pdo->prepare("SELECT COALESCE(SUM(CASE WHEN status='confirmed' THEN amount END),0), COALESCE(SUM(CASE WHEN status='refunded' THEN COALESCE(refunded_amount, amount) END),0)
+        FROM platform_payments WHERE status IN ('confirmed','refunded') AND DATE(COALESCE(reviewed_at, created_at)) BETWEEN ? AND ?"); $q->execute($pr); [$pPlatform, $pRefunded] = array_map('floatval', $q->fetch(PDO::FETCH_NUM));
+    $q = $pdo->prepare("SELECT COALESCE(SUM(amount),0) FROM host_commission_payments WHERE status = 'confirmed' AND DATE(COALESCE(reviewed_at, created_at)) BETWEEN ? AND ?"); $q->execute($pr); $pCommission = (float)$q->fetchColumn();
+} catch (Throwable $e) { error_log('dashboard period summary: ' . $e->getMessage()); }
 // v9.38.1: chart data for the same period
 $cb = chartBuckets($per['from'], $per['to']); $cKeys = $cb['keys']; $cUnit = $cb['unit'];
 $cLabels = array_map(fn($k) => chartLabel($k, $cUnit), $cKeys);
@@ -47,6 +62,12 @@ $backHref = 'dashboard.php' . (!empty($_GET) ? '?' . http_build_query($_GET) : '
         .back-link   { display:inline-block; font-size:13px; color:var(--accent); text-decoration:none; margin-bottom:10px }
         .back-link:hover { text-decoration:underline }
         .section-card { background:var(--surface-2); border:1px solid var(--border); border-radius:8px; overflow:hidden; padding:18px }
+        .stats-grid  { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:12px; margin-bottom:12px }
+        .stat-card   { background:var(--surface-1); border:1px solid var(--border); border-radius:8px; padding:16px }
+        .stat-card.accent { border-left:3px solid var(--accent) }
+        .stat-label  { font-size:10px; font-weight:700; letter-spacing:.06em; color:var(--text-secondary); text-transform:uppercase; margin-bottom:8px }
+        .stat-value  { font-size:22px; font-weight:500; color:var(--text-primary); margin-bottom:3px }
+        .stat-note   { font-size:12px; color:var(--text-secondary) }
         .chart-grid  { display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:22px }
         .chart-card  { background:var(--surface-2); border:1px solid var(--border); border-radius:8px; padding:18px; min-width:0 }
         .chart-card h3 { margin:0 0 8px; font-size:1rem }
@@ -61,11 +82,30 @@ $backHref = 'dashboard.php' . (!empty($_GET) ? '?' . http_build_query($_GET) : '
         <h1 class="page-title">Platform growth</h1>
         <p class="page-sub">Bookings, money in and new sign-ups over time.</p>
 
-        <section class="section-card no-print" style="margin-bottom:20px" aria-label="Choose a period">
-            <p style="margin:0 0 10px;opacity:.8"><?= h($per['label']) ?>: <?= h(date('j M Y', strtotime($per['from']))) ?> to <?= h(date('j M Y', strtotime($per['to']))) ?>, grouped by <?= h($cUnit) ?>.</p>
+        <section class="section-card" style="margin-bottom:20px" aria-label="Summary for a period">
+            <h2 style="margin:0 0 6px">Summary for a period</h2>
+            <p style="margin:0 0 12px;opacity:.8"><?= h($per['label']) ?>: <?= h(date('j M Y', strtotime($per['from']))) ?> to <?= h(date('j M Y', strtotime($per['to']))) ?>. Bookings are counted by the day they were made; payments by the day they were confirmed.</p>
             <?= reportFilterHtml($per) ?>
+            <div class="stats-grid" style="margin-bottom:12px">
+                <div class="stat-card accent"><div class="stat-label">Bookings made</div><div class="stat-value"><?= (int)$pBook['all'] ?></div><div class="stat-note">KES <?= number_format($pBook['value'], 2) ?> booked</div></div>
+                <div class="stat-card"><div class="stat-label">Confirmed or completed</div><div class="stat-value"><?= (int)$pBook['won'] ?></div><div class="stat-note"><?= (int)$pBook['lost'] ?> cancelled, declined or expired</div></div>
+                <div class="stat-card"><div class="stat-label">Guest payments confirmed</div><div class="stat-value">KES <?= number_format($pGuestPaid, 2) ?></div><div class="stat-note">paid to hosts</div></div>
+                <div class="stat-card"><div class="stat-label">Guest service fees received</div><div class="stat-value">KES <?= number_format($pPlatform - $pRefunded, 2) ?></div><div class="stat-note"><?= serviceFeePercent() > 0 ? 'after KES ' . number_format($pRefunded, 2) . ' refunded' : 'service fee is switched off, so guests pay none' ?></div></div>
+                <div class="stat-card"><div class="stat-label">Commission paid by hosts</div><div class="stat-value">KES <?= number_format($pCommission, 2) ?></div><div class="stat-note">confirmed in this period</div></div>
+            </div>
+            <div class="no-print" style="display:flex;gap:10px;flex-wrap:wrap">
+                <?php $ex = http_build_query(['from' => $per['from'], 'to' => $per['to']]); ?>
+                <strong style="align-self:center">Download CSV:</strong>
+                <a href="export.php?type=bookings&amp;<?= h($ex) ?>">Bookings</a> &middot;
+                <a href="export.php?type=payments&amp;<?= h($ex) ?>">Guest payments</a> &middot;
+                <a href="export.php?type=platform_payments&amp;<?= h($ex) ?>">Platform payments</a> &middot;
+                <a href="export.php?type=commission&amp;<?= h($ex) ?>">Commission payments</a> &middot;
+                <a href="revenue_report.php?<?= h($ex) ?>">Printable revenue report</a>
+            </div>
         </section>
 
+        <h2 style="margin:0 0 4px">Charts</h2>
+        <p style="margin:0 0 14px;opacity:.8"><?= h($per['label']) ?>, grouped by <?= h($cUnit) ?>.</p>
         <div class="chart-grid">
             <div class="chart-card"><h3>Bookings made</h3><?= svgBarChart($cLabels, [['name' => 'Bookings made', 'values' => $cBook['made']], ['name' => 'Confirmed or completed', 'values' => $cBook['won']]], ['title' => 'Bookings made and confirmed or completed over time']) ?></div>
             <div class="chart-card"><h3>Money confirmed (KES)</h3><?= svgBarChart($cLabels, [['name' => 'Guest payments to hosts', 'values' => $cGuestPaid['v']], ['name' => 'Commission paid by hosts', 'values' => $cCommission['v']]], ['title' => 'Guest payments and host commission payments over time', 'money' => true]) ?></div>

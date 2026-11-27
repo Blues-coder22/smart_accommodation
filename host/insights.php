@@ -12,8 +12,20 @@ requireLogin();
 requireRole('host');
 $host_id = $_SESSION['user_id'];
 
-// Same period filter as the overview (default: last 30 days). The filter and the chart data are unchanged from the overview.
+// Same period filter as the overview (default: last 30 days).
 $per = reportPeriod('last_30'); $prHost = [$host_id, $per['from'], $per['to']];
+$pbq = $pdo->prepare("SELECT b.status, COUNT(*) AS n, COALESCE(SUM(b.total_amount),0) AS v FROM bookings b JOIN accommodations a ON a.accommodation_id = b.accommodation_id
+    WHERE a.host_id = ? AND DATE(b.created_at) BETWEEN ? AND ? GROUP BY b.status");
+$pbq->execute($prHost);
+$pBook = ['all' => 0, 'value' => 0.0, 'won' => 0, 'lost' => 0];
+foreach ($pbq->fetchAll(PDO::FETCH_ASSOC) as $r) {
+    $pBook['all'] += (int)$r['n']; $pBook['value'] += (float)$r['v'];
+    if (in_array($r['status'], ['confirmed', 'completed'], true)) $pBook['won'] += (int)$r['n'];
+    elseif (in_array($r['status'], ['cancelled', 'rejected', 'declined', 'expired', 'no_show'], true)) $pBook['lost'] += (int)$r['n'];
+}
+$pe = $pdo->prepare("SELECT COALESCE(SUM(CASE WHEN payment_status='confirmed' THEN amount END),0) AS got, COALESCE(SUM(CASE WHEN payment_status='pending' THEN amount END),0) AS waiting
+    FROM payments WHERE host_id = ? AND DATE(payment_date) BETWEEN ? AND ?");
+$pe->execute($prHost); $pEarn = $pe->fetch(PDO::FETCH_ASSOC);
 // v9.38.1: chart data for the same period (this host only)
 $cb = chartBuckets($per['from'], $per['to']); $cKeys = $cb['keys']; $cUnit = $cb['unit'];
 $cLabels = array_map(fn($k) => chartLabel($k, $cUnit), $cKeys);
@@ -44,6 +56,12 @@ $backHref = 'dashboard.php' . (!empty($_GET) ? '?' . http_build_query($_GET) : '
         .back-link   { display:inline-block; font-size:13px; color:var(--accent); text-decoration:none; margin-bottom:10px }
         .back-link:hover { text-decoration:underline }
         .section-card { background:var(--surface-2); border:1px solid var(--border); border-radius:8px; overflow:hidden; padding:18px }
+        .stats-grid  { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:12px; margin-bottom:12px }
+        .stat-card   { background:var(--surface-1); border:1px solid var(--border); border-radius:8px; padding:16px }
+        .stat-card.accent { border-left:3px solid var(--accent) }
+        .stat-label  { font-size:10px; font-weight:700; letter-spacing:.06em; color:var(--text-secondary); text-transform:uppercase; margin-bottom:8px }
+        .stat-value  { font-size:22px; font-weight:500; color:var(--text-primary); margin-bottom:3px }
+        .stat-note   { font-size:12px; color:var(--text-secondary) }
         .chart-grid  { display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:22px }
         .chart-card  { background:var(--surface-2); border:1px solid var(--border); border-radius:8px; padding:18px; min-width:0 }
         .chart-card h3 { margin:0 0 8px; font-size:1rem }
@@ -58,11 +76,25 @@ $backHref = 'dashboard.php' . (!empty($_GET) ? '?' . http_build_query($_GET) : '
         <h1 class="page-title">Your progress</h1>
         <p class="page-sub">See how your earnings and bookings are growing.</p>
 
-        <section class="section-card no-print" style="margin-bottom:20px" aria-label="Choose a period">
-            <p style="margin:0 0 10px;opacity:.8"><?= h($per['label']) ?>: <?= h(date('j M Y', strtotime($per['from']))) ?> to <?= h(date('j M Y', strtotime($per['to']))) ?>, grouped by <?= h($cUnit) ?>.</p>
+        <section class="section-card" style="margin-bottom:20px" aria-label="Summary for a period">
+            <h2 style="margin:0 0 6px">Summary for a period</h2>
+            <p style="margin:0 0 12px;opacity:.8"><?= h($per['label']) ?>: <?= h(date('j M Y', strtotime($per['from']))) ?> to <?= h(date('j M Y', strtotime($per['to']))) ?>. Bookings are counted by the day they were made; payments by the day they were reported.</p>
             <?= reportFilterHtml($per) ?>
+            <div class="stats-grid" style="margin-bottom:12px">
+                <div class="stat-card accent"><div class="stat-label">Bookings made</div><div class="stat-value"><?= (int)$pBook['all'] ?></div><div class="stat-note">KES <?= number_format($pBook['value'], 2) ?> booked</div></div>
+                <div class="stat-card"><div class="stat-label">Confirmed or completed</div><div class="stat-value"><?= (int)$pBook['won'] ?></div><div class="stat-note"><?= (int)$pBook['lost'] ?> cancelled, declined or expired</div></div>
+                <div class="stat-card"><div class="stat-label">Earnings confirmed</div><div class="stat-value">KES <?= number_format((float)$pEarn['got'], 2) ?></div><div class="stat-note">KES <?= number_format((float)$pEarn['waiting'], 2) ?> still to confirm</div></div>
+            </div>
+            <div class="no-print" style="display:flex;gap:10px;flex-wrap:wrap">
+                <?php $ex = http_build_query(['from' => $per['from'], 'to' => $per['to']]); ?>
+                <strong style="align-self:center">Download CSV:</strong>
+                <a href="export.php?type=bookings&amp;<?= h($ex) ?>">My bookings</a> &middot;
+                <a href="export.php?type=payments&amp;<?= h($ex) ?>">My payments</a>
+            </div>
         </section>
 
+        <h2 style="margin:0 0 4px">Charts</h2>
+        <p style="margin:0 0 14px;opacity:.8"><?= h($per['label']) ?>, grouped by <?= h($cUnit) ?>.</p>
         <div class="chart-grid">
             <div class="chart-card"><h3>Earnings confirmed (KES)</h3><?= svgBarChart($cLabels, [['name' => 'Earnings confirmed', 'values' => $cEarn['v']]], ['title' => 'Confirmed earnings over time', 'money' => true]) ?></div>
             <div class="chart-card"><h3>Bookings made</h3><?= svgBarChart($cLabels, [['name' => 'Bookings made', 'values' => $cBook['made']], ['name' => 'Confirmed or completed', 'values' => $cBook['won']]], ['title' => 'Bookings made and confirmed or completed over time']) ?></div>
