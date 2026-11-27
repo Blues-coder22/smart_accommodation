@@ -150,12 +150,11 @@ $keep = function ($k) use ($fe) { return isset($fe[$k]) ? '' : h($_POST[$k] ?? '
                 <?= $fm('role') ?>
             </div>
 
-            <?php /* Passwords are sent back only when they were fine, so a mistake elsewhere does not make anyone retype them. */
-                  $pwKeep = !isset($fe['password']) && !isset($fe['confirm_password']); ?>
+            <?php /* v9.38.1: passwords are NEVER sent back into the page. After any error the person retypes both; name, email, phone and role are kept. */ ?>
             <div class="field">
                 <label for="password">Password</label>
                 <input type="password" id="password" name="password"
-                       value="<?= $pwKeep ? h($_POST['password'] ?? '') : '' ?>"
+                       value=""
                        minlength="8" autocomplete="new-password" required<?= $fv('password') ?>>
                 <?= $fm('password') ?>
             </div>
@@ -164,7 +163,7 @@ $keep = function ($k) use ($fe) { return isset($fe[$k]) ? '' : h($_POST[$k] ?? '
                 <label for="confirm_password">Confirm Password</label>
                 <input type="password" id="confirm_password"
                        name="confirm_password"
-                       value="<?= (!isset($fe['confirm_password']) && !isset($fe['password'])) ? h($_POST['confirm_password'] ?? '') : '' ?>"
+                       value=""
                        minlength="8" autocomplete="new-password" required<?= $fv('confirm_password') ?>>
                 <?= $fm('confirm_password') ?>
             </div>

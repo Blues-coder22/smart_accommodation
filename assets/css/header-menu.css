@@ -1,0 +1,99 @@
+/* Header + account menu rules (extracted from ui.css) so index.php, which does not load ui.css, hides the drawer brand and account menu on desktop. */
+/* ===== v9.34: tidier header. Main links on the bar, account items in a menu, a clean full-width phone menu ===== */
+.se-hdr .nav-panel-top{display:none}
+.se-hdr .se-actions{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.se-hdr .se-bell{margin:0}
+.nav-badge{display:inline-block;min-width:18px;height:18px;line-height:18px;padding:0 5px;margin-left:6px;border-radius:9px;background:#a3462a;color:#fff!important;font-size:11px;font-weight:700;text-align:center;vertical-align:middle}
+.nav-badge[hidden]{display:none}
+:is(.se-hdr,.hx-header) .acct{position:relative}
+:is(.se-hdr,.hx-header) .acct-btn{display:flex;align-items:center;gap:8px;background:transparent;border:1px solid rgba(128,128,128,.35);border-radius:999px;padding:3px 12px 3px 4px;color:inherit;font:inherit;font-size:14px;cursor:pointer;min-height:42px}
+:is(.se-hdr,.hx-header) .acct-btn:hover,.se-hdr .acct.open .acct-btn{background:rgba(128,128,128,.14)}
+:is(.se-hdr,.hx-header) .acct-caret{font-size:11px;opacity:.7}
+:is(.se-hdr,.hx-header) .acct-menu{display:none;position:absolute;right:0;top:calc(100% + 10px);width:272px;z-index:80;background:#fff;color:#1d2b25;border:1px solid #d9e1dc;border-radius:14px;box-shadow:0 18px 44px rgba(0,0,0,.22);padding:8px}
+:is(.se-hdr,.hx-header) .acct.open .acct-menu{display:block}
+:is(.se-hdr,.hx-header) .acct-head{padding:10px 12px 12px;border-bottom:1px solid #e6ece8;margin-bottom:6px}
+:is(.se-hdr,.hx-header) .acct-head strong{display:block;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+:is(.se-hdr,.hx-header) .acct-head span{font-size:12px;color:#5d6b64}
+:is(.se-hdr,.hx-header) .acct-menu a{display:flex;align-items:center;padding:10px 12px;border-radius:9px;color:#1d2b25!important;text-decoration:none;font-size:14px;opacity:1;border:0;min-height:42px}
+:is(.se-hdr,.hx-header) .acct-menu a::after{display:none!important}
+:is(.se-hdr,.hx-header) .acct-menu a:hover{background:#eef4f1}
+:is(.se-hdr,.hx-header) .acct-menu .acct-out{margin-top:6px;border-top:1px solid #e6ece8;border-radius:0 0 9px 9px;color:#a3462a!important;font-weight:700}
+:is(.se-hdr,.hx-header) .acct-prefs{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 12px;border-top:1px solid #e6ece8;margin-top:6px}
+:is(.se-hdr,.hx-header) .acct-prefs .se-lang,.se-hdr .acct-prefs .se-cur{margin:0}
+:is(.se-hdr,.hx-header) .acct-prefs select{max-width:150px;color:#1d2b25;background:#fff}
+:is(.se-hdr,.hx-header) .acct-guest{display:flex;align-items:center;gap:12px}
+:is(.se-hdr,.hx-header) .acct-guest .acct-prefs{border:0;margin:0;padding:0}
+html[data-theme="dark"] :is(.se-hdr,.hx-header) .acct-menu{background:#1c2520;color:#e8ece9;border-color:#34413a}
+html[data-theme="dark"] :is(.se-hdr,.hx-header) .acct-menu a{color:#e8ece9!important}
+html[data-theme="dark"] :is(.se-hdr,.hx-header) .acct-menu a:hover{background:#27322c}
+html[data-theme="dark"] :is(.se-hdr,.hx-header) .acct-menu .acct-out{color:#f0a58a!important;border-color:#34413a}
+html[data-theme="dark"] :is(.se-hdr,.hx-header) .acct-head,html[data-theme="dark"] .se-hdr .acct-prefs{border-color:#34413a}
+html[data-theme="dark"] :is(.se-hdr,.hx-header) .acct-head span{color:#a8b5ae}
+html[data-theme="dark"] :is(.se-hdr,.hx-header) .acct-prefs select{background:#27322c;color:#e8ece9}
+
+/* desktop: undo the old 1260px collapse, the bar is short enough now */
+@media (min-width:1101px){
+  .public-nav.se-hdr{height:72px;flex-wrap:nowrap;padding:0 28px;gap:20px}
+  .public-nav.se-hdr .public-links{display:flex;width:auto;order:0;flex:1;justify-content:center;gap:clamp(14px,2vw,30px);font-size:14px}
+  .public-nav.se-hdr .public-actions{display:flex;width:auto;order:0}
+  .se-hdr .nav-toggle{display:none!important}
+  .hp-header.se-hdr .hp-nav{display:flex}.hp-header.se-hdr .hp-actions{display:flex}
+}
+/* phone and small tablet */
+@media (max-width:1100px){
+  .se-hdr{position:sticky;top:0;z-index:60;display:flex!important;flex-wrap:wrap;align-items:center;height:auto!important;min-height:60px;padding:8px 14px!important;gap:0 8px}
+  .se-hdr .public-brand,.se-hdr .hp-brand{order:1;margin-right:auto}
+  .se-hdr .se-actions{display:contents}
+  .se-hdr .se-bell{order:2}
+  .se-hdr .nav-toggle{display:inline-grid!important;place-items:center;order:3;width:44px;height:44px;margin-left:0}
+  .se-hdr .public-links,.se-hdr .hp-nav{order:4;display:none!important;width:100%}
+  .se-hdr .acct{order:5;display:none;width:100%}
+  .se-hdr.nav-open .public-links,.se-hdr.nav-open .hp-nav{display:flex!important;flex-direction:column;align-items:stretch;gap:0;padding:6px 0 4px;border-top:1px solid rgba(128,128,128,.28);margin-top:8px}
+  .se-hdr.nav-open .acct{display:block}
+  .se-hdr.nav-open .public-brand,.se-hdr.nav-open .hp-brand{display:none}   /* the brand moves to the top of the open list */
+  .se-hdr.nav-open .nav-panel-top{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 2px 12px;margin:0 0 6px;border-bottom:1px solid rgba(128,128,128,.28)}
+  .se-hdr .nav-panel-brand{display:flex;align-items:center;gap:10px;font-family:Georgia,serif;font-size:18px;color:inherit!important;text-decoration:none}
+  .se-hdr .nav-panel-brand small{display:block;font:9px Arial,sans-serif;letter-spacing:.16em;opacity:.8}
+  .se-hdr .nav-panel-hello{font-size:13px;opacity:.85}
+  .se-hdr.nav-open{max-height:100vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
+  .se-hdr .public-links a,.se-hdr .hp-nav a{display:flex;align-items:center;justify-content:space-between;width:100%;padding:14px 4px!important;font-size:16px!important;border:0!important;border-bottom:1px solid rgba(128,128,128,.18)!important;min-height:48px}
+  .se-hdr .public-links a::after,.se-hdr .hp-nav a::after{display:none!important}
+  .se-hdr .public-links a.active,.se-hdr .hp-nav a.active{font-weight:700}
+  .se-hdr .acct-btn{display:none}
+  .se-hdr .acct-menu{display:block;position:static;width:auto;border:0;box-shadow:none;background:transparent;color:inherit;padding:6px 0 12px}
+  .se-hdr .acct-menu a{padding:13px 4px;font-size:15px;color:inherit!important;border-bottom:1px solid rgba(128,128,128,.14);border-radius:0}
+  .se-hdr .acct-menu a:hover{background:rgba(128,128,128,.1)}
+  .se-hdr .acct-head{display:none}
+  .se-hdr .acct-prefs{padding:14px 0 6px;gap:12px;border-top:0}
+  .se-hdr .acct-prefs select{max-width:none;min-height:42px;color:inherit;background:rgba(128,128,128,.1)}
+  .se-hdr .acct-menu .acct-out{margin-top:8px;padding:14px 4px;border:1px solid rgba(163,70,42,.5);border-radius:10px;justify-content:center;color:inherit!important}
+  .se-hdr .acct-guest{display:none;flex-direction:column;align-items:stretch;gap:10px;padding:10px 0 14px}
+  .se-hdr.nav-open .acct-guest{display:flex}
+  .se-hdr .acct-guest .btn,.se-hdr .acct-guest .acct-signin{display:flex;justify-content:center;align-items:center;min-height:46px;border-radius:10px}
+  .se-hdr .acct-guest .acct-signin{border:1px solid rgba(128,128,128,.4)}
+  html.nav-locked{overflow:hidden}
+}
+
+@media(max-width:600px){.gal-grid{grid-template-columns:repeat(2,1fr)}}
+
+/* homepage header (hx): same account menu, and the phone list starts with the brand */
+.hx-header .nav-panel-top{display:none}
+.hx-header .hx-actions .se-bell{margin:0}
+@media (max-width:1024px){
+  .hx-header.open .nav-panel-top{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:4px 2px 12px;border-bottom:1px solid var(--hx-line,rgba(128,128,128,.3))}
+  .hx-header.open .hx-brand{display:none}
+  .hx-header .nav-panel-brand{display:flex;align-items:center;gap:10px;font-family:Georgia,serif;font-size:18px;color:var(--hx-forest,inherit);text-decoration:none}
+  .hx-header .nav-panel-brand small{display:block;font:9px Arial,sans-serif;letter-spacing:.16em;opacity:.8}
+  .hx-header .nav-panel-hello{font-size:13px;opacity:.8}
+  .hx-header .hx-nav a{padding:14px 2px;font-size:16px;border-bottom:1px solid var(--hx-line,rgba(128,128,128,.2));min-height:48px;display:flex;align-items:center}
+  .hx-header .hx-nav a::after{display:none}
+  .hx-header.open .hx-actions{flex-direction:column;align-items:stretch;gap:6px;padding-bottom:14px}
+  .hx-header .hx-actions .hx-dash{display:none}
+  .hx-header .acct-btn{display:none}
+  .hx-header .acct-menu{display:block;position:static;width:auto;border:0;box-shadow:none;background:transparent;color:inherit;padding:0}
+  .hx-header .acct-menu a{padding:13px 2px;border-radius:0;border-bottom:1px solid var(--hx-line,rgba(128,128,128,.2))}
+  .hx-header .acct-head{display:none}
+  .hx-header .acct-prefs{padding:12px 0 6px;border:0}
+  .hx-header .acct-menu .acct-out{border:1px solid rgba(163,70,42,.5);border-radius:10px;justify-content:center;margin-top:10px}
+  .hx-header .se-bell{align-self:flex-start}
+}

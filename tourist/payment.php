@@ -129,54 +129,75 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($pProof === false) { $errors[] = 'We could not use that screenshot. Please send a JPG, PNG or WebP image up to 5 MB.'; $pProof = null; }
     }
 
-    if (empty($errors) && $needPlatform) {
-        $ex = $pdo->prepare('SELECT platform_payment_id, status, method, reference FROM platform_payments WHERE booking_id = ?'); $ex->execute([$booking_id]); $exP = $ex->fetch(PDO::FETCH_ASSOC);
-        $changed = false;
-        if (!$exP) {
-            $pdo->prepare('INSERT INTO platform_payments (booking_id, tourist_id, host_id, amount, service_fee, commission_amount, method, reference, proof_file) VALUES (?,?,?,?,?,?,?,?,?)')
-                ->execute([$booking_id, $_SESSION['user_id'], $booking['host_id'], $split['platform'], $split['service_fee'], $split['commission_upfront'], $pMethod, $pRef, $pProof]);
-            $changed = true;
-        } elseif ($exP['status'] !== 'confirmed' && ($exP['method'] !== $pMethod || (string)$exP['reference'] !== $pRef || $pProof)) {
-            $pdo->prepare("UPDATE platform_payments SET method = ?, reference = ?, proof_file = COALESCE(?, proof_file), status = 'pending', reviewed_at = NULL, reviewed_by = NULL, review_note = NULL WHERE platform_payment_id = ?")
-                ->execute([$pMethod, $pRef, $pProof, $exP['platform_payment_id']]);
-            $changed = true;
+    if (empty($errors)) {
+        // v9.38.1: everything that records this payment happens in ONE transaction. The booking moves to 'payment_pending' first
+        // (locks the row, re-checks it is still 'accepted'); then the guest's payment to the host and to StayExplore Kenya are saved.
+        // If any step fails, all of it is rolled back, so no payment record is left behind for a booking that did not move on.
+        // Admin alerts and emails are sent only AFTER the commit.
+        $discardProofs = function () use (&$proofName, &$pProof) {
+            foreach ([[$proofName, 'payment'], [$pProof, 'platform']] as [$f, $k]) {
+                if ($f) { $path = commissionPrivateDir($k) . DIRECTORY_SEPARATOR . basename($f); if (is_file($path)) @unlink($path); }
+            }
+        };
+        $platformChanged = false; $existingPaymentId = 0;
+        try {
+            $pdo->beginTransaction();
+            $mv = transitionBooking($pdo, $booking_id, 'payment_pending', 'tourist', (int)$_SESSION['user_id'], ['event' => 'payment_submitted', 'expect' => 'accepted', 'note' => 'Guest reported a payment (' . $method . ')']);
+            if (!$mv['ok']) { $pdo->rollBack(); $discardProofs(); setFlash('error', $mv['error']); redirect('bookings.php'); }
+
+            // Payment to the host. Reuse the existing row if the form is resubmitted; a payment the host already confirmed is never overwritten.
+            $existingPayment = $pdo->prepare("SELECT payment_id, payment_status FROM payments WHERE booking_id = ? ORDER BY payment_id DESC LIMIT 1 FOR UPDATE");
+            $existingPayment->execute([$booking_id]);
+            $existingRow = $existingPayment->fetch(PDO::FETCH_ASSOC) ?: null;
+            $existingPaymentId = $existingRow ? (int)$existingRow['payment_id'] : 0;
+            if ($existingRow && $existingRow['payment_status'] === 'confirmed') {
+                $pdo->rollBack(); $discardProofs();
+                redirect('confirmation.php?ref=' . urlencode(bookingRef($booking_id)));
+            }
+            if ($existingPaymentId) {
+                $pdo->prepare("UPDATE payments SET payment_method = ?, payment_reference = ?, payment_status = 'pending', payment_date = NOW() WHERE payment_id = ? AND booking_id = ?")
+                    ->execute([$method, $reference !== '' ? $reference : null, $existingPaymentId, $booking_id]);
+            } else {
+                $pdo->prepare("INSERT INTO payments (booking_id, tourist_id, host_id, amount, payment_method, payment_reference, payment_status, payment_date) VALUES (?, ?, ?, ?, ?, ?, 'pending', NOW())")
+                    ->execute([$booking_id, $_SESSION['user_id'], $booking['host_id'], $split['host_amount'], $method, $reference !== '' ? $reference : null]);
+                $existingPaymentId = (int)$pdo->lastInsertId();
+            }
+            if ($proofName && $existingPaymentId) {
+                $pdo->prepare("UPDATE payments SET payment_proof = ? WHERE payment_id = ? AND tourist_id = ?")->execute([$proofName, $existingPaymentId, $_SESSION['user_id']]);
+            }
+
+            // Payment to StayExplore Kenya (service fee + commission), same transaction.
+            if ($needPlatform) {
+                $ex = $pdo->prepare('SELECT platform_payment_id, status, method, reference FROM platform_payments WHERE booking_id = ? FOR UPDATE'); $ex->execute([$booking_id]); $exP = $ex->fetch(PDO::FETCH_ASSOC);
+                if (!$exP) {
+                    $pdo->prepare('INSERT INTO platform_payments (booking_id, tourist_id, host_id, amount, service_fee, commission_amount, method, reference, proof_file) VALUES (?,?,?,?,?,?,?,?,?)')
+                        ->execute([$booking_id, $_SESSION['user_id'], $booking['host_id'], $split['platform'], $split['service_fee'], $split['commission_upfront'], $pMethod, $pRef, $pProof]);
+                    $platformChanged = true;
+                } elseif ($exP['status'] !== 'confirmed' && ($exP['method'] !== $pMethod || (string)$exP['reference'] !== $pRef || $pProof)) {
+                    $pdo->prepare("UPDATE platform_payments SET method = ?, reference = ?, proof_file = COALESCE(?, proof_file), status = 'pending', reviewed_at = NULL, reviewed_by = NULL, review_note = NULL WHERE platform_payment_id = ?")
+                        ->execute([$pMethod, $pRef, $pProof, $exP['platform_payment_id']]);
+                    $platformChanged = true;
+                }
+            }
+            $pdo->commit();
+        } catch (Throwable $e) {
+            if ($pdo->inTransaction()) $pdo->rollBack();
+            $discardProofs();
+            error_log('Payment submit failed (booking ' . $booking_id . '): ' . $e->getMessage());
+            $errors[] = ((int)($e instanceof PDOException ? ($e->errorInfo[1] ?? 0) : 0) === 1062)
+                ? 'This payment reference is already used for another payment. Please check it and try again.'   // unique key caught a simultaneous duplicate
+                : 'We could not record your payment just now, and nothing was saved. Please try again in a moment.';
         }
-        if ($changed) {
+    }
+
+    if (empty($errors)) {
+        // Committed. Now tell people (a failure here never undoes the payment).
+        if ($platformChanged) {
             notifyAdmins($pdo, 'Guest payment to check', 'KES ' . number_format($split['platform'], 2) . ' reported for ' . bookingLabel($booking_id) . ' (ref ' . $pRef . '). Compare it with your statement.', 'admin/revenue.php');
             try { require_once '../includes/booking_holds.php';
                 foreach (adminEmailAddresses($pdo) as $to) sendPlatformPaymentAdminEmail($to, $_SESSION['full_name'] ?? 'A guest', $booking['title'], $booking_id, $split['platform'], $pRef); }
             catch (Throwable $e) { error_log('Platform payment email: ' . $e->getMessage()); }
         }
-    }
-
-    if (empty($errors)) {
-        // Move the booking to 'payment_pending' first (locks the row, re-checks that it is still 'accepted'), then record the details.
-        $pdo->beginTransaction();
-        $mv = transitionBooking($pdo, $booking_id, 'payment_pending', 'tourist', (int)$_SESSION['user_id'], ['event' => 'payment_submitted', 'expect' => 'accepted', 'note' => 'Guest reported a payment (' . $method . ')']);
-        if (!$mv['ok']) { $pdo->rollBack(); setFlash('error', $mv['error']); redirect('bookings.php'); }
-        // Record payment details as pending for host review. Reuse the existing row if the form is resubmitted.
-        $existingPayment = $pdo->prepare("SELECT payment_id, payment_status, payment_method, payment_reference FROM payments WHERE booking_id = ? ORDER BY payment_id DESC LIMIT 1");
-        $existingPayment->execute([$booking_id]);
-        $existingRow = $existingPayment->fetch(PDO::FETCH_ASSOC) ?: null;
-        $existingPaymentId = $existingRow ? (int)$existingRow['payment_id'] : 0;
-        // A payment the host already confirmed is never overwritten.
-        if ($existingRow && $existingRow['payment_status'] === 'confirmed') {
-            $pdo->rollBack();
-            redirect('confirmation.php?ref=' . urlencode(bookingRef($booking_id)));
-        }
-        if ($existingPaymentId) {
-            $stmt = $pdo->prepare("UPDATE payments SET payment_method = ?, payment_reference = ?, payment_status = 'pending', payment_date = NOW() WHERE payment_id = ? AND booking_id = ?");
-            $stmt->execute([$method, $reference !== '' ? $reference : null, $existingPaymentId, $booking_id]);
-        } else {
-            $stmt = $pdo->prepare("INSERT INTO payments (booking_id, tourist_id, host_id, amount, payment_method, payment_reference, payment_status, payment_date) VALUES (?, ?, ?, ?, ?, ?, 'pending', NOW())");
-            $stmt->execute([$booking_id, $_SESSION['user_id'], $booking['host_id'], $split['host_amount'], $method, $reference !== '' ? $reference : null]);
-            $existingPaymentId = (int)$pdo->lastInsertId();
-        }
-        if ($proofName && $existingPaymentId) {
-            $pdo->prepare("UPDATE payments SET payment_proof = ? WHERE payment_id = ? AND tourist_id = ?")->execute([$proofName, $existingPaymentId, $_SESSION['user_id']]);
-        }
-
-        $pdo->commit();
         // Details submitted, but nothing is confirmed yet: tell the host to check their account, and acknowledge to the guest.
         try {
             $mailBooking = ['booking_id' => $booking_id, 'title' => $booking['title'], 'check_in_date' => $booking['check_in_date'],
