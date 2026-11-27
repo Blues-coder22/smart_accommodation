@@ -75,7 +75,9 @@ $back = hasRole('admin') ? 'admin/payments.php' : (hasRole('host') ? 'host/payme
         <div><dt>Paid to StayExplore Kenya (own receipt)</dt><dd><?= kes($sp['platform']) ?></dd></div>
     </dl>
     <?php endif; ?>
-    <div class="rc-total"><span>Paid to host</span><span><?= kes($p['amount']) ?></span></div>
+    <?php require_once __DIR__ . '/includes/currency.php'; $lock = !empty($p['display_currency']) ? ['code' => $p['display_currency'], 'rate' => $p['display_rate'], 'at' => $p['rate_locked_at']] : null; ?>
+    <div class="rc-total"><span>Paid to host</span><span><?= kes($p['amount']) ?><?= lockedApproxHtml($p['amount'], $lock) ?></span></div>
+    <?php if ($lock): ?><p class="small">The payment was made in Kenya shillings. The other currency is only for your information, at the rate saved when you reported the payment.</p><?php endif; ?>
     <p><strong>Status:</strong> <?= $confirmed ? 'Payment confirmed received by the host' : h(ucfirst($p['payment_status'])) ?></p>
     <?php if ($confirmed): ?><p><strong>Verification code:</strong> <span style="font-family:monospace;font-size:18px;letter-spacing:.08em"><?= h(receiptVerificationCode($p)) ?></span></p><?php endif; ?>
     <div class="rc-foot">This receipt was produced by StayExplore Kenya from the host's confirmation of payment. The platform does not hold guests' money; payment is made directly to the host. In a dispute, an admin can check the verification code against the system record. Keep this receipt as evidence.</div>

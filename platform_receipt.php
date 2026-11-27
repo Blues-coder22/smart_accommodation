@@ -66,7 +66,9 @@ $back = hasRole('admin') ? 'admin/revenue.php' : 'tourist/bookings.php';
         <div><dt>Service fee</dt><dd><?= kes($p['service_fee']) ?></dd></div>
         <div><dt>Platform share of the stay price</dt><dd><?= kes($p['commission_amount']) ?></dd></div>
     </dl>
-    <div class="rc-total"><span>Total paid</span><span><?= kes($p['amount']) ?></span></div>
+    <?php require_once __DIR__ . '/includes/currency.php'; $lock = lockedCurrencyForBooking($pdo, $p['booking_id']); ?>
+    <div class="rc-total"><span>Total paid</span><span><?= kes($p['amount']) ?><?= lockedApproxHtml($p['amount'], $lock) ?></span></div>
+    <?php if ($lock): ?><p class="small">The payment was made in Kenya shillings. The other currency is only for your information, at the rate saved when you reported the payment.</p><?php endif; ?>
     <p><strong>Status:</strong> <?= $confirmed ? 'Payment confirmed received by StayExplore Kenya' : h(ucfirst($p['status'])) ?></p>
     <?php if ($confirmed): ?><p><strong>Verification code:</strong> <span style="font-family:monospace;font-size:18px;letter-spacing:.08em"><?= h(platformReceiptVerificationCode($p)) ?></span></p><?php endif; ?>
     <div class="rc-foot">This is StayExplore Kenya's share of your booking. Your host's share is paid directly to your host and has its own receipt. Keep both receipts as evidence.</div>

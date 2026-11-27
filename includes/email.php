@@ -272,6 +272,7 @@ function sendPaymentConfirmationEmail($to, $name, $booking, $method = '', $refer
     $ref = bookingLabel($booking['booking_id']);
     $hostAmt = 'KES ' . number_format((float)$booking['total_amount'], 2);
     $platAmt = (float)($booking['platform_amount'] ?? 0);
+    $hostAmt .= emailApprox($booking['booking_id'], $booking['total_amount']);
     $legs = "<strong>$hostAmt sent to " . h($hostName !== '' ? $hostName : 'your host') . "</strong>"
           . ($platAmt > 0 ? " and <strong>KES " . number_format($platAmt, 2) . " sent to StayExplore Kenya</strong>" : "");
     $body = "
@@ -299,7 +300,7 @@ function sendPaymentVerifiedEmail($to, $name, $booking, $hostName = '', $referen
     $body = "
         <h2>Payment confirmed</h2>
         <p>Dear " . h($name) . ",</p>
-        <p style='font-size:18px'><strong>$amount received</strong> by " . h($hostName !== '' ? $hostName : 'your host') . " for " . h($booking['title']) . " (booking $ref).</p>
+        <p style='font-size:18px'><strong>$amount received</strong>" . emailApprox($booking['booking_id'], $booking['total_amount']) . " by " . h($hostName !== '' ? $hostName : 'your host') . " for " . h($booking['title']) . " (booking $ref).</p>
         " . ($reference !== '' ? "<p><strong>Reference:</strong> " . h($reference) . "</p>" : "") . "
         <p><strong>Confirmed:</strong> " . date('j M Y \\a\\t H:i') . "</p>
         $link
@@ -530,7 +531,7 @@ function sendPlatformPaymentAdminEmail($to, $guestName, $title, $bookingId, $amo
 function sendPlatformPaymentDecisionGuestEmail($to, $name, $bookingId, $amount, $reference, $accepted, $note = '', $receiptUrl = '') {
     $ref = bookingLabel($bookingId); $amt = 'KES ' . number_format((float)$amount, 2);
     $body = "<h2>" . ($accepted ? 'Payment received' : 'Payment not accepted') . "</h2><p>Dear " . h($name) . ",</p>"
-          . "<p style='font-size:18px'><strong>$amt " . ($accepted ? 'received by StayExplore Kenya' : 'could not be matched') . "</strong> for booking $ref (reference " . h($reference) . ").</p>"
+          . "<p style='font-size:18px'><strong>$amt" . emailApprox($bookingId, $amount) . " " . ($accepted ? 'received by StayExplore Kenya' : 'could not be matched') . "</strong> for booking $ref (reference " . h($reference) . ").</p>"
           . ($note !== '' ? "<p><strong>Note from the admin:</strong> " . nl2br(h($note)) . "</p>" : "")
           . ($accepted ? ($receiptUrl !== '' ? "<p><a href='" . h($receiptUrl) . "'>View or print your receipt</a></p>" : "")
                        : "<p>Please check the reference and send your payment again from your booking page, or contact us.</p>");
@@ -541,10 +542,18 @@ function sendPlatformPaymentDecisionGuestEmail($to, $name, $bookingId, $amount, 
 function sendRefundNoticeGuestEmail($to, $name, $bookingId, $title, $due, $note, $hostPaid) {
     $ref = bookingLabel($bookingId);
     $body = "<h2>Booking cancelled</h2><p>Dear " . h($name) . ",</p><p>Booking <strong>$ref</strong> for " . h($title) . " was cancelled.</p>"
-          . ((float)$due > 0 ? "<p style='font-size:18px'><strong>Refund due from StayExplore Kenya: KES " . number_format((float)$due, 2) . "</strong>. The admin will send it to you and you will get another email when it is done.</p>"
+          . ((float)$due > 0 ? "<p style='font-size:18px'><strong>Refund due from StayExplore Kenya: KES " . number_format((float)$due, 2) . "</strong>" . emailApprox($bookingId, $due) . ". The admin will send it to you and you will get another email when it is done.</p>"
                              : "<p>" . h($note) . "</p>")
           . ((float)$hostPaid > 0 ? "<p>Your host received KES " . number_format((float)$hostPaid, 2) . " directly from you. Please ask your host for that refund, following the cancellation rules.</p>" : "")
           . "<p>You can see everything under My bookings.</p>";
     return sendEmail($to, ((float)$due > 0 ? 'Refund due: KES ' . number_format((float)$due, 2) . ' — ' : 'Booking cancelled — ') . $ref, $body);
 }
 
+
+// v9.39: " (about USD 93 at KES 129 per USD on 27 Nov 2026)" for a booking whose guest paid while viewing another currency; '' otherwise.
+if (!function_exists('emailApprox')) {
+    function emailApprox($bookingId, $kes) {
+        global $pdo;
+        try { require_once __DIR__ . '/currency.php'; return lockedApproxHtml($kes, lockedCurrencyForBooking($pdo, $bookingId)); } catch (Throwable $e) { return ''; }
+    }
+}

@@ -43,6 +43,11 @@ $rows = $pdo->query('SELECT * FROM currencies ORDER BY sort_order, code')->fetch
         <h1 class="page-title">Currencies</h1>
         <p class="page-sub">Prices are stored and <strong>paid in Kenya shillings (KES)</strong>. Guests can choose another currency to see converted prices while they browse. You set the rates here (nothing is looked up online), so update them when they change. Payments, receipts and emails always stay in KES; converted amounts are shown only as an approximation.</p>
         <div class="fin-warn">The starting rates are only examples. Check them before you switch a currency on.</div>
+        <?php $oldest = null; foreach ($rows as $r) { if ($r['is_enabled'] && ($oldest === null || strtotime($r['updated_at']) < $oldest)) $oldest = strtotime($r['updated_at']); }
+              if ($oldest !== null && $oldest < time() - 7 * 86400): ?>
+        <div class="fin-warn" role="status"><strong>Some rates are more than 7 days old</strong> (the oldest was changed on <?= h(date('j M Y', $oldest)) ?>). Check them against a current exchange rate and press Save.</div>
+        <?php endif; ?>
+        <p class="small">When a guest reports a payment while viewing another currency, that currency and the rate at that moment are saved on the payment. Receipts and emails then show &ldquo;about USD 93 at KES 129 per USD&rdquo;. Changing a rate here never changes what was already saved.</p>
         <form method="POST" class="fin-box">
             <input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken()) ?>"><input type="hidden" name="action" value="save">
             <div class="fin-scroll"><table class="fin-table">

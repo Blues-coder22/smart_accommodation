@@ -202,9 +202,10 @@ $badge = ['confirmed' => ['#e7f3ec', '#1f5a3f', 'Received'], 'pending' => ['var(
                         <input type="hidden" name="payment_ref" value="<?= h(opaqueId('pay', $r['payment_id'])) ?>">
                         <input aria-label="Reason (required)" type="text" name="note" maxlength="500" placeholder="Reason (required)">
                         <div class="row">
-                            <?php if ($r['payment_status'] !== 'confirmed' && !in_array($r['booking_status'], ['cancelled', 'pending'], true)): ?><button type="submit" name="new_status" value="confirmed">Confirm as received</button><?php elseif ($r['payment_status'] !== 'confirmed'): ?><span class="small">Booking <?= h($r['booking_status']) ?>: cannot be marked received</span><?php endif; ?>
+                            <?php if ($r['payment_status'] !== 'confirmed' && !in_array($r['booking_status'], ['cancelled', 'pending'], true)): ?><button type="submit" name="new_status" value="confirmed">Confirm as received</button><?php elseif ($r['payment_status'] !== 'confirmed'): ?><span class="small">Booking <?= h($r['booking_status']) ?>: cannot be marked received. Use Check refund if the guest paid.</span><?php endif; ?>
                             <?php if ($r['payment_status'] !== 'pending'): ?><button type="submit" name="new_status" value="pending" class="alt">Set to awaiting</button><?php endif; ?>
                             <?php if ($r['payment_status'] !== 'failed'): ?><button type="submit" name="new_status" value="failed" class="bad">Mark failed</button><?php endif; ?>
+                            <?php if ($r['booking_status'] === 'cancelled' && in_array($r['payment_status'], ['confirmed', 'pending'], true)): ?><a class="btn-sm" style="align-self:center" href="refunds.php">Check refund</a><?php endif; ?>
                         </div>
                     </form>
                 </td>

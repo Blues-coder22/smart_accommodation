@@ -378,11 +378,11 @@ $monthly = $monthly->fetchAll();
                             </td>
                             <td>
                                 <?php if ($p['payment_status'] === 'pending' && in_array($p['booking_status'], ['payment_pending','accepted','confirmed'], true)): ?>
-                                <form method="post" style="margin:0" onsubmit="return confirm('Have you independently verified that this payment was received?');">
+                                <form method="post" style="margin:0" onsubmit="return confirm('Confirm that this money has really reached your M-Pesa, bank account or hand? The booking becomes confirmed and the guest is told.');">
                                     <input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
                                     <input type="hidden" name="action" value="confirm_payment">
                                     <input type="hidden" name="payment_ref" value="<?= h(opaqueId('pay', $p['payment_id'])) ?>">
-                                    <button class="btn btn-outline" type="submit">Mark verified</button>
+                                    <button class="btn btn-outline" type="submit">Confirm money received</button>
                                 </form>
                                 <?php else: ?><span class="small">—</span><?php endif; ?>
                             </td>

@@ -1,6 +1,7 @@
 <?php
 require_once '../includes/auth.php';
 require_once '../includes/functions.php';
+require_once '../includes/currency.php';
 require_once '../includes/db.php';
 require_once '../includes/booking_rules.php';
 ensureCommissionTables($pdo);
@@ -184,7 +185,7 @@ $nearby = getNearbyAttractions(
         <h1><?= h($heads[0]) ?></h1>
         <p><?= h($heads[1]) ?></p>
         <?php if ($booking['status'] === 'accepted'): ?>
-        <p style="margin:14px 0 0"><a class="btn-sm btn-sm-primary" style="padding:10px 20px;font-size:14px" href="payment.php?ref=<?= h(bookingRef($booking_id)) ?>">Pay your host &mdash; KES <?= number_format($booking['total_amount']) ?></a><?php if (!empty($booking['payment_due_at'])): ?><br><span class="small">Pay before <?= h(date('j M Y, H:i', strtotime($booking['payment_due_at']))) ?></span><?php endif; ?></p>
+        <p style="margin:14px 0 0"><a class="btn-sm btn-sm-primary" style="padding:10px 20px;font-size:14px" href="payment.php?ref=<?= h(bookingRef($booking_id)) ?>">Pay your host &mdash; KES <?= number_format($booking['total_amount']) ?><?= approxHtml($booking['total_amount']) ?></a><?php if (!empty($booking['payment_due_at'])): ?><br><span class="small">Pay before <?= h(date('j M Y, H:i', strtotime($booking['payment_due_at']))) ?></span><?php endif; ?></p>
         <?php endif; ?>
         <p style="margin:10px 0 0"><?php bookingRulesDialog(); ?></p>
         <div class="ref-tag">
@@ -251,19 +252,19 @@ $nearby = getNearbyAttractions(
             </div>
             <div class="detail-row">
                 <span class="detail-label">Stay (<?= (int)$br['nights'] ?> night<?= $br['nights'] > 1 ? 's' : '' ?>)</span>
-                <span class="detail-value">KES <?= number_format($br['stay']) ?></span>
+                <span class="detail-value">KES <?= number_format($br['stay']) ?><?= approxHtml($br['stay']) ?></span>
             </div>
             <?php if ($br['extra'] > 0): ?>
             <div class="detail-row">
                 <span class="detail-label"><?= h($br['extra_name']) ?></span>
-                <span class="detail-value">KES <?= number_format($br['extra']) ?></span>
+                <span class="detail-value">KES <?= number_format($br['extra']) ?><?= approxHtml($br['extra']) ?></span>
             </div>
             <?php endif; ?>
             <div class="detail-row">
                 <span class="detail-label">Booking total</span>
                 <span class="detail-value">
-                    KES <?= number_format($booking['total_amount']) ?>
-                    <?php if ($br['service_fee'] > 0): ?><span style="display:block;font-size:11px;font-weight:400">includes KES <?= number_format($br['service_fee']) ?> service fee</span><?php endif; ?>
+                    KES <?= number_format($booking['total_amount']) ?><?= approxHtml($booking['total_amount']) ?>
+                    <?php if ($br['service_fee'] > 0): ?><span style="display:block;font-size:11px;font-weight:400">includes KES <?= number_format($br['service_fee']) ?><?= approxHtml($br['service_fee']) ?> service fee</span><?php endif; ?>
                 </span>
             </div>
             <?php if ($br['extra'] > 0): ?>

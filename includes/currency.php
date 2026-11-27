@@ -82,3 +82,55 @@ if (!function_exists('currencySelectorHtml')) {
         return '<label class="se-cur notranslate" translate="no"><span class="sr-only">Currency</span><select aria-label="Currency" onchange="location=\'' . htmlspecialchars($base, ENT_QUOTES, 'UTF-8') . '/set_currency.php?c=\'+this.value+\'&amp;back=\'+encodeURIComponent(' . htmlspecialchars(json_encode($back), ENT_QUOTES, 'UTF-8') . ')">' . $o . '</select></label>';
     }
 }
+
+/* ---- Rate locked when the guest reports a payment (v9.39) ------------------------------------------------------------
+ * The real payment is always KES. When the guest had chosen another currency, that currency and the rate used are saved on the payment,
+ * so receipts and emails can say "about USD 93 at KES 129 per USD" and the figure never changes when the admin updates the rates later. */
+if (!function_exists('ensureCurrencyLockColumns')) {
+    function ensureCurrencyLockColumns($pdo) {
+        static $done = false; if ($done) return; $done = true;
+        try {
+            if (!$pdo->query("SHOW COLUMNS FROM payments LIKE 'display_currency'")->fetch()) $pdo->exec("ALTER TABLE payments ADD COLUMN display_currency CHAR(3) NULL DEFAULT NULL");
+            if (!$pdo->query("SHOW COLUMNS FROM payments LIKE 'display_rate'")->fetch()) $pdo->exec("ALTER TABLE payments ADD COLUMN display_rate DECIMAL(14,4) NULL DEFAULT NULL");
+            if (!$pdo->query("SHOW COLUMNS FROM payments LIKE 'rate_locked_at'")->fetch()) $pdo->exec("ALTER TABLE payments ADD COLUMN rate_locked_at DATETIME NULL DEFAULT NULL");
+        } catch (Throwable $e) { error_log('ensureCurrencyLockColumns: ' . $e->getMessage()); }
+    }
+}
+if (!function_exists('lockCurrencyOnPayment')) {
+    /** Call when the guest reports a payment. Saves the currency they are viewing (or clears it when they use KES). Never throws. */
+    function lockCurrencyOnPayment($pdo, $paymentId) {
+        try {
+            ensureCurrencyLockColumns($pdo);
+            $c = selectedCurrency();
+            if ($c === 'KES') { $pdo->prepare('UPDATE payments SET display_currency = NULL, display_rate = NULL, rate_locked_at = NULL WHERE payment_id = ?')->execute([(int)$paymentId]); return; }
+            $pdo->prepare('UPDATE payments SET display_currency = ?, display_rate = ?, rate_locked_at = NOW() WHERE payment_id = ?')->execute([$c, enabledCurrencies()[$c]['rate'], (int)$paymentId]);
+        } catch (Throwable $e) { error_log('lockCurrencyOnPayment: ' . $e->getMessage()); }
+    }
+}
+if (!function_exists('lockedCurrencyForBooking')) {
+    /** ['code'=>..,'rate'=>..,'at'=>..] saved on the booking's payment, or null (KES, or paid before this existed). */
+    function lockedCurrencyForBooking($pdo, $bookingId) {
+        try {
+            ensureCurrencyLockColumns($pdo);
+            $q = $pdo->prepare('SELECT display_currency, display_rate, rate_locked_at FROM payments WHERE booking_id = ? AND display_currency IS NOT NULL ORDER BY payment_id DESC LIMIT 1');
+            $q->execute([(int)$bookingId]); $r = $q->fetch(PDO::FETCH_ASSOC);
+            return $r && (float)$r['display_rate'] > 0 ? ['code' => $r['display_currency'], 'rate' => (float)$r['display_rate'], 'at' => $r['rate_locked_at']] : null;
+        } catch (Throwable $e) { return null; }
+    }
+}
+if (!function_exists('lockedApproxText')) {
+    /** Plain text like "about USD 93 at KES 129 per USD on 27 Nov 2026", or '' when there is nothing saved. */
+    function lockedApproxText($kes, $lock) {
+        if (!$lock || empty($lock['code']) || (float)($lock['rate'] ?? 0) <= 0) return '';
+        $r = (float)$lock['rate'];
+        return 'about ' . formatCurrency((float)$kes / $r, $lock['code']) . ' at KES ' . rtrim(rtrim(number_format($r, 4, '.', ''), '0'), '.') . ' per ' . $lock['code']
+             . (!empty($lock['at']) ? ' on ' . date('j M Y', strtotime($lock['at'])) : '');
+    }
+}
+if (!function_exists('lockedApproxHtml')) {
+    /** " (about USD 93 at KES 129 per USD on 27 Nov 2026)" for receipts and emails; '' when nothing is saved. */
+    function lockedApproxHtml($kes, $lock) {
+        $t = lockedApproxText($kes, $lock);
+        return $t === '' ? '' : ' <span class="money-approx" style="font-weight:400;font-size:.85em">(' . htmlspecialchars($t, ENT_QUOTES, 'UTF-8') . ')</span>';
+    }
+}

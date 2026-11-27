@@ -141,6 +141,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         };
         $platformChanged = false; $existingPaymentId = 0;
         try {
+            ensureCurrencyLockColumns($pdo);
             $pdo->beginTransaction();
             $mv = transitionBooking($pdo, $booking_id, 'payment_pending', 'tourist', (int)$_SESSION['user_id'], ['event' => 'payment_submitted', 'expect' => 'accepted', 'note' => 'Guest reported a payment (' . $method . ')']);
             if (!$mv['ok']) { $pdo->rollBack(); $discardProofs(); setFlash('error', $mv['error']); redirect('bookings.php'); }
@@ -180,6 +181,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
             $pdo->commit();
+            if ($existingPaymentId) lockCurrencyOnPayment($pdo, $existingPaymentId);
         } catch (Throwable $e) {
             if ($pdo->inTransaction()) $pdo->rollBack();
             $discardProofs();
@@ -297,7 +299,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </p>
     <div class="deadline-box">
         <div><strong>Booking <?= h(bookingLabel($booking_id)) ?></strong> &middot; <?= h($booking['title']) ?> &middot; <?= (int)$nights ?> night<?= $nights == 1 ? '' : 's' ?></div>
-        <div>Amount to pay your host: <strong>KES <?= number_format($split['host_amount']) ?></strong> &middot; Pay before <strong><?= h(date('j M Y, H:i', strtotime($booking['payment_due_at']))) ?></strong> or the dates are released.</div>
+        <div>Amount to pay your host: <strong>KES <?= number_format($split['host_amount']) ?><?= approxHtml($split['host_amount']) ?></strong> &middot; Pay before <strong><?= h(date('j M Y, H:i', strtotime($booking['payment_due_at']))) ?></strong> or the dates are released.</div>
         <?php if (!empty($booking['host_instr'])): ?><div class="host-instr"><strong>How to pay <?= h($booking['host_name']) ?>:</strong><br><?= nl2br(h($booking['host_instr'])) ?></div>
         <?php else: ?><div class="host-instr">Your host has not added payment details yet. Message your host from the Messages page to ask for their M-Pesa or bank details.</div><?php endif; ?>
     </div>
@@ -370,7 +372,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             <?php if ($needPlatform): ?>
             <div class="pay-card" style="margin-top:18px;background:#f3f8f5">
-                <h3>2. Pay StayExplore Kenya &mdash; KES <?= number_format($split['platform']) ?></h3>
+                <h3>2. Pay StayExplore Kenya &mdash; KES <?= number_format($split['platform']) ?><?= approxHtml($split['platform']) ?></h3>
                 <p class="small"><?= nl2br(h($platformInstructions)) ?></p>
                 <div class="method-list">
                     <label class="method-opt"><input type="radio" name="platform_method" value="mpesa" required> M-Pesa</label>
@@ -393,8 +395,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                        name="confirmed" required>
                 <label for="confirmed">
                     I confirm the booking amount of
-                    <strong>KES <?= number_format($booking['total_amount']) ?></strong><?php if ($needPlatform): ?> (KES <?= number_format($split['host_amount']) ?> to my host and KES <?= number_format($split['platform']) ?> to StayExplore Kenya)<?php endif; ?>
-                    <?php if ($needPlatform): ?>(this includes a KES <?= number_format($br['service_fee']) ?> service fee) and agree to pay each part directly, as shown above.<?php else: ?>and agree to complete payment to my host
+                    <strong>KES <?= number_format($booking['total_amount']) ?><?= approxHtml($booking['total_amount']) ?></strong><?php if ($needPlatform): ?> (KES <?= number_format($split['host_amount']) ?><?= approxHtml($split['host_amount']) ?> to my host and KES <?= number_format($split['platform']) ?><?= approxHtml($split['platform']) ?> to StayExplore Kenya)<?php endif; ?>
+                    <?php if ($needPlatform): ?>(this includes a KES <?= number_format($br['service_fee']) ?><?= approxHtml($br['service_fee']) ?> service fee) and agree to pay each part directly, as shown above.<?php else: ?>and agree to complete payment to my host
                     by the selected method.<?php endif; ?>
                 </label>
             </div>
@@ -425,19 +427,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
                     <div class="p-row">
                         <span>
-                            KES <?= number_format($booking['price_per_night']) ?>
+                            KES <?= number_format($booking['price_per_night']) ?><?= approxHtml($booking['price_per_night']) ?>
                             &times; <?= $nights ?> nights
                         </span>
                         <span>
                             KES <?= number_format(
                                 $booking['price_per_night'] * $nights
-                            ) ?>
+                            ) ?><?= approxHtml($booking['price_per_night'] * $nights) ?>
                         </span>
                     </div>
                     <?php if ($br['extra'] > 0): ?>
                     <div class="p-row">
-                        <span><?= h($br['extra_name']) ?> (KES <?= number_format($br['extra_per_guest']) ?> &times; <?= (int)$br['guests'] ?> guest<?= $br['guests'] > 1 ? 's' : '' ?>)</span>
-                        <span>KES <?= number_format($br['extra']) ?></span>
+                        <span><?= h($br['extra_name']) ?> (KES <?= number_format($br['extra_per_guest']) ?><?= approxHtml($br['extra_per_guest']) ?> &times; <?= (int)$br['guests'] ?> guest<?= $br['guests'] > 1 ? 's' : '' ?>)</span>
+                        <span>KES <?= number_format($br['extra']) ?><?= approxHtml($br['extra']) ?></span>
                     </div>
                     <?= bookingExtraNoteHtml($br) ?>
                     <?php endif; ?>
@@ -454,13 +456,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </span>
                     </div>
                     <?php if ($needPlatform): ?>
-                    <div class="p-row"><span>Stay and extras, paid to your host</span><span>KES <?= number_format($split['host_amount']) ?></span></div>
-                    <div class="p-row"><span>Paid to StayExplore Kenya (incl. KES <?= number_format($split['service_fee']) ?> service fee)</span><span>KES <?= number_format($split['platform']) ?></span></div>
+                    <div class="p-row"><span>Stay and extras, paid to your host</span><span>KES <?= number_format($split['host_amount']) ?><?= approxHtml($split['host_amount']) ?></span></div>
+                    <div class="p-row"><span>Paid to StayExplore Kenya (incl. KES <?= number_format($split['service_fee']) ?><?= approxHtml($split['service_fee']) ?> service fee)</span><span>KES <?= number_format($split['platform']) ?><?= approxHtml($split['platform']) ?></span></div>
                     <div class="p-row total"><span>Total you pay</span><span>KES <?= number_format($split['total']) ?><?= approxHtml($split['total']) ?></span></div>
                     <?php else: ?>
                     <div class="p-row total">
                         <span>Total to pay host</span>
-                        <span>KES <?= number_format($booking['total_amount']) ?></span>
+                        <span>KES <?= number_format($booking['total_amount']) ?><?= approxHtml($booking['total_amount']) ?></span>
                     </div>
                     <?php endif; ?>
                     <div class="status-note">
