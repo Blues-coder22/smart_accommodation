@@ -24,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($len($f['body']) < 10 || $len($f['body']) > 2000) $errors['body'] = 'Tell us what happened (10 to 2,000 characters).';
         if (!$errors) {
             $ref = strtoupper(preg_replace('/^BK-/i', '', trim((string)($_POST['booking_ref'] ?? ''))));
-            $pdo->prepare('INSERT INTO support_threads (user_id, subject, category, booking_ref) VALUES (?,?,?,?)')->execute([$uid, $f['subject'], $f['category'], $ref !== '' ? mb_substr($ref, 0, 20) : null]);
+            $pdo->prepare('INSERT INTO support_threads (user_id, subject, category, booking_ref, priority) VALUES (?,?,?,?,?)')->execute([$uid, $f['subject'], $f['category'], $ref !== '' ? mb_substr($ref, 0, 20) : null, supportDefaultPriority($f['category'])]);
             $tid = (int)$pdo->lastInsertId();
             supportAddMessage($pdo, $tid, $uid, false, $f['body']);
             setFlash('success', 'Your message was sent to StayExplore support. You will see the reply here and in your notifications.');
@@ -81,11 +81,11 @@ $lastId = $messages ? (int)end($messages)['message_id'] : 0;
 <div class="sp-layout">
  <aside class="sp-side"><h2>Your messages (<?= count($threads) ?>)</h2><a class="btn sp-new" href="<?= h($self) ?>">New message</a>
   <?php if (!$threads): ?><p class="small" style="padding:0 16px 16px">Nothing yet.</p><?php endif; ?>
-  <?php foreach ($threads as $t): ?><a class="sp-item <?= (int)$t['thread_id'] === $activeId ? 'active' : '' ?>" href="<?= h($self . '?thread_id=' . (int)$t['thread_id']) ?>"><strong><?= h($t['subject']) ?><?php if ((int)$t['unread']): ?><span class="sp-badge"><?= (int)$t['unread'] ?></span><?php endif; ?></strong><span><?= h($cats[$t['category']] ?? 'Other') ?> · <?= h(date('j M, H:i', strtotime($t['updated_at']))) ?></span></a><?php endforeach; ?>
+  <?php foreach ($threads as $t): ?><a class="sp-item <?= (int)$t['thread_id'] === $activeId ? 'active' : '' ?>" href="<?= h($self . '?thread_id=' . (int)$t['thread_id']) ?>"><strong><?= h($t['subject']) ?><?php if ((int)$t['unread']): ?><span class="sp-badge"><?= (int)$t['unread'] ?></span><?php endif; ?></strong><span><?= h($cats[$t['category']] ?? 'Other') ?> · <?= h(supportStatusLabel($t['status'], true)) ?> · <?= h(date('j M, H:i', strtotime($t['updated_at']))) ?></span></a><?php endforeach; ?>
  </aside>
  <section class="sp-main">
  <?php if ($active): ?>
-  <h2><?= h($active['subject']) ?></h2><p class="small"><?= h($cats[$active['category']] ?? 'Other') ?><?= $active['booking_ref'] ? ' · booking BK-' . h($active['booking_ref']) : '' ?> · <?= $active['status'] === 'closed' ? 'Closed by support (write again to reopen)' : 'Open' ?></p>
+  <h2><?= h($active['subject']) ?></h2><p class="small"><?= h($cats[$active['category']] ?? 'Other') ?><?= $active['booking_ref'] ? ' · booking BK-' . h($active['booking_ref']) : '' ?> · <?= h(supportStatusLabel($active['status'], true)) ?></p>
   <div class="chat-stream" id="chatStream" data-chat-kind="support" data-chat-id="<?= (int)$active['thread_id'] ?>" data-chat-last="<?= $lastId ?>" aria-live="polite">
    <?php foreach ($messages as $m): $mine = (int)$m['sender_id'] === $uid; ?><div class="chat-bubble <?= $mine ? 'mine' : '' ?>" data-mid="<?= (int)$m['message_id'] ?>"><?= h($m['body']) ?><small><?= $mine ? 'You' : ((int)$m['is_admin'] ? 'StayExplore support' : h($m['sender_name'])) ?> · <?= h(date('d M Y, H:i', strtotime($m['created_at']))) ?></small></div><?php endforeach; ?>
   </div>

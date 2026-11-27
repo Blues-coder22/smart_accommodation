@@ -31,13 +31,64 @@ if (!function_exists('ensureSupportTables')) {
                 read_at DATETIME NULL,
                 KEY idx_thread (thread_id, message_id)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+            // v9.38.1: ticket management. All additive; existing tickets keep working (priority 'normal', not assigned).
+            $col = $pdo->query("SHOW COLUMNS FROM support_threads LIKE 'status'")->fetch(PDO::FETCH_ASSOC);
+            if ($col && strpos((string)$col['Type'], 'in_progress') === false) {
+                $pdo->exec("ALTER TABLE support_threads MODIFY status ENUM('open','in_progress','waiting','closed') NOT NULL DEFAULT 'open'");
+            }
+            foreach (['priority' => "VARCHAR(10) NOT NULL DEFAULT 'normal'", 'assigned_to' => 'INT NULL'] as $c => $def) {
+                if (!$pdo->query("SHOW COLUMNS FROM support_threads LIKE '$c'")->fetch()) $pdo->exec("ALTER TABLE support_threads ADD COLUMN $c $def");
+            }
+            $pdo->exec("CREATE TABLE IF NOT EXISTS support_notes (
+                note_id INT AUTO_INCREMENT PRIMARY KEY,
+                thread_id INT NOT NULL,
+                admin_id INT NULL,
+                kind VARCHAR(10) NOT NULL DEFAULT 'note',
+                body VARCHAR(2000) NOT NULL,
+                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                KEY idx_sn_thread (thread_id, note_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
         } catch (Throwable $e) { error_log('ensureSupportTables: ' . $e->getMessage()); }
+    }
+}
+if (!function_exists('supportPriorities')) {
+    function supportPriorities() { return ['urgent' => 'Urgent', 'high' => 'High', 'normal' => 'Normal', 'low' => 'Low']; }
+}
+if (!function_exists('supportStatuses')) {
+    /** Statuses an admin can set by hand. 'closed' has its own Solved / Reopen buttons. */
+    function supportStatuses() { return ['open' => 'Open', 'in_progress' => 'In progress', 'waiting' => 'Waiting for the customer']; }
+}
+if (!function_exists('supportStatusLabel')) {
+    function supportStatusLabel($status, $forCustomer = false) {
+        if ($status === 'closed') return $forCustomer ? 'Closed by support (write again to reopen)' : 'Solved';
+        if ($status === 'waiting') return $forCustomer ? 'Waiting for your reply' : 'Waiting for the customer';
+        if ($status === 'in_progress') return 'In progress';
+        return 'Open';
+    }
+}
+if (!function_exists('supportDefaultPriority')) {
+    /** A new ticket starts at the priority its topic usually deserves; an admin can change it. */
+    function supportDefaultPriority($category) { return ['safety' => 'urgent', 'refund' => 'high'][$category] ?? 'normal'; }
+}
+if (!function_exists('supportPortalFor')) {
+    function supportPortalFor($pdo, $userId) {
+        $q = $pdo->prepare('SELECT role FROM users WHERE user_id = ?'); $q->execute([(int)$userId]);
+        return $q->fetchColumn() === 'host' ? 'host' : 'tourist';
+    }
+}
+if (!function_exists('supportLogNote')) {
+    /** kind 'note' = written by an admin; 'event' = recorded automatically when something is changed. Both are private to admins. */
+    function supportLogNote($pdo, $threadId, $adminId, $body, $kind = 'note') {
+        try {
+            $pdo->prepare('INSERT INTO support_notes (thread_id, admin_id, kind, body) VALUES (?,?,?,?)')->execute([(int)$threadId, $adminId ? (int)$adminId : null, $kind, mb_substr((string)$body, 0, 2000)]);
+        } catch (Throwable $e) { error_log('supportLogNote: ' . $e->getMessage()); }
     }
 }
 if (!function_exists('supportCategories')) {
     function supportCategories() {
         return ['booking' => 'A booking or payment', 'refund' => 'A cancellation or refund', 'host' => 'A host or guest problem',
-                'account' => 'My account or sign-in', 'listing' => 'My listing (hosts)', 'other' => 'Something else'];
+                'account' => 'My account or sign-in', 'listing' => 'My listing (hosts)', 'commission' => 'Commission or fees (hosts)',
+                'verification' => 'ID verification', 'safety' => 'A safety concern', 'other' => 'Something else'];
     }
 }
 if (!function_exists('supportEmailAddress')) {
@@ -79,7 +130,8 @@ if (!function_exists('supportAddMessage')) {
     function supportAddMessage($pdo, $threadId, $senderId, $asAdmin, $body) {
         $pdo->prepare('INSERT INTO support_messages (thread_id, sender_id, is_admin, body) VALUES (?,?,?,?)')->execute([(int)$threadId, (int)$senderId, $asAdmin ? 1 : 0, $body]);
         $id = (int)$pdo->lastInsertId();
-        $pdo->prepare("UPDATE support_threads SET updated_at = CURRENT_TIMESTAMP, status = 'open' WHERE thread_id = ?")->execute([(int)$threadId]);
+        // v9.38.1: a customer message puts the ticket back in the admin's queue; an admin reply moves it to 'waiting for the customer'.
+        $pdo->prepare("UPDATE support_threads SET updated_at = CURRENT_TIMESTAMP, status = ? WHERE thread_id = ?")->execute([$asAdmin ? 'waiting' : 'open', (int)$threadId]);
         $t = $pdo->prepare('SELECT t.user_id, t.subject, u.full_name FROM support_threads t JOIN users u ON u.user_id = t.user_id WHERE t.thread_id = ?');
         $t->execute([(int)$threadId]); $r = $t->fetch(PDO::FETCH_ASSOC);
         if ($r) {
