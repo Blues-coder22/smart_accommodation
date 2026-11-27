@@ -84,6 +84,7 @@ if (!function_exists('appShellStart')) {
                 [['reviews.php'],                            'Moderate reviews',    'admin/reviews.php',     'reviews'],
                 [['attraction_reviews.php'],                 'Attraction ratings',  'admin/attraction_reviews.php', null],
                 [['reports.php'],                            'Incident reports',    'admin/reports.php',     'reports'],
+                [['refunds.php'],                            'Refunds',             'admin/refunds.php',     null],
                 [['support.php'],                            'Support inbox',       'admin/support.php',     'support'],
                 [['attractions.php', 'osm_attractions.php'], 'Manage attractions',  'admin/attractions.php', null],
                 [['profile.php'],                            'Admin profile',       'admin/profile.php',     null],

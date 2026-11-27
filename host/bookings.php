@@ -4,7 +4,9 @@ require_once '../includes/functions.php';
 require_once '../includes/db.php';
 require_once '../includes/notifications.php';
 require_once '../includes/host_refunds.php';
+require_once '../includes/refund_requests.php';
 ensureHostRefundsTable($pdo);
+ensureRefundRequestTables($pdo);
 require_once '../includes/commission.php';
 ensureCommissionTables($pdo);
 require_once '../includes/booking_workflow.php';
@@ -99,9 +101,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 break;
 
             case 'record_refund':
-                // v9.38.1: the host says they sent the guest a refund for a cancelled booking. The guest and the admin are told.
-                $rr = hostRecordRefund($pdo, $booking_id, $host_id, str_replace(',', '.', (string)($_POST['amount'] ?? '')), (string)($_POST['method'] ?? ''), (string)($_POST['reference'] ?? ''), (string)($_POST['note'] ?? ''));
+                // The host says they sent the guest a refund for a cancelled booking, with a screenshot of it. The guest and the admin are told.
+                $ev = refundSaveEvidence($_FILES['evidence'] ?? null);
+                if (!$ev['ok']) { setFlash('error', $ev['error']); break; }
+                $rr = hostRecordRefund($pdo, $booking_id, $host_id, str_replace(',', '.', (string)($_POST['amount'] ?? '')), (string)($_POST['method'] ?? ''), (string)($_POST['reference'] ?? ''), (string)($_POST['note'] ?? ''), $ev['name']);
                 setFlash($rr['ok'] ? 'success' : 'error', $rr['ok'] ? 'Refund recorded. The guest was told and the admin can see it.' : $rr['error']);
+                break;
+
+            case 'decline_refund':
+                $rr = refundHostDecline($pdo, $booking_id, $host_id, (string)($_POST['reason'] ?? ''));
+                setFlash($rr['ok'] ? 'success' : 'error', $rr['ok'] ? 'Declined. The guest and the admin were told your reason.' : $rr['error']);
                 break;
 
             case 'no_show':
@@ -231,13 +240,14 @@ $bookings = $pdo->prepare("
            (SELECT pp.status FROM platform_payments pp WHERE pp.booking_id=b.booking_id LIMIT 1) AS pp_status,
            (SELECT p.payment_method FROM payments p WHERE p.booking_id=b.booking_id ORDER BY p.payment_id DESC LIMIT 1) AS payment_method,
            (SELECT p.payment_reference FROM payments p WHERE p.booking_id=b.booking_id ORDER BY p.payment_id DESC LIMIT 1) AS payment_reference,
-           (SELECT p.amount FROM payments p WHERE p.booking_id=b.booking_id AND p.payment_status='confirmed' ORDER BY p.payment_id DESC LIMIT 1) AS paid_amount,
-           (SELECT hr.amount FROM host_refunds hr WHERE hr.booking_id=b.booking_id) AS host_refund_amount,
-           (SELECT hr.method FROM host_refunds hr WHERE hr.booking_id=b.booking_id) AS host_refund_method,
-           (SELECT hr.reference FROM host_refunds hr WHERE hr.booking_id=b.booking_id) AS host_refund_ref
+           (SELECT p.amount FROM payments p WHERE p.booking_id=b.booking_id AND p.payment_status IN ('confirmed','pending') ORDER BY (p.payment_status='confirmed') DESC, p.payment_id DESC LIMIT 1) AS paid_amount,
+           rr.request_id AS rr_id, rr.status AS rr_status, rr.amount_requested AS rr_requested, rr.reason AS rr_reason, rr.evidence_file AS rr_evidence,
+           rr.host_response AS rr_host_response, rr.escalation_note AS rr_escalation, rr.admin_note AS rr_admin_note,
+           rr.refund_amount AS rr_amount, rr.refund_method AS rr_method, rr.refund_reference AS rr_ref, rr.refund_evidence AS rr_refund_evidence, rr.refunded_by AS rr_by
     FROM bookings b
     JOIN accommodations a ON a.accommodation_id = b.accommodation_id
     JOIN users u ON u.user_id = b.tourist_id
+    LEFT JOIN refund_requests rr ON rr.booking_id = b.booking_id
     WHERE $where
     ORDER BY b.created_at DESC
     LIMIT $perPage OFFSET $offset
@@ -589,28 +599,55 @@ $counts = $counts->fetch();
                         </form>
                     <?php endif; ?>
 
-                    <?php if ($b['status'] === 'cancelled' && (float)($b['paid_amount'] ?? 0) > 0): ?>
-                        <?php if ($b['host_refund_amount'] !== null): ?>
-                            <span class="btn-sm" style="cursor:default">Refund recorded: KES <?= number_format((float)$b['host_refund_amount'], 2) ?> (<?= h(str_replace('_', ' ', (string)$b['host_refund_method'])) ?><?= $b['host_refund_ref'] ? ', ref ' . h($b['host_refund_ref']) : '' ?>)</span>
-                        <?php else: ?>
-                            <details style="width:100%">
-                                <summary class="btn-sm" style="cursor:pointer;display:inline-block">Record a refund to the guest</summary>
-                                <form method="POST" style="margin-top:8px;display:grid;gap:8px;max-width:360px">
+                    <?php if ($b['status'] === 'cancelled' && ((float)($b['paid_amount'] ?? 0) > 0 || $b['rr_id'])): ?>
+                    <div style="width:100%;border:1px solid var(--border);border-radius:8px;padding:12px;margin-top:6px">
+                        <strong>Refund to the guest</strong>
+                        <?php if ($b['rr_id'] && $b['rr_status'] !== 'refunded'): ?>
+                            <p class="small" style="margin:6px 0">The guest asked for KES <?= number_format((float)$b['rr_requested'], 2) ?>: &ldquo;<?= h($b['rr_reason']) ?>&rdquo;
+                                <?php if ($b['rr_evidence']): ?> &middot; <a href="../refund_proof.php?ref=<?= h(opaqueId('rfd', (int)$b['rr_id'])) ?>&amp;file=request" target="_blank" rel="noopener">View their evidence</a><?php endif; ?></p>
+                            <p class="small" style="margin:6px 0"><strong>Status:</strong> <?= h(refundStatusLabel($b['rr_status'])) ?>
+                                <?php if ($b['rr_host_response']): ?> &middot; you said: <?= h($b['rr_host_response']) ?><?php endif; ?>
+                                <?php if ($b['rr_escalation']): ?><br>Guest to the admin: <?= h($b['rr_escalation']) ?><?php endif; ?>
+                                <?php if ($b['rr_admin_note']): ?><br>Admin: <?= h($b['rr_admin_note']) ?><?php endif; ?></p>
+                        <?php endif; ?>
+                        <?php if ($b['rr_status'] === 'refunded'): ?>
+                            <p class="small" style="margin:6px 0">&#10003; Refunded KES <?= number_format((float)$b['rr_amount'], 2) ?> by <?= h(refundMethodLabel($b['rr_method'])) ?><?= $b['rr_ref'] ? ', ref ' . h($b['rr_ref']) : '' ?><?= $b['rr_by'] === 'admin' ? ' (recorded by the admin)' : '' ?>
+                                <?php if ($b['rr_refund_evidence']): ?> &middot; <a href="../refund_proof.php?ref=<?= h(opaqueId('rfd', (int)$b['rr_id'])) ?>&amp;file=refund" target="_blank" rel="noopener">View refund evidence</a><?php endif; ?></p>
+                        <?php elseif (!in_array($b['rr_status'], ['closed'], true)): ?>
+                            <details style="margin-top:6px">
+                                <summary class="btn-sm" style="cursor:pointer;display:inline-block">I have refunded the guest: record it</summary>
+                                <form method="POST" enctype="multipart/form-data" style="margin-top:8px;display:grid;gap:8px;max-width:380px">
                                     <input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
                                     <input type="hidden" name="booking_ref" value="<?= h(bookingRef($b['booking_id'])) ?>">
                                     <input type="hidden" name="action" value="record_refund">
                                     <label>Amount you refunded (KES), up to <?= number_format((float)$b['paid_amount'], 2) ?>
-                                        <input name="amount" inputmode="decimal" required value="<?= h(number_format((float)$b['paid_amount'], 2, '.', '')) ?>"></label>
+                                        <input name="amount" inputmode="decimal" required value="<?= h(number_format((float)($b['rr_requested'] ?: $b['paid_amount']), 2, '.', '')) ?>"></label>
                                     <label>How you sent it
                                         <select name="method" required><option value="mpesa">M-Pesa</option><option value="bank_transfer">Bank transfer</option><option value="cash">Cash</option></select></label>
                                     <label>Transaction reference (not needed for cash)
                                         <input name="reference" maxlength="120"></label>
+                                    <label>Evidence: screenshot of the M-Pesa message or bank receipt (not needed for cash)
+                                        <input type="file" name="evidence" accept="image/jpeg,image/png,image/webp"></label>
                                     <label>Note for the record (optional)
                                         <input name="note" maxlength="300"></label>
                                     <button type="submit" class="btn-sm">Save refund record</button>
                                 </form>
                             </details>
+                            <?php if ($b['rr_status'] === 'requested'): ?>
+                            <details style="margin-top:6px">
+                                <summary class="btn-sm btn-sm-danger" style="cursor:pointer;display:inline-block">Decline this request</summary>
+                                <form method="POST" style="margin-top:8px;display:grid;gap:8px;max-width:380px">
+                                    <input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
+                                    <input type="hidden" name="booking_ref" value="<?= h(bookingRef($b['booking_id'])) ?>">
+                                    <input type="hidden" name="action" value="decline_refund">
+                                    <label>Reason (the guest and the admin will read it)
+                                        <input name="reason" maxlength="300" required minlength="5"></label>
+                                    <button type="submit" class="btn-sm btn-sm-danger">Decline</button>
+                                </form>
+                            </details>
+                            <?php endif; ?>
                         <?php endif; ?>
+                    </div>
                     <?php endif; ?>
 
                     <!-- Flag tourist -->
