@@ -49,7 +49,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
 // Filter
 $filter = sanitize($_GET['filter'] ?? 'all');
 
-$where  = "a.host_id = ? AND r.is_published = 1";
+// A host only sees a guest's review of their property once they have rated that guest for the same stay.
+$where  = "a.host_id = ? AND r.is_published = 1 AND EXISTS (SELECT 1 FROM guest_reviews gr WHERE gr.booking_id = r.booking_id AND gr.host_id = a.host_id)";
 $params = [$host_id];
 
 if ($filter === 'unanswered') {
@@ -87,10 +88,21 @@ $stats = $pdo->prepare("
     FROM reviews r
     JOIN accommodations a
         ON a.accommodation_id = r.accommodation_id
-    WHERE a.host_id = ? AND r.is_published = 1
+    WHERE a.host_id = ? AND r.is_published = 1 AND EXISTS (SELECT 1 FROM guest_reviews gr WHERE gr.booking_id = r.booking_id AND gr.host_id = a.host_id)
 ");
 $stats->execute([$host_id]);
 $stats = $stats->fetch();
+
+// Reviews waiting on the host: the guest has reviewed the stay but the host has not rated the guest yet.
+$locked = $pdo->prepare("
+    SELECT COUNT(*) FROM reviews r
+    JOIN accommodations a ON a.accommodation_id = r.accommodation_id
+    JOIN bookings b ON b.booking_id = r.booking_id
+    WHERE a.host_id = ? AND r.tourist_submitted = 1 AND r.is_flagged = 0 AND b.status = 'completed'
+      AND NOT EXISTS (SELECT 1 FROM guest_reviews gr WHERE gr.booking_id = r.booking_id)
+");
+$locked->execute([$host_id]);
+$lockedCount = (int)$locked->fetchColumn();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -243,6 +255,13 @@ $stats = $stats->fetch();
         </div>
 
         <!-- Filter Tabs -->
+        <?php if ($lockedCount > 0): ?>
+        <div class="alert" style="margin-bottom:16px;padding:12px 14px;border:1px solid var(--border);border-radius:8px;background:var(--surface-2)">
+            <strong><?= $lockedCount ?> guest review<?= $lockedCount > 1 ? 's are' : ' is' ?> waiting for you.</strong>
+            Rate the guest for each of these stays to see what they wrote.
+            <a href="bookings.php?tab=completed">Go to completed bookings</a>
+        </div>
+        <?php endif; ?>
         <div class="filter-tabs">
             <a href="?filter=all"
                class="filter-tab <?= $filter==='all'

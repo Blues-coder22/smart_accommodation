@@ -41,7 +41,7 @@ if (!$booking) {
 
 // Check if review already submitted
 $existing = $pdo->prepare("
-    SELECT review_id, tourist_submitted
+    SELECT review_id, tourist_submitted, host_submitted
     FROM reviews
     WHERE booking_id = ? AND tourist_id = ?
 ");
@@ -90,6 +90,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Check if host has already submitted their review
         $host_submitted = $existing
             ? (int)$existing['host_submitted'] : 0;
+        if (!$host_submitted) {
+            // The host may have rated the guest before any review row existed.
+            $hg = $pdo->prepare("SELECT 1 FROM guest_reviews WHERE booking_id = ? LIMIT 1");
+            $hg->execute([$booking_id]);
+            $host_submitted = $hg->fetchColumn() ? 1 : 0;
+        }
 
         // Publish immediately only if host already submitted
         // Otherwise wait for host or 14 days
@@ -123,13 +129,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                  rating, review_text, suspicion_score,
                  is_flagged, tourist_submitted,
                  host_submitted, is_published)
-                VALUES (?, ?, ?, ?, ?, ?, ?, 1, 0, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
             ")->execute([
                 $booking_id,
                 $_SESSION['user_id'],
                 $booking['accommodation_id'],
                 $rating, $review_text,
                 $suspicion, $is_flagged,
+                $host_submitted,
                 $is_published
             ]);
         }

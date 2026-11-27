@@ -43,10 +43,10 @@ if (!$done && $_SERVER['REQUEST_METHOD'] === 'POST') {
             $pdo->prepare("INSERT INTO guest_reviews (booking_id, host_id, tourist_id, rating, review_text) VALUES (?, ?, ?, ?, ?)")
                 ->execute([$booking_id, $host_id, $booking['tourist_id'], $rating, $text !== '' ? sanitize($text) : null]);
             // The host's side is now in, so the guest's own (sealed) review for this stay can be revealed.
-            $pdo->prepare("UPDATE reviews SET host_submitted = 1 WHERE booking_id = ?")->execute([$booking_id]);
+            $pdo->prepare("UPDATE reviews SET host_submitted = 1 WHERE booking_id = ?")->execute([$booking_id]);  // no row yet? tourist/review.php checks guest_reviews
             $pdo->prepare("UPDATE reviews SET is_published = 1 WHERE booking_id = ? AND tourist_submitted = 1 AND is_flagged = 0")->execute([$booking_id]);
             $pdo->commit();
-            setFlash('success', 'Thank you. Your review of the guest is saved. It will show once the guest has reviewed the stay, or 14 days after check-out.');
+            setFlash('success', 'Thank you. Your review of the guest is saved. You can now see what the guest wrote about their stay under Reviews.');
             redirect('bookings.php?tab=completed');
         } catch (PDOException $e) {
             if ($pdo->inTransaction()) $pdo->rollBack();

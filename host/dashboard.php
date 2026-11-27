@@ -91,6 +91,7 @@ $pending_reviews = $pdo->prepare("
     WHERE a.host_id = ?
     AND r.is_published = 1
     AND r.host_reply IS NULL
+    AND EXISTS (SELECT 1 FROM guest_reviews gr WHERE gr.booking_id = r.booking_id AND gr.host_id = a.host_id)
 ");
 $pending_reviews->execute([$host_id]);
 $pending_reviews = $pending_reviews->fetchColumn();

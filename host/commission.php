@@ -9,6 +9,7 @@ requireRole('host');
 $host_id = (int)$_SESSION['user_id'];
 ensureCommissionTables($pdo);
 require_once '../includes/notifications.php';
+require_once '../includes/finance_audit.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     requireCsrf();
@@ -19,10 +20,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!in_array($method, ['mpesa', 'bank_transfer'], true) || mb_strlen($ref) < 4) { setFlash('error', 'Choose M-Pesa or bank transfer and enter the payment reference (at least 4 characters).'); }
     elseif ($amt <= 0 || $amt > max(0.0, $room) + 0.009) { setFlash('error', 'Enter an amount between 1 and the balance not yet reported (KES ' . number_format(max(0.0, $room), 2) . ').'); }
     else {
-        $dup = $pdo->prepare("SELECT 1 FROM host_commission_payments WHERE host_id = ? AND reference = ? AND status <> 'rejected'"); $dup->execute([$host_id, $ref]);
+        $dup = $pdo->prepare("SELECT 1 FROM host_commission_payments WHERE reference = ? AND status <> 'rejected' LIMIT 1"); $dup->execute([$ref]);   // a reference can back only one payment, whichever host reported it
         if ($dup->fetchColumn()) { setFlash('error', 'That reference has already been reported.'); }
         else {
             $pdo->prepare('INSERT INTO host_commission_payments (host_id, amount, method, reference) VALUES (?,?,?,?)')->execute([$host_id, $amt, $method, $ref]);
+            logFinanceEvent($pdo, 'host_commission_payment', (int)$pdo->lastInsertId(), $host_id, $host_id, 'host', 'reported', null, 'pending', $amt, 'ref ' . $ref);
             notifyAdmins($pdo, 'Host commission payment to check', ($_SESSION['full_name'] ?? 'A host') . ' reports KES ' . number_format($amt, 2) . ' commission (ref ' . $ref . '). Compare it with your statement.', 'admin/revenue.php');
             setFlash('success', 'Reported. It will count once StayExplore Kenya has checked it.');
         }

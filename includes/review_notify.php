@@ -15,7 +15,9 @@ if (!function_exists('notifyHostsOfNewReviews')) {
             }
             require_once __DIR__ . '/notifications.php';
             $rows = $pdo->query("SELECT r.review_id, r.rating, a.host_id, a.title FROM reviews r JOIN accommodations a ON a.accommodation_id = r.accommodation_id
-                WHERE r.is_published = 1 AND r.host_notified_at IS NULL ORDER BY r.review_id LIMIT 300")->fetchAll(PDO::FETCH_ASSOC);
+                WHERE r.is_published = 1 AND r.host_notified_at IS NULL
+                AND EXISTS (SELECT 1 FROM guest_reviews gr WHERE gr.booking_id = r.booking_id AND gr.host_id = a.host_id)   /* host sees a review only after rating the guest */
+                ORDER BY r.review_id LIMIT 300")->fetchAll(PDO::FETCH_ASSOC);
             foreach ($rows as $r) {
                 notify($pdo, (int)$r['host_id'], 'New review: ' . (int)$r['rating'] . ' star' . ((int)$r['rating'] === 1 ? '' : 's'),
                     'A guest reviewed "' . $r['title'] . '". Open Reviews to read it and reply.', 'host/reviews.php');
