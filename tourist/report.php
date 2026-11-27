@@ -145,11 +145,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             VALUES (?, ?, ?, ?, ?, ?, 'pending', ?)
         ");
 
-        // v9.38.1: a critical incident ALERTS the admin as urgent; it does not suspend the listing by itself, because any guest could
-        // otherwise take a host offline with one unverified report. The admin suspends from the report once they have looked at it.
-        // Emergency auto-suspension is kept only if the site setting 'report_auto_suspend' is deliberately switched on (default off).
+        // Requirement FR47 / test T20: a critical incident suspends the listing at once and the admin is alerted as urgent. This stays ON by default.
+        // The admin can switch it off on the Reports page (site setting 'report_auto_suspend'); the admin can restore the listing from the report, and
+        // the abuse limits in includes/report_safety.php (daily cap, no duplicates, pause after false reports) reduce the risk of misuse.
         $isCritical = ($type === 'incident' && in_array($incident_t, $critical_types, true));
-        $suspend    = ($isCritical && siteSettingGet('report_auto_suspend', '0') === '1') ? 1 : 0;
+        $suspend    = ($isCritical && siteSettingGet('report_auto_suspend', '1') === '1') ? 1 : 0;
 
         // The report and (only under the emergency policy) the suspension are saved together or not at all.
         $pdo->beginTransaction();

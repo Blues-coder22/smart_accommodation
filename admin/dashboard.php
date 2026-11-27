@@ -5,6 +5,7 @@ require_once '../includes/db.php';
 require_once '../includes/commission.php';
 require_once '../includes/booking_workflow.php';
 require_once '../includes/report_helpers.php';
+require_once '../includes/chart_helpers.php';
 
 if (session_status() === PHP_SESSION_NONE) session_start();
 
@@ -53,6 +54,23 @@ try {
         FROM platform_payments WHERE status IN ('confirmed','refunded') AND DATE(COALESCE(reviewed_at, created_at)) BETWEEN ? AND ?"); $q->execute($pr); [$pPlatform, $pRefunded] = array_map('floatval', $q->fetch(PDO::FETCH_NUM));
     $q = $pdo->prepare("SELECT COALESCE(SUM(amount),0) FROM host_commission_payments WHERE status = 'confirmed' AND DATE(COALESCE(reviewed_at, created_at)) BETWEEN ? AND ?"); $q->execute($pr); $pCommission = (float)$q->fetchColumn();
 } catch (Throwable $e) { error_log('dashboard period summary: ' . $e->getMessage()); }
+
+// v9.38.1: chart data for the same period
+$cb = chartBuckets($per['from'], $per['to']); $cKeys = $cb['keys']; $cUnit = $cb['unit'];
+$cLabels = array_map(fn($k) => chartLabel($k, $cUnit), $cKeys);
+$bx = $cb['expr']('b.created_at');
+$cBook = chartSeries($pdo, "SELECT $bx AS k, COUNT(*) AS made, SUM(b.status IN ('confirmed','completed')) AS won FROM bookings b WHERE DATE(b.created_at) BETWEEN ? AND ? GROUP BY k", $pr, $cKeys, ['made', 'won']);
+$px = $cb['expr']('p.payment_date'); $hx = $cb['expr']('COALESCE(c.reviewed_at, c.created_at)'); $ux = $cb['expr']('u.created_at');
+$cGuestPaid = chartSeries($pdo, "SELECT $px AS k, SUM(p.amount) AS v FROM payments p WHERE p.payment_status = 'confirmed' AND DATE(p.payment_date) BETWEEN ? AND ? GROUP BY k", $pr, $cKeys, ['v']);
+$cCommission = chartSeries($pdo, "SELECT $hx AS k, SUM(c.amount) AS v FROM host_commission_payments c WHERE c.status = 'confirmed' AND DATE(COALESCE(c.reviewed_at, c.created_at)) BETWEEN ? AND ? GROUP BY k", $pr, $cKeys, ['v']);
+$cUsers = chartSeries($pdo, "SELECT $ux AS k, SUM(u.role = 'tourist') AS guests, SUM(u.role = 'host') AS hosts FROM users u WHERE u.role IN ('tourist','host') AND DATE(u.created_at) BETWEEN ? AND ? GROUP BY k", $pr, $cKeys, ['guests', 'hosts']);
+$cStatus = []; $cTop = [];
+try {
+    $q = $pdo->prepare("SELECT status, COUNT(*) AS n FROM bookings WHERE DATE(created_at) BETWEEN ? AND ? GROUP BY status ORDER BY n DESC"); $q->execute($pr);
+    foreach ($q->fetchAll(PDO::FETCH_ASSOC) as $r) $cStatus[] = ['label' => ucfirst(str_replace('_', ' ', $r['status'])), 'value' => (int)$r['n']];
+    $q = $pdo->prepare("SELECT a.title, COUNT(*) AS n FROM bookings b JOIN accommodations a ON a.accommodation_id = b.accommodation_id WHERE b.status IN ('confirmed','completed') AND DATE(b.created_at) BETWEEN ? AND ? GROUP BY a.accommodation_id, a.title ORDER BY n DESC LIMIT 5"); $q->execute($pr);
+    foreach ($q->fetchAll(PDO::FETCH_ASSOC) as $r) $cTop[] = ['label' => $r['title'], 'value' => (int)$r['n']];
+} catch (Throwable $e) { error_log('dashboard chart lists: ' . $e->getMessage()); }
 
 // Recent activity — latest bookings
 $recent = $pdo->query("
@@ -316,6 +334,19 @@ $monthly = $pdo->query("
                 <a href="export.php?type=platform_payments&amp;<?= h($ex) ?>">Platform payments</a> &middot;
                 <a href="export.php?type=commission&amp;<?= h($ex) ?>">Commission payments</a> &middot;
                 <a href="revenue_report.php?<?= h($ex) ?>">Printable revenue report</a>
+            </div>
+        </section>
+
+        <!-- v9.38.1: charts for the chosen period -->
+        <section class="section-card" style="margin-bottom:24px" aria-label="Charts for the period">
+            <h2 style="margin:0 0 4px">Charts for this period</h2>
+            <p style="margin:0 0 14px;opacity:.8"><?= h($per['label']) ?>, grouped by <?= h($cUnit) ?>. The date filter above changes these too.</p>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:22px">
+                <div><h3 style="margin:0 0 6px;font-size:1rem">Bookings made</h3><?= svgBarChart($cLabels, [['name' => 'Bookings made', 'values' => $cBook['made']], ['name' => 'Confirmed or completed', 'values' => $cBook['won']]], ['title' => 'Bookings made and confirmed or completed over time']) ?></div>
+                <div><h3 style="margin:0 0 6px;font-size:1rem">Money confirmed (KES)</h3><?= svgBarChart($cLabels, [['name' => 'Guest payments to hosts', 'values' => $cGuestPaid['v']], ['name' => 'Commission paid by hosts', 'values' => $cCommission['v']]], ['title' => 'Guest payments and host commission payments over time', 'money' => true]) ?></div>
+                <div><h3 style="margin:0 0 6px;font-size:1rem">New accounts</h3><?= svgBarChart($cLabels, [['name' => 'New guests', 'values' => $cUsers['guests']], ['name' => 'New hosts', 'values' => $cUsers['hosts']]], ['title' => 'New guest and host accounts over time']) ?></div>
+                <div><h3 style="margin:0 0 6px;font-size:1rem">Bookings by status</h3><?= htmlBarList($cStatus, ['title' => 'Bookings by status']) ?></div>
+                <div><h3 style="margin:0 0 6px;font-size:1rem">Most booked stays</h3><?= htmlBarList($cTop, ['title' => 'Most booked stays', 'empty' => 'No confirmed or completed bookings in this period.']) ?></div>
             </div>
         </section>
 

@@ -61,8 +61,10 @@ if (!function_exists('unreadNotificationCount')) {
 
 if (!function_exists('markPageNotificationsRead')) {
     /**
-     * Opening the page a notification is about marks it read, however the person got there (menu, link or the bell).
-     * A notification matches when its page is the current page and every query value it carries (ref, thread_id ...) is also in the address.
+     * Opening the exact item a notification is about marks it read, however the person got there (menu, link or the bell).
+     * A notification matches only when it points at one specific item (it carries a query value such as ref or thread_id) and the current address
+     * has the same value. v9.38.1: a notification that points at a general list page (for example host/payments.php with no item) is NOT marked read
+     * just because that page was opened. It stays unread until the person clicks it in the bell or uses "Mark all as read".
      */
     function markPageNotificationsRead($pdo, $userId) {
         try {
@@ -80,7 +82,7 @@ if (!function_exists('markPageNotificationsRead')) {
                 $u = parse_url('/' . ltrim((string)$n['url'], '/'));
                 if (ltrim($u['path'] ?? '', '/') !== $path) continue;
                 parse_str($u['query'] ?? '', $want);
-                $ok = true;
+                $ok = !empty($want);   // no item in the link means a general page: leave it unread
                 foreach ($want as $k => $v) { if ((string)($_GET[$k] ?? '') !== (string)$v) { $ok = false; break; } }
                 if ($ok) $ids[] = (int)$n['notification_id'];
             }

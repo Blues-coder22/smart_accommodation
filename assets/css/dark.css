@@ -654,3 +654,19 @@ html[data-theme="dark"] .leaflet-popup-content a{color:var(--accent)}
 html[data-theme="dark"] .leaflet-container a.leaflet-popup-close-button{color:var(--text-secondary)}
 html[data-theme="dark"] .leaflet-control-attribution{background:rgba(15,21,18,.82)!important;color:var(--text-secondary)}
 html[data-theme="dark"] .leaflet-control-attribution a{color:var(--accent)}
+
+/* ---------- v9.39: availability calendar in dark mode ----------
+   The general ".bc-day" dark rule above gave booked days the same dark green as free days. These rules come last so each state is clearly different:
+   free = dark green, booked = solid terracotta with white text, awaiting = amber, not available = grey hatching. */
+html[data-theme="dark"] .bc-day.bc-booked,
+html[data-theme="dark"] .bc-key.bc-booked{background:#b5472a!important;color:#fff!important;font-weight:700}
+html[data-theme="dark"] .bc-day.bc-pending,
+html[data-theme="dark"] .bc-key.bc-pending{background:#7a5a12!important;color:#fff3cf!important;font-weight:700}
+html[data-theme="dark"] .bc-day.bc-blocked,
+html[data-theme="dark"] .bc-key.bc-blocked{background:repeating-linear-gradient(45deg,#2a312d,#2a312d 4px,#161c19 4px,#161c19 8px)!important;color:#aab3ae!important;border:1px dashed #55635b}
+html[data-theme="dark"] .bc-day.bc-past{background:#121815!important;color:#6f7a74!important}
+html[data-theme="dark"] .bc-key:not(.bc-booked):not(.bc-pending):not(.bc-blocked){background:#171f1b!important;border:1px solid #4f7f68}
+html[data-theme="dark"] .bc-today{outline-color:#8fd3b4}
+/* host availability calendar */
+html[data-theme="dark"] .day-cell.booked{background-color:#34419a!important;color:#fff!important;font-weight:700}
+html[data-theme="dark"] .day-cell.booked-pending{background-color:#7a5a12!important;color:#fff3cf!important;font-weight:700}

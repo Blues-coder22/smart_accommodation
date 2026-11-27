@@ -3,6 +3,7 @@ require_once '../includes/auth.php';
 require_once '../includes/functions.php';
 require_once '../includes/notifications.php';
 require_once '../includes/db.php';
+require_once '../includes/commission.php';   // siteSettingGet / siteSettingSet
 require_once '../includes/report_safety.php';
 ensureReportManagementTables($pdo);
 require_once '../includes/email.php';
@@ -17,6 +18,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     requireCsrf();
     $report_id    = (int)($_POST['report_id'] ?? 0);
     $action       = sanitize($_POST['action'] ?? '');
+    if ($action === 'set_auto_suspend') {   // the on/off switch for automatic suspension after a critical incident
+        $on = (($_POST['value'] ?? '') === '1');
+        siteSettingSet('report_auto_suspend', $on ? '1' : '0', (int)$_SESSION['user_id']);
+        setFlash('success', $on ? 'Automatic suspension is ON: a critical incident suspends the listing immediately.' : 'Automatic suspension is OFF: critical incidents alert you but you decide whether to suspend.');
+        redirect('reports.php');
+    }
     $admin_action = sanitize($_POST['admin_action'] ?? '');
     // v9.38.1: private note (admins only, never sent to anyone) and the investigation outcome, checked against what each action allows.
     $internal = mb_substr(trim((string)($_POST['internal_note'] ?? '')), 0, 2000);
@@ -411,6 +418,14 @@ $counts = $pdo->query("
             Handle incident reports, listing flags,
             and guest concerns.
         </p>
+
+        <?php $autoSuspend = siteSettingGet('report_auto_suspend', '1') === '1'; ?>
+        <form method="POST" class="no-print" style="margin:0 0 16px;padding:12px 14px;border:1px solid var(--border);border-radius:10px;display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+            <input type="hidden" name="csrf_token" value="<?= h(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>"><input type="hidden" name="action" value="set_auto_suspend">
+            <input type="hidden" name="value" value="<?= $autoSuspend ? '0' : '1' ?>">
+            <span><strong>Automatic suspension after a critical incident:</strong> <?= $autoSuspend ? 'ON. The listing is suspended at once and you are alerted.' : 'OFF. You are alerted and decide whether to suspend.' ?></span>
+            <button type="submit" class="btn-dismiss"><?= $autoSuspend ? 'Switch off' : 'Switch on' ?></button>
+        </form>
 
         <!-- Filter Tabs -->
         <div class="filter-tabs">

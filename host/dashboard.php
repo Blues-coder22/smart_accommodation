@@ -5,6 +5,7 @@ require_once '../includes/db.php';
 require_once '../includes/commission.php';
 require_once '../includes/booking_workflow.php';
 require_once '../includes/report_helpers.php';
+require_once '../includes/chart_helpers.php';
 
 if (session_status() === PHP_SESSION_NONE) session_start();
 
@@ -48,6 +49,20 @@ foreach ($pbq->fetchAll(PDO::FETCH_ASSOC) as $r) {
 $pe = $pdo->prepare("SELECT COALESCE(SUM(CASE WHEN payment_status='confirmed' THEN amount END),0) AS got, COALESCE(SUM(CASE WHEN payment_status='pending' THEN amount END),0) AS waiting
     FROM payments WHERE host_id = ? AND DATE(payment_date) BETWEEN ? AND ?");
 $pe->execute($prHost); $pEarn = $pe->fetch(PDO::FETCH_ASSOC);
+
+// v9.38.1: chart data for the same period (this host only)
+$cb = chartBuckets($per['from'], $per['to']); $cKeys = $cb['keys']; $cUnit = $cb['unit'];
+$cLabels = array_map(fn($k) => chartLabel($k, $cUnit), $cKeys);
+$bx = $cb['expr']('b.created_at'); $px = $cb['expr']('p.payment_date');
+$cBook = chartSeries($pdo, "SELECT $bx AS k, COUNT(*) AS made, SUM(b.status IN ('confirmed','completed')) AS won FROM bookings b JOIN accommodations a ON a.accommodation_id = b.accommodation_id WHERE a.host_id = ? AND DATE(b.created_at) BETWEEN ? AND ? GROUP BY k", $prHost, $cKeys, ['made', 'won']);
+$cEarn = chartSeries($pdo, "SELECT $px AS k, SUM(p.amount) AS v FROM payments p WHERE p.host_id = ? AND p.payment_status = 'confirmed' AND DATE(p.payment_date) BETWEEN ? AND ? GROUP BY k", $prHost, $cKeys, ['v']);
+$cStatus = []; $cTop = [];
+try {
+    $q = $pdo->prepare("SELECT b.status, COUNT(*) AS n FROM bookings b JOIN accommodations a ON a.accommodation_id = b.accommodation_id WHERE a.host_id = ? AND DATE(b.created_at) BETWEEN ? AND ? GROUP BY b.status ORDER BY n DESC"); $q->execute($prHost);
+    foreach ($q->fetchAll(PDO::FETCH_ASSOC) as $r) $cStatus[] = ['label' => ucfirst(str_replace('_', ' ', $r['status'])), 'value' => (int)$r['n']];
+    $q = $pdo->prepare("SELECT a.title, SUM(p.amount) AS v FROM payments p JOIN bookings b ON b.booking_id = p.booking_id JOIN accommodations a ON a.accommodation_id = b.accommodation_id WHERE a.host_id = ? AND p.payment_status = 'confirmed' AND DATE(p.payment_date) BETWEEN ? AND ? GROUP BY a.accommodation_id, a.title ORDER BY v DESC LIMIT 5"); $q->execute($prHost);
+    foreach ($q->fetchAll(PDO::FETCH_ASSOC) as $r) $cTop[] = ['label' => $r['title'], 'value' => round((float)$r['v'])];
+} catch (Throwable $e) { error_log('host dashboard chart lists: ' . $e->getMessage()); }
 
 // Recent bookings
 $recent = $pdo->prepare("
@@ -309,6 +324,17 @@ foreach ($chart_values as $i => $value) {
                 <strong style="align-self:center">Download CSV:</strong>
                 <a href="export.php?type=bookings&amp;<?= h($ex) ?>">My bookings</a> &middot;
                 <a href="export.php?type=payments&amp;<?= h($ex) ?>">My payments</a>
+            </div>
+        </section>
+
+        <section class="section-card" style="margin-bottom:24px" aria-label="Charts for the period">
+            <h2 style="margin:0 0 4px">Charts for this period</h2>
+            <p style="margin:0 0 14px;opacity:.8"><?= h($per['label']) ?>, grouped by <?= h($cUnit) ?>. The date filter above changes these too.</p>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:22px">
+                <div><h3 style="margin:0 0 6px;font-size:1rem">Earnings confirmed (KES)</h3><?= svgBarChart($cLabels, [['name' => 'Earnings confirmed', 'values' => $cEarn['v']]], ['title' => 'Confirmed earnings over time', 'money' => true]) ?></div>
+                <div><h3 style="margin:0 0 6px;font-size:1rem">Bookings made</h3><?= svgBarChart($cLabels, [['name' => 'Bookings made', 'values' => $cBook['made']], ['name' => 'Confirmed or completed', 'values' => $cBook['won']]], ['title' => 'Bookings made and confirmed or completed over time']) ?></div>
+                <div><h3 style="margin:0 0 6px;font-size:1rem">Bookings by status</h3><?= htmlBarList($cStatus, ['title' => 'Bookings by status']) ?></div>
+                <div><h3 style="margin:0 0 6px;font-size:1rem">Earnings by listing (KES)</h3><?= htmlBarList($cTop, ['title' => 'Earnings by listing', 'money' => true, 'empty' => 'No confirmed payments in this period.']) ?></div>
             </div>
         </section>
 
