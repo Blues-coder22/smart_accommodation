@@ -5,6 +5,7 @@ require_once '../includes/db.php';
 require_once '../includes/commission.php';
 require_once '../includes/report_helpers.php';
 require_once '../includes/chart_helpers.php';
+require_once '../includes/refund_requests.php';
 
 if (session_status() === PHP_SESSION_NONE) session_start();
 
@@ -26,6 +27,13 @@ foreach ($pbq->fetchAll(PDO::FETCH_ASSOC) as $r) {
 $pe = $pdo->prepare("SELECT COALESCE(SUM(CASE WHEN payment_status='confirmed' THEN amount END),0) AS got, COALESCE(SUM(CASE WHEN payment_status='pending' THEN amount END),0) AS waiting
     FROM payments WHERE host_id = ? AND DATE(payment_date) BETWEEN ? AND ?");
 $pe->execute($prHost); $pEarn = $pe->fetch(PDO::FETCH_ASSOC);
+// Refunds this host recorded to guests in the period (from the refund cases)
+$pRefund = 0.0; $pRefundN = 0;
+try {
+    ensureRefundRequestTables($pdo);
+    $rq = $pdo->prepare("SELECT COALESCE(SUM(refund_amount),0), COUNT(*) FROM refund_requests WHERE host_id = ? AND status = 'refunded' AND DATE(refunded_at) BETWEEN ? AND ?");
+    $rq->execute($prHost); [$pRefund, $pRefundN] = array_map('floatval', $rq->fetch(PDO::FETCH_NUM));
+} catch (Throwable $e) { error_log('host insights refunds: ' . $e->getMessage()); }
 // v9.38.1: chart data for the same period (this host only)
 $cb = chartBuckets($per['from'], $per['to']); $cKeys = $cb['keys']; $cUnit = $cb['unit'];
 $cLabels = array_map(fn($k) => chartLabel($k, $cUnit), $cKeys);
@@ -84,6 +92,7 @@ $backHref = 'dashboard.php' . (!empty($_GET) ? '?' . http_build_query($_GET) : '
                 <div class="stat-card accent"><div class="stat-label">Bookings made</div><div class="stat-value"><?= (int)$pBook['all'] ?></div><div class="stat-note">KES <?= number_format($pBook['value'], 2) ?> booked</div></div>
                 <div class="stat-card"><div class="stat-label">Confirmed or completed</div><div class="stat-value"><?= (int)$pBook['won'] ?></div><div class="stat-note"><?= (int)$pBook['lost'] ?> cancelled, declined or expired</div></div>
                 <div class="stat-card"><div class="stat-label">Earnings confirmed</div><div class="stat-value">KES <?= number_format((float)$pEarn['got'], 2) ?></div><div class="stat-note">KES <?= number_format((float)$pEarn['waiting'], 2) ?> still to confirm</div></div>
+                <div class="stat-card"><div class="stat-label">Refunded to guests</div><div class="stat-value">KES <?= number_format($pRefund, 2) ?></div><div class="stat-note"><?= (int)$pRefundN ?> refund(s) on your bookings; not taken off the earnings above</div></div>
             </div>
             <div class="no-print" style="display:flex;gap:10px;flex-wrap:wrap">
                 <?php $ex = http_build_query(['from' => $per['from'], 'to' => $per['to']]); ?>

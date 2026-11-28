@@ -1,0 +1,223 @@
+^(\d[\d,.]*) payments? to check$|||malipo {1} ya kukagua
+^Green months are the best time to visit in (.+?)\.$|||Miezi ya kijani ndiyo wakati bora wa kutembelea {1}.
+^Green months are the best time to visit\.$|||Miezi ya kijani ndiyo wakati bora wa kutembelea.
+^guest payments? waiting for you to confirm$|||malipo ya wageni yanasubiri uthibitishe
+^(\d[\d,.]*) guest payments? waiting for you to confirm$|||malipo {1} ya wageni yanasubiri uthibitishe
+^Booking is (.+?): no action possible\.$|||Uhifadhi (hali: {1}): hakuna hatua inayowezekana.
+^(.+?): (.+?) to (.+?)\. Bookings are counted by the day they were made; payments by the day they were reported\.$|||{1}: {2} hadi {3}. Uhifadhi huhesabiwa kwa siku ulipofanywa; malipo kwa siku yaliporipotiwa.
+^(.+?): (.+?) to (.+?)\. Bookings are counted by the day they were made; payments by the day they were confirmed\.$|||{1}: {2} hadi {3}. Uhifadhi huhesabiwa kwa siku ulipofanywa; malipo kwa siku yalipothibitishwa.
+^KES (\d[\d,.]*) booked$|||KES {1} zimehifadhiwa
+^(\d[\d,.]*) cancelled, declined or expired$|||{1} zimeghairiwa, zimekataliwa au muda umeisha
+^KES (\d[\d,.]*) still to confirm$|||KES {1} bado za kuthibitishwa
+^(.+?), grouped by (day|week|month)\.$|||{1}, imepangwa kwa {2}.
+^You are a verified guest(.*?)\. Hosts see a "Verified guest" badge next to your name, which can help your booking requests get accepted\. For your privacy your ID number and photo were erased once an admin checked them\.$|||Wewe ni mgeni uliyethibitishwa{1}. Wenyeji huona beji ya "Mgeni aliyethibitishwa" karibu na jina lako, inayoweza kusaidia maombi yako ya uhifadhi kukubaliwa. Kwa faragha yako, nambari ya kitambulisho na picha yako vilifutwa baada ya msimamizi kuvikagua.
+^(\d[\d,.]*) day\(s\) after check\-out\. If the booking is cancelled, or you set the payment back to unpaid, the commission is removed\. Declined, unpaid, cancelled and no\-show bookings carry no commission\.$|||siku {1} baada ya kuondoka. Uhifadhi ukighairiwa, au ukirudisha malipo kuwa hayajalipwa, kamisheni huondolewa. Uhifadhi uliokataliwa, ambao haujalipwa, ulioghairiwa au ambao mgeni hakufika hauna kamisheni.
+^This certificate confirms a check made by StayExplore Kenya only\. It is not a business licence, a safety inspection or a guarantee\. It is valid only while the (.+?); check the number online to confirm\.$|||Cheti hiki kinathibitisha ukaguzi uliofanywa na StayExplore Kenya pekee. Si leseni ya biashara, ukaguzi wa usalama wala dhamana. Ni halali tu wakati {1}; kagua nambari mtandaoni ili kuthibitisha.
+^Your host replies to this request first\. If the host accepts, you will have (\d[\d,.]*) hours to pay your host directly\. The booking is confirmed when your host confirms they received your payment\.$|||Mwenyeji wako hujibu ombi hili kwanza. Mwenyeji akikubali, utakuwa na saa {1} za kumlipa mwenyeji wako moja kwa moja. Uhifadhi unathibitishwa mwenyeji wako anapothibitisha kwamba amepokea malipo yako.
+^, a tour or guide your host offers at the stay \(KES (.+?) per guest\)\. (.+?) Entry fees for parks and other attractions nearby are not included\. You pay those at the gate when you visit\.$|||, ziara au mwongozo unaotolewa na mwenyeji wako kwenye malazi (KES {1} kwa kila mgeni). {2} Ada za kuingia kwenye mbuga na vivutio vingine vya karibu hazijajumuishwa. Unazilipa langoni unapotembelea.
+^Ratings come from guests with a completed stay within (\d[\d,.]*) km\. Hiding one removes it from the public page and the average; it never touches stay reviews or the Smart score\.$|||Ukadiriaji unatoka kwa wageni waliokamilisha kukaa ndani ya km {1}. Kuficha mmoja huuondoa kwenye ukurasa wa umma na wastani; hauathiri kamwe maoni ya malazi wala Alama mahiri.
+^Our trust team will review your report within 24 hours\. (.+?) The listing has been temporarily suspended while we investigate\. (.+?) If anyone is in immediate danger, please call$|||Timu yetu ya uaminifu itakagua ripoti yako ndani ya saa 24. {1} Tangazo limesimamishwa kwa muda tunapochunguza. {2} Ikiwa mtu yeyote yuko katika hatari ya haraka, tafadhali piga simu
+^Each invoice is due (\d[\d,.]*) days after check\-out\. Pay by M\-Pesa or bank transfer, then report the reference below\. StayExplore Kenya verifies it and your balance updates\.$|||Kila ankara inadaiwa siku {1} baada ya kuondoka. Lipa kwa M-Pesa au uhamisho wa benki, kisha ripoti kumbukumbu hapa chini. StayExplore Kenya huikagua na salio lako husasishwa.
+^entered between (\d[\d,.]*) and (.+?)\. Printed (.+?)\. Amounts are what each guest pays you directly\. Your platform commission is invoiced separately on the Commission page\.$|||yaliyoingizwa kati ya {1} na {2}. Yamechapishwa {3}. Kiasi ni kile ambacho kila mgeni anakulipa moja kwa moja. Kamisheni yako ya jukwaa hutumiwa ankara kando kwenye ukurasa wa Kamisheni.
+^You are a verified host(.*?)\. Guests see a "Verified host" badge on your listings\. For your privacy your ID number and photo were erased once an admin checked them\.$|||Wewe ni mwenyeji uliyethibitishwa{1}. Wageni huona beji ya "Mwenyeji aliyethibitishwa" kwenye matangazo yako. Kwa faragha yako, nambari ya kitambulisho na picha yako vilifutwa baada ya msimamizi kuvikagua.
+^Platform payments accepted between (.+?) and (.+?), printed (.+?) by (.+?)\. Only payments you checked and accepted are counted as received\.$|||Malipo ya jukwaa yaliyokubaliwa kati ya {1} na {2}, yamechapishwa {3} na {4}. Malipo uliyokagua na kukubali tu ndiyo huhesabiwa kuwa yamepokelewa.
+^Ratings come from guests who completed a stay within (\d[\d,.]*) km of this place, so they come from people who were really in the area\.$|||Ukadiriaji unatoka kwa wageni waliokamilisha kukaa ndani ya km {1} kutoka mahali hapa, kwa hivyo unatoka kwa watu waliokuwa katika eneo hilo kweli.
+^This is offered by your host, right here at the stay\. It costs KES (\d[\d,.]*) per guest and is added to your total when you book\.$|||Hii inatolewa na mwenyeji wako, hapo hapo kwenye malazi. Inagharimu KES {1} kwa kila mgeni na huongezwa kwenye jumla yako unapohifadhi.
+^Paid to you directly by the guest\. Your commission \(KES (\d[\d,.]*)\) is invoiced separately after the stay is completed\.$|||Imelipwa kwako moja kwa moja na mgeni. Kamisheni yako (KES {1}) hutumiwa ankara tofauti baada ya ukaaji kukamilika.
+^Generated (.+?) by (.+?) from the StayExplore Kenya system records\. Opening this pack is recorded in the booking history\.$|||Kimetolewa {1} na {2} kutoka rekodi za mfumo wa StayExplore Kenya. Kufungua kifurushi hiki kunarekodiwa kwenye historia ya uhifadhi.
+^Booked before v9\.33: the guest pays you this\. KES (\d[\d,.]*) goes to StayExplore Kenya as agreed when it was made\.$|||Imehifadhiwa kabla ya v9.33: mgeni anakulipa hii. KES {1} huenda kwa StayExplore Kenya kama ilivyokubaliwa wakati wa kuhifadhi.
+^on StayExplore Kenya\. The admin checked the identity document \((.+?)\) and approved the verification on$|||kwenye StayExplore Kenya. Msimamizi alikagua hati ya utambulisho ({1}) na kuidhinisha uthibitisho tarehe
+^You are currently signed in as (.+?)\. Sign in below with another account to switch dashboards\.$|||Kwa sasa umeingia kama {1}. Ingia hapa chini kwa akaunti nyingine ili kubadilisha dashibodi.
+^The host marked this as received, then set it back to awaiting(.*?)\. Check with both people\.$|||Mwenyeji aliweka haya kuwa yamepokelewa, kisha akayarudisha kuwa yanasubiri{1}. Wasiliana na watu wote wawili.
+^It is (\d[\d,.]*)% of (\d[\d,.]*), using the rate saved on each booking when it was made\.$|||Ni {1}% ya {2}, kwa kutumia kiwango kilichohifadhiwa kwenye kila uhifadhi ulipofanywa.
+^Your report is private and reviewed by our trust team\. (.+?) Related to:$|||Ripoti yako ni ya siri na hukaguliwa na timu yetu ya uaminifu. {1} Inahusiana na:
+^How to pay: (.+?) Then report the reference on your Commission page\.$|||Jinsi ya kulipa: {1} Kisha ripoti kumbukumbu kwenye ukurasa wako wa Kamisheni.
+^StayExplore Kenya has not confirmed this payment \(status: (.+?)\)\.$|||StayExplore Kenya haijathibitisha malipo haya (hali: {1}).
+^Submitted (.+?)\. An admin will review it and email you the result\.$|||Imewasilishwa {1}. Msimamizi ataikagua na kukutumia matokeo kwa barua pepe.
+^Please fix (.+?) below\. Everything else you typed has been kept\.$|||Tafadhali sahihisha {1} hapa chini. Kila kitu kingine ulichoandika kimehifadhiwa.
+^© (.+?) StayExplore Kenya\. Made for journeys worth remembering\.$|||© {1} StayExplore Kenya. Imetengenezwa kwa safari zinazostahili kukumbukwa.
+^Paid to StayExplore Kenya \(incl\. KES (\d[\d,.]*) service fee\)$|||Inalipwa kwa StayExplore Kenya (pamoja na ada ya huduma ya KES {1})
+^Your email is confirmed; an admin is reviewing your ID\. (.+?)$|||Barua pepe yako imethibitishwa; msimamizi anakagua kitambulisho chako. {1}
+^The host has not confirmed this payment \(status: (.+?)\)\.$|||Mwenyeji hajathibitisha malipo haya (hali: {1}).
+^= service fee (.+?) \+ commission (.+?) · (.+?) · reference$|||= ada ya huduma {1} + kamisheni {2} · {3} · kumbukumbu
+^(.+?) to (.+?) · (.+?) guest\(s\) · (.+?) · booking status:$|||{1} hadi {2} · wageni {3} · {4} · hali ya uhifadhi:
+^Listing automatically suspended pending this review (.+?) —$|||Tangazo limesimamishwa kiotomatiki hadi ukaguzi huu ufanyike {1} —
+^\((\d[\d,.]*)%, invoiced to you after the completed stay\)$|||({1}%, utatumiwa ankara baada ya ukaaji kukamilika)
+^(.+?) · (.+?) · reference (.+?) · entered (.+?) · status$|||{1} · {2} · kumbukumbu {3} · imeingizwa {4} · hali
+^(.+?) \((.+?) night(s|\(s\))?, (.+?) guest(s|\(s\))?\)$|||{1} (usiku {2}, wageni {4})
+^\(version (.+?)\)\. This is the wording you accepted\.$|||(toleo {1}). Haya ndiyo maneno uliyokubali.
+^View all (.+?) attraction(s|\(s\))? near this stay →$|||Tazama vivutio vyote {1} karibu na malazi haya →
+^Before you send this request, please read the (.+?)$|||Kabla ya kutuma ombi hili, tafadhali soma {1}
+^StayExplore Kenya · (.+?) · printed (.+?) for (.+?)$|||StayExplore Kenya · {1} · imechapishwa {2} kwa {3}
+^(.+?) · (.+?) · KES (.+?)/night · (.+?) guests max$|||{1} · {2} · KES {3}/usiku · wageni {4} kwa upeo
+^© (.+?) StayExplore Kenya\. All rights reserved\.$|||© {1} StayExplore Kenya. Haki zote zimehifadhiwa.
+^Service fee (.+?) \+ commission (.+?)(.+?) ·$|||Ada ya huduma {1} + kamisheni {2}{3} ·
+^2\. Pay StayExplore Kenya — KES (\d[\d,.]*)$|||2. Lipa StayExplore Kenya — KES {1}
+^(.+?) \(deadlines, cancelling and refunds\)$|||{1} (muda wa mwisho, kughairi na marejesho)
+^StayExplore Kenya · (.+?) · issued (.+?)$|||StayExplore Kenya · {1} · imetolewa {2}
+^Booking (.+?): cannot be marked received$|||Uhifadhi {1}: hauwezi kuwekwa kuwa umepokelewa
+^Identity verification requests \((.+?)\)$|||Maombi ya uthibitisho wa utambulisho ({1})
+^(.+?) · (.+?) verified review(s|\(s\))?$|||{1} · maoni {2} yaliyothibitishwa
+^Host identity \(ID\) verification (.+?)$|||Uthibitisho wa utambulisho (kitambulisho) wa mwenyeji {1}
+^(\d[\d,.]*) confirmed payment(s|\(s\))?$|||malipo {1} yaliyothibitishwa
+^for (.+?) \((.+?)\) · (.+?) · reference$|||kwa {1} ({2}) · {3} · kumbukumbu
+^incl\. KES (\d[\d,.]*) host tour/guide$|||pamoja na KES {1} ya ziara/mwongozo wa mwenyeji
+^(.+?), (.+?) to (.+?) · booking (.+?)$|||{1}, {2} hadi {3} · uhifadhi {4}
+^\#RPT(.*?) · Submitted (.+?) at (.+?)$|||#RPT{1} · Imewasilishwa {2} saa {3}
+^includes KES (\d[\d,.]*) service fee$|||inajumuisha ada ya huduma ya KES {1}
+^Page (.+?) of (.+?) · (.+?) bookings$|||Ukurasa {1} kati ya {2} · uhifadhi {3}
+^(\d[\d,.]*) active booking(s|\(s\))?$|||uhifadhi {1} unaoendelea
+^You rated this guest (\d[\d,.]*)/5\.$|||Ulimkadiria mgeni huyu {1}/5.
+^(\d[\d,.]*) report(s|\(s\))? against$|||ripoti {1} dhidi ya
+^incl\. KES (\d[\d,.]*) service fee$|||pamoja na ada ya huduma ya KES {1}
+^Match score (\d[\d,.]*) out of 100$|||Alama ya ulinganifu {1} kati ya 100
+^(.+?) · (.+?) km \(straight line\)$|||{1} · {2} km (mstari ulionyooka)
+^Identity \(ID\) verification (.+?)$|||Uthibitisho wa utambulisho (kitambulisho) {1}
+^(.+?) · (.+?) · Submitted by (.+?)$|||{1} · {2} · Imewasilishwa na {3}
+^This booking was cancelled\. (.+?)$|||Uhifadhi huu umeghairiwa. {1}
+^Receipt (.+?) · verification code$|||Risiti {1} · msimbo wa uthibitisho
+^Refund: (.+?) \((.+?)\)(.+?)(.+?)$|||Marejesho: {1} ({2}){3}{4}
+^About (.+?) · tap to view profile$|||Kuhusu {1} · gusa kuona wasifu
+^(\d[\d,.]*) payment\(s\) to check$|||malipo {1} ya kukagua
+^(\d[\d,.]*) km \(straight line\)$|||{1} km (mstari ulionyooka)
+^from (.+?) host review(s|\(s\))?$|||kutoka maoni {1} ya wenyeji
+^Stays nearby from (.+?) a night$|||Malazi ya karibu kuanzia {1} kwa usiku
+^Pay your host — KES (\d[\d,.]*)$|||Mlipe mwenyeji wako — KES {1}
+^(.+?) · (.+?) · KES (.+?)/night$|||{1} · {2} · KES {3}/usiku
+^KES (\d[\d,.]*) × (.+?) nights$|||KES {1} × usiku {2}
+^Stay \((.+?) night(s|\(s\))?\)$|||Malazi (usiku {1})
+^fees (.+?) \+ commission (.+?)$|||ada {1} + kamisheni {2}
+^(.+?) · Your stay ended (.+?)$|||{1} · Ukaaji wako uliisha {2}
+^(\d[\d,.]*) payment(s|\(s\))?$|||malipo {1}
+^Dispute evidence pack — (.+?)$|||Kifurushi cha ushahidi wa mgogoro — {1}
+^(\d[\d,.]*) booking(s|\(s\))?$|||uhifadhi {1}
+^(\d[\d,.]*) listing(s|\(s\))?$|||matangazo {1}
+^Service fee \((\d[\d,.]*)%\)$|||Ada ya huduma ({1}%)
+^View all (.+?) attractions →$|||Tazama vivutio vyote {1} →
+^No conversations yet\. (.+?)$|||Bado hakuna mazungumzo. {1}
+^You rated this guest ★ (.+?)$|||Ulimkadiria mgeni huyu ★ {1}
+^Commission is (\d[\d,.]*)%\.$|||Kamisheni ni {1}%.
+^View all stays near (.+?) →$|||Tazama malazi yote karibu na {1} →
+^(.+?) stay(s|\(s\))? nearby$|||malazi {1} karibu
+^· (.+?) · (.+?) · reference$|||{1} · {2} · kumbukumbu
+^(\d[\d,.]*) out of 5 stars$|||nyota {1} kati ya 5
+^\((.+?)\), nearest first\.$|||({1}), zilizo karibu zaidi kwanza.
+^\(service fee (.+?)(.+?)\)$|||(ada ya huduma {1}{2})
+^(.+?) Discover Attractions$|||{1} Gundua Vivutio
+^Method: (.+?) · Ref: (.+?)$|||Njia: {1} · Kumb: {2}
+^Open photo (.+?) of (.+?)$|||Fungua picha {1} kati ya {2}
+^(.+?) \((.+?) per guest\)$|||{1} ({2} kwa kila mgeni)
+^Notifications (\d[\d,.]*)$|||Arifa {1}
+^No (.+?) bookings found\.$|||Hakuna uhifadhi {1} uliopatikana.
+^Photo suggestion by (.+?)$|||Pendekezo la picha na {1}
+^No (.+?) listings found\.$|||Hakuna matangazo {1} yaliyopatikana.
+^(.+?) out of 5 for (.+?)$|||{1} kati ya 5 kwa {2}
+^(.+?) List your property$|||{1} Tangaza mali yako
+^KES (\d[\d,.]*) past due$|||KES {1} imechelewa
+^(\d[\d,.]*) invoice\(s\)$|||ankara {1}
+^No (.+?) reports found\.$|||Hakuna ripoti {1} zilizopatikana.
+^(.+?) · Stay ended (.+?)$|||{1} · Ukaaji uliisha {2}
+^Smart score (\d[\d,.]*)$|||Alama mahiri {1}
+^Conversations \((.+?)\)$|||Mazungumzo ({1})
+^Your messages \((.+?)\)$|||Ujumbe wako ({1})
+^(\d[\d,.]*) guests max$|||wageni {1} kwa upeo
+^\((.+?) than average\)$|||({1} kuliko wastani)
+^Risk (.+?)/100 · (.+?)$|||Hatari {1}/100 · {2}
+^KES (\d[\d,.]*)/night$|||KES {1}/usiku
+^(\d[\d,.]*) confirmed$|||{1} zimethibitishwa
+^Booking record (.+?)$|||Rekodi ya uhifadhi {1}
+^(.+?) · Booked (.+?)$|||{1} · Imehifadhiwa {2}
+^(\d[\d,.]*) out of 5$|||{1} kati ya 5
+^Nothing here\. (.+?)$|||Hakuna kitu hapa. {1}
+^Show (.+?) to guests$|||Onyesha {1} kwa wageni
+^(\d[\d,.]*) to check$|||{1} za kukagua
+^(\d[\d,.]*) bookings$|||uhifadhi {1}
+^(\d[\d,.]*) past due$|||{1} zimechelewa
+^Guest Reviews (.+?)$|||Maoni ya Wageni {1}
+^Page (.+?) of (.+?)$|||Ukurasa {1} kati ya {2}
+^verified as a (.+?)$|||amethibitishwa kuwa {1}
+^Become a host (.+?)$|||Kuwa mwenyeji {1}
+^(.+?) Explore Stays$|||{1} Gundua Malazi
+^(\d[\d,.]*) reviews$|||maoni {1}
+^(\d[\d,.]*) flagged$|||{1} zimeripotiwa
+^(\d[\d,.]*) pending$|||{1} zinasubiri
+^Evidence pack (.+?)$|||Kifurushi cha ushahidi {1}
+^Host: (.+?) · (.+?)$|||Mwenyeji: {1} · {2}
+^· (.+?) · reference$|||· {1} · kumbukumbu
+^Browse stays (.+?)$|||Vinjari malazi {1}
+^(.+?) · host (.+?)$|||{1} · mwenyeji {2}
+^Hello(.*?) · (.+?)$|||Habari{1} · {2}
+^(\d[\d,.]*) photos$|||picha {1}
+^Attraction \#(.+?)$|||Kivutio #{1}
+^No (.+?) bookings$|||Hakuna uhifadhi {1}
+^How to pay (.+?):$|||Jinsi ya kulipa {1}:
+^Certificate (.+?)$|||Cheti {1}
+^(.+?) Show on map$|||{1} Onyesha kwenye ramani
+^History \((.+?)\)$|||Historia ({1})
+^(\d[\d,.]*) hours$|||saa {1}
+^Pay before (.+?)$|||Lipa kabla ya {1}
+^Best time: (.+?)$|||Wakati bora: {1}
+^KES (\d[\d,.]*)k$|||KES {1}k
+^(\d[\d,.]*) open$|||{1} zilizo wazi
+^Requested: (.+?)$|||Imeombwa: {1}
+^View stay (.+?)$|||Tazama malazi {1}
+^Issued on (.+?)$|||Kimetolewa tarehe {1}
+^KES per 1 (.+?)$|||KES kwa kila {1} 1
+^· entered (.+?)$|||· imeingizwa {1}
+^Submitted (.+?)$|||Imewasilishwa {1}
+^Listing \#(.+?)$|||Tangazo #{1}
+^Photo of (.+?)$|||Picha ya {1}
+^Great in (.+?)$|||Nzuri wakati wa {1}
+^· booked (.+?)$|||· imehifadhiwa {1}
+^Refunded (.+?)$|||Imerejeshwa {1}
+^Explore (.+?)$|||Gundua {1}
+^Receipt (.+?)$|||Risiti {1}
+^(.+?) profile$|||Wasifu wa {1}
+^Invoice (.+?)$|||Ankara {1}
+^Booking (.+?)$|||Uhifadhi {1}
+^Issued (.+?)$|||Kimetolewa {1}
+^Hello, (.+?)$|||Habari, {1}
+^(.+?) · Ref:$|||{1} · Kumb:
+^Note: (.+?)$|||Kumbuka: {1}
+^Photo (.+?)$|||Picha {1}
+^Dear (.+?),$|||Mpendwa {1},
+^Ref: (.+?)$|||Kumb: {1}
+^paid KES ([\d,.]+) to host$|||alilipa KES {1} kwa mwenyeji
+^and asks for KES ([\d,.]+)\. Reason: "(.*)"( ·)?$|||na anaomba KES {1}. Sababu: "{2}"{3}
+^The guest asked for KES ([\d,.]+): "(.*)"( ·)?$|||Mgeni aliomba KES {1}: "{2}"{3}
+^Ask for a refund \(you paid KES ([\d,.]+)\)$|||Omba marejesho (ulilipa KES {1})
+^· you asked for KES ([\d,.]+)$|||· uliomba KES {1}
+^✓ Refunded KES ([\d,.]+) by (.+?)( ·)?$|||✓ Imerejeshwa KES {1} kwa {2}{3}
+^✓ KES ([\d,.]+) by (.+?), recorded by the (host|admin) on (.+?)( ·)?$|||✓ KES {1} kwa {2}, imeandikwa na {3} tarehe {4}{5}
+^KES ([\d,.]+) sent by (.+?)( ·)?$|||KES {1} zilitumwa kwa {2}{3}
+^Method: (.+?) · Ref: (.+)$|||Njia: {1} · Kumb: {2}
+^Method: (.+)$|||Njia: {1}
+^\(?about ([A-Z]{3}) ([\d,.]+) at KES ([\d,.]+) per ([A-Z]{3})(?: on (.+?))?\)?$|||(takriban {1} {2} kwa KES {3} kwa kila {4})
+^All (\d+) places in Kenya that are at their best this month\.$|||Maeneo yote {1} nchini Kenya yaliyo bora zaidi mwezi huu.
+^(\d+) refund\(s\) with evidence; not taken off the guest payments$|||marejesho {1} yenye ushahidi; hayajaondolewa kwenye malipo ya wageni
+^(\d+) refund\(s\) on your bookings; not taken off the earnings above$|||marejesho {1} kwenye uhifadhi wako; hayajaondolewa kwenye mapato yaliyo juu
+^KES ([\d,.]+) booked$|||KES {1} zimehifadhiwa
+^KES ([\d,.]+) still to confirm$|||KES {1} bado hazijathibitishwa
+^(\d+) cancelled, declined or expired$|||{1} zimeghairiwa, zimekataliwa au zimeisha muda
+^(.+), grouped by day\.$|||{1}, zimepangwa kwa siku.
+^(.+), grouped by week\.$|||{1}, zimepangwa kwa wiki.
+^(.+), grouped by month\.$|||{1}, zimepangwa kwa mwezi.
+^(.+): (.+?) to (.+?)\. Bookings are counted by the day they were made; payments by the day they were confirmed\.$|||{1}: {2} hadi {3}. Uhifadhi huhesabiwa kwa siku ulipofanywa; malipo kwa siku yalipothibitishwa.
+^(.+): (.+?) to (.+?)\. Bookings are counted by the day they were made; payments by the day they were reported\.$|||{1}: {2} hadi {3}. Uhifadhi huhesabiwa kwa siku ulipofanywa; malipo kwa siku yaliporipotiwa.
+^Your gallery \((\d+) of 10 photos\)\. Choose the$|||Matunzio lako (picha {1} kati ya 10). Chagua picha
+^\(the oldest was changed on (.+?)\)\. Check them against a current exchange rate and press Save\.$|||(kongwe zaidi kilibadilishwa tarehe {1}). Vilinganishe na kiwango cha sasa cha ubadilishaji kisha bonyeza Hifadhi.
+^Filed (.+?) by (.+)$|||Iliwasilishwa {1} na {2}
+^Other reports about this (guest|listing): (\d+) \((\d+) upheld\)\.$|||Ripoti nyingine kuhusu {1} huyu: {2} ({3} zimethibitishwa).
+^(\d+) report in total: (\d+) upheld, (\d+) not upheld or inconclusive\.$|||Ripoti {1} kwa jumla: {2} zimethibitishwa, {3} hazikuthibitishwa au hazijabainika.
+^Note from StayExplore Kenya: (.+)$|||Maelezo kutoka StayExplore Kenya: {1}
+^Admin: (.+)$|||Msimamizi: {1}
+^Host: (.+)$|||Mwenyeji: {1}
+^Booked (.+)$|||Imehifadhiwa {1}
+^Pay before (.+)$|||Lipa kabla ya {1}
+^Pay your host — KES ([\d,.]+)$|||Mlipe mwenyeji wako — KES {1}
+^2\. Pay StayExplore Kenya — KES ([\d,.]+)$|||2. Lipa StayExplore Kenya — KES {1}
+^Paid to StayExplore Kenya \(incl\. KES ([\d,.]+) service fee\)$|||Imelipwa kwa StayExplore Kenya (pamoja na ada ya huduma ya KES {1})
+^incl\. KES ([\d,.]+) service fee$|||pamoja na ada ya huduma ya KES {1}
+^includes KES ([\d,.]+) service fee$|||inajumuisha ada ya huduma ya KES {1}
+^incl\. KES ([\d,.]+) host tour/guide$|||pamoja na KES {1} za ziara/mwongozo wa mwenyeji
+^\(KES ([\d,.]+) × (\d+) guests?\)$|||(KES {1} × wageni {2})

@@ -76,18 +76,18 @@ try {
         $bt = trim((string)($allExtras[(int)$a['attraction_id']]['best_time'] ?? ''));
         if ($bt === '') { $k = attractionKnowledge($a['name']); $bt = $k ? (string)($k['best_time'] ?? '') : ''; }
         $m = parseSeasonMonths($bt);
-        // "All year" places are always in season, so they would crowd out the ones that are special right now.
-        if ($m && count($m) < 12 && in_array($curMonth, $m, true)) { $a['best_time'] = $bt; $seasonNow[] = $a; }
+        // Every attraction whose best months include this month. Places that are good all year are listed after the seasonal ones.
+        if ($m && in_array($curMonth, $m, true)) { $a['best_time'] = $bt; $a['all_year'] = count($m) >= 12; $seasonNow[] = $a; }
     }
 } catch (Throwable $e) { $seasonNow = []; }
-$seasonNow = array_slice($seasonNow, 0, 4);
+usort($seasonNow, function ($x, $y) { return [(int)$x['all_year'], $x['name']] <=> [(int)$y['all_year'], $y['name']]; });
 
 $newStays = [];
 try {
     $newStays = $pdo->query("SELECT a.accommodation_id, a.title, a.description, a.location_name,
         (SELECT p.photo_path FROM accommodation_photos p WHERE p.accommodation_id=a.accommodation_id ORDER BY p.is_primary DESC, p.photo_id ASC LIMIT 1) AS primary_photo
-        FROM accommodations a WHERE a.status='approved' AND a.created_at >= (NOW() - INTERVAL 30 DAY)
-        ORDER BY a.created_at DESC LIMIT 4")->fetchAll(PDO::FETCH_ASSOC);
+        FROM accommodations a WHERE a.status='approved' AND a.created_at >= (NOW() - INTERVAL 14 DAY)
+        ORDER BY a.created_at DESC LIMIT 12")->fetchAll(PDO::FETCH_ASSOC);
 } catch (Throwable $e) { $newStays = []; }
 $attRatingsHome = attractionRatingsMap($pdo, array_column($homeAttractions, 'attraction_id'));
 
@@ -444,12 +444,12 @@ $attrUrl   = $base . '/tourist/search.php?type=attraction';
 <section class="hx-section hx-reveal" id="in-season">
   <div class="hx-head">
     <div><div class="hx-kicker">In season</div><h2>Great in <?= h(date('F')) ?></h2></div>
-    <p>Places in Kenya that are at their best this month.</p>
+    <p>All <?= count($seasonNow) ?> places in Kenya that are at their best this month.</p>
   </div>
-  <div class="hx-row">
+  <div class="hx-row hx-wrap">
     <?php foreach ($seasonNow as $a): ?>
     <article class="hx-stay">
-      <div class="hx-stay-photo"><a href="<?= h($base . '/tourist/attraction.php?id=' . (int)$a['attraction_id']) ?>"><img src="<?= h(homeImagePath($a['photo_path'] ?? '', 'kenya-lake-shore.jpg', 'attractions')) ?>" alt="<?= h($a['name']) ?>" loading="lazy" onerror="this.onerror=null;this.src='assets/kenya-lake-shore.jpg';"></a><span class="hx-new" style="background:var(--forest)">In season</span></div>
+      <div class="hx-stay-photo"><a href="<?= h($base . '/tourist/attraction.php?id=' . (int)$a['attraction_id']) ?>"><img src="<?= h(homeImagePath($a['photo_path'] ?? '', 'kenya-lake-shore.jpg', 'attractions')) ?>" alt="<?= h($a['name']) ?>" loading="lazy" onerror="this.onerror=null;this.src='assets/kenya-lake-shore.jpg';"></a><span class="hx-new" style="background:var(--forest)"><?= !empty($a['all_year']) ? 'All year' : 'In season' ?></span></div>
       <div class="hx-stay-body">
         <h3><a href="<?= h($base . '/tourist/attraction.php?id=' . (int)$a['attraction_id']) ?>"><?= h($a['name']) ?></a></h3>
         <p class="hx-stay-desc">Best time: <?= h($a['best_time']) ?></p>
@@ -466,7 +466,7 @@ $attrUrl   = $base . '/tourist/search.php?type=attraction';
 <section class="hx-section hx-reveal" id="new-stays">
   <div class="hx-head">
     <div><div class="hx-kicker">Just listed</div><h2>Newly added stays</h2></div>
-    <p>Fresh listings from our hosts in the last 30 days.</p>
+    <p>Fresh listings from our hosts in the last two weeks.</p>
   </div>
   <div class="hx-row">
     <?php foreach ($newStays as $n): $nu = $base . '/tourist/details.php?id=' . (int)$n['accommodation_id']; ?>

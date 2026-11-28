@@ -5,6 +5,7 @@ require_once '../includes/db.php';
 require_once '../includes/commission.php';
 require_once '../includes/report_helpers.php';
 require_once '../includes/chart_helpers.php';
+require_once '../includes/refund_requests.php';
 
 if (session_status() === PHP_SESSION_NONE) session_start();
 
@@ -29,6 +30,13 @@ try {
         FROM platform_payments WHERE status IN ('confirmed','refunded') AND DATE(COALESCE(reviewed_at, created_at)) BETWEEN ? AND ?"); $q->execute($pr); [$pPlatform, $pRefunded] = array_map('floatval', $q->fetch(PDO::FETCH_NUM));
     $q = $pdo->prepare("SELECT COALESCE(SUM(amount),0) FROM host_commission_payments WHERE status = 'confirmed' AND DATE(COALESCE(reviewed_at, created_at)) BETWEEN ? AND ?"); $q->execute($pr); $pCommission = (float)$q->fetchColumn();
 } catch (Throwable $e) { error_log('dashboard period summary: ' . $e->getMessage()); }
+// Guest refunds recorded in the period (by hosts or by an administrator), from the refund cases
+$pGuestRefund = 0.0; $pGuestRefundN = 0;
+try {
+    ensureRefundRequestTables($pdo);
+    $q = $pdo->prepare("SELECT COALESCE(SUM(refund_amount),0), COUNT(*) FROM refund_requests WHERE status = 'refunded' AND DATE(refunded_at) BETWEEN ? AND ?");
+    $q->execute($pr); [$pGuestRefund, $pGuestRefundN] = array_map('floatval', $q->fetch(PDO::FETCH_NUM));
+} catch (Throwable $e) { error_log('insights refunds: ' . $e->getMessage()); }
 // v9.38.1: chart data for the same period
 $cb = chartBuckets($per['from'], $per['to']); $cKeys = $cb['keys']; $cUnit = $cb['unit'];
 $cLabels = array_map(fn($k) => chartLabel($k, $cUnit), $cKeys);
@@ -90,6 +98,7 @@ $backHref = 'dashboard.php' . (!empty($_GET) ? '?' . http_build_query($_GET) : '
                 <div class="stat-card accent"><div class="stat-label">Bookings made</div><div class="stat-value"><?= (int)$pBook['all'] ?></div><div class="stat-note">KES <?= number_format($pBook['value'], 2) ?> booked</div></div>
                 <div class="stat-card"><div class="stat-label">Confirmed or completed</div><div class="stat-value"><?= (int)$pBook['won'] ?></div><div class="stat-note"><?= (int)$pBook['lost'] ?> cancelled, declined or expired</div></div>
                 <div class="stat-card"><div class="stat-label">Guest payments confirmed</div><div class="stat-value">KES <?= number_format($pGuestPaid, 2) ?></div><div class="stat-note">paid to hosts</div></div>
+                <div class="stat-card"><div class="stat-label">Refunds to guests recorded</div><div class="stat-value">KES <?= number_format($pGuestRefund, 2) ?></div><div class="stat-note"><?= (int)$pGuestRefundN ?> refund(s) with evidence; not taken off the guest payments</div></div>
                 <div class="stat-card"><div class="stat-label">Guest service fees received</div><div class="stat-value">KES <?= number_format($pPlatform - $pRefunded, 2) ?></div><div class="stat-note"><?= serviceFeePercent() > 0 ? 'after KES ' . number_format($pRefunded, 2) . ' refunded' : 'service fee is switched off, so guests pay none' ?></div></div>
                 <div class="stat-card"><div class="stat-label">Commission paid by hosts</div><div class="stat-value">KES <?= number_format($pCommission, 2) ?></div><div class="stat-note">confirmed in this period</div></div>
             </div>

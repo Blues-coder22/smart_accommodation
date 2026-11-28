@@ -1,0 +1,221 @@
+Refunds for cancelled bookings|||Marejesho ya uhifadhi ulioghairiwa
+Refunds|||Marejesho
+Refunds — StayExplore Kenya|||Marejesho — StayExplore Kenya
+Guests ask for refunds here with evidence of what they paid; hosts record the refund with a screenshot, or decline with a reason. You can step in on any case. StayExplore does not move the host's money: these are records with proof. Refunds of the platform's own share are on the|||Wageni huomba marejesho hapa wakiwa na ushahidi wa walicholipa; wenyeji huandika marejesho pamoja na picha ya skrini, au hukataa kwa kutoa sababu. Unaweza kuingilia kesi yoyote. StayExplore haihamishi pesa za mwenyeji: haya ni kumbukumbu zenye ushahidi. Marejesho ya sehemu ya jukwaa yako kwenye ukurasa wa
+Revenue|||Mapato
+page. Every step is in the finance audit trail there.|||. Kila hatua iko kwenye rekodi ya ukaguzi wa fedha huko.
+No refund cases.|||Hakuna kesi za marejesho.
+No refund cases yet.|||Hakuna kesi za marejesho bado.
+No refund cases with this status.|||Hakuna kesi za marejesho zenye hali hii.
+With you|||Kwako
+Waiting for host|||Inasubiri mwenyeji
+Waiting for the host|||Inasubiri mwenyeji
+With the admin|||Kwa msimamizi
+Declined|||Imekataliwa
+Escalated|||Imepelekwa kwa msimamizi
+Record a refund|||Andika marejesho
+Amount (KES), up to|||Kiasi (KES), hadi
+Amount (KES)|||Kiasi (KES)
+How it was sent|||Ilivyotumwa
+How you sent it|||Ulivyotuma
+Transaction reference (not needed for cash)|||Kumbukumbu ya muamala (haihitajiki kwa pesa taslimu)
+Evidence: screenshot or receipt (not needed for cash)|||Ushahidi: picha ya skrini au risiti (haihitajiki kwa pesa taslimu)
+Evidence: screenshot of the M-Pesa message or bank receipt (not needed for cash)|||Ushahidi: picha ya skrini ya ujumbe wa M-Pesa au risiti ya benki (haihitajiki kwa pesa taslimu)
+Note (the guest and host can read it)|||Maelezo (mgeni na mwenyeji wanaweza kuyasoma)
+Note for the record (optional)|||Maelezo kwa kumbukumbu (si lazima)
+Save refund record|||Hifadhi rekodi ya marejesho
+Close without a refund|||Funga bila marejesho
+Close case|||Funga kesi
+Reason (the guest and host will read it)|||Sababu (mgeni na mwenyeji wataisoma)
+Reason (the guest and the admin will read it)|||Sababu (mgeni na msimamizi wataisoma)
+Cancelled and paid, but no refund asked for yet|||Imeghairiwa na kulipiwa, lakini hakuna aliyeomba marejesho bado
+If a host or guest has told you about one of these outside the app, you can record the refund here with its evidence.|||Ikiwa mwenyeji au mgeni amekuambia kuhusu mojawapo ya hizi nje ya programu, unaweza kuandika marejesho hapa pamoja na ushahidi wake.
+Guest's evidence|||Ushahidi wa mgeni
+Refund evidence|||Ushahidi wa marejesho
+no guest evidence|||hakuna ushahidi wa mgeni
+no evidence attached|||hakuna ushahidi ulioambatishwa
+Admin note:|||Maelezo ya msimamizi:
+Host declined:|||Mwenyeji alikataa:
+Guest to you:|||Mgeni kwako:
+Guest to the admin:|||Mgeni kwa msimamizi:
+Case closed. Both sides were told your reason.|||Kesi imefungwa. Pande zote mbili zimeambiwa sababu yako.
+Refund recorded. The guest and the host were told.|||Marejesho yameandikwa. Mgeni na mwenyeji wameambiwa.
+Refund recorded. The guest was told and the admin can see it.|||Marejesho yameandikwa. Mgeni ameambiwa na msimamizi anaweza kuyaona.
+Declined. The guest and the admin were told your reason.|||Imekataliwa. Mgeni na msimamizi wameambiwa sababu yako.
+Refund to the guest|||Marejesho kwa mgeni
+Refund from your host|||Marejesho kutoka kwa mwenyeji wako
+Amount you refunded (KES), up to|||Kiasi ulichorejesha (KES), hadi
+I have refunded the guest: record it|||Nimemrejeshea mgeni: andika
+Decline this request|||Kataa ombi hili
+View their evidence|||Tazama ushahidi wake
+View refund evidence|||Tazama ushahidi wa marejesho
+See the refund evidence|||Tazama ushahidi wa marejesho
+Ask for a refund|||Omba marejesho
+Send refund request|||Tuma ombi la marejesho
+Evidence of your payment (screenshot or receipt)|||Ushahidi wa malipo yako (picha ya skrini au risiti)
+Your evidence|||Ushahidi wako
+Why?|||Kwa nini?
+What is wrong?|||Tatizo ni nini?
+Tell the admin|||Mwambie msimamizi
+Ask the admin to step in|||Mwombe msimamizi aingilie kati
+I have not received it|||Sijaipokea
+The admin has been asked to look at your refund.|||Msimamizi ameombwa kuangalia marejesho yako.
+Your refund request was sent to the host and the admin can see it.|||Ombi lako la marejesho limetumwa kwa mwenyeji na msimamizi anaweza kuliona.
+A refund can only be recorded for a cancelled booking.|||Marejesho yanaweza kuandikwa kwa uhifadhi ulioghairiwa pekee.
+A refund is already recorded for this booking.|||Marejesho tayari yameandikwa kwa uhifadhi huu.
+A refund request already exists for this booking.|||Ombi la marejesho tayari lipo kwa uhifadhi huu.
+Attach evidence of the refund (a screenshot of the M-Pesa message or bank receipt).|||Ambatisha ushahidi wa marejesho (picha ya skrini ya ujumbe wa M-Pesa au risiti ya benki).
+Attach evidence of your payment (a screenshot of the M-Pesa message or bank receipt).|||Ambatisha ushahidi wa malipo yako (picha ya skrini ya ujumbe wa M-Pesa au risiti ya benki).
+Case not found.|||Kesi haijapatikana.
+Choose how the refund was sent.|||Chagua jinsi marejesho yalivyotumwa.
+Could not save the refund. Please try again.|||Imeshindwa kuhifadhi marejesho. Tafadhali jaribu tena.
+Could not save your request. Please try again.|||Imeshindwa kuhifadhi ombi lako. Tafadhali jaribu tena.
+Enter the transaction reference of the refund (at least 4 characters).|||Weka kumbukumbu ya muamala wa marejesho (angalau herufi 4).
+Evidence must be a JPG, PNG or WebP picture (a screenshot or a photo of the receipt).|||Ushahidi lazima uwe picha ya JPG, PNG au WebP (picha ya skrini au picha ya risiti).
+Give the guest a reason (at least 5 characters). The admin can see it too.|||Mpe mgeni sababu (angalau herufi 5). Msimamizi anaweza kuiona pia.
+Please give a reason of at least 5 characters.|||Tafadhali toa sababu ya angalau herufi 5.
+No payment was made on this booking, so there is nothing to refund.|||Hakuna malipo yaliyofanywa kwa uhifadhi huu, kwa hivyo hakuna cha kurejesha.
+There is no payment on this booking to refund.|||Hakuna malipo kwenye uhifadhi huu ya kurejeshwa.
+Refund request not found.|||Ombi la marejesho halijapatikana.
+Tell the admin briefly what is wrong (at least 5 characters).|||Mwambie msimamizi kwa ufupi tatizo ni nini (angalau herufi 5).
+Tell the host briefly why you are asking for a refund (at least 5 characters).|||Mwambie mwenyeji kwa ufupi kwa nini unaomba marejesho (angalau herufi 5).
+The admin already has this case.|||Msimamizi tayari ana kesi hii.
+The evidence file could not be saved.|||Faili ya ushahidi haikuweza kuhifadhiwa.
+The evidence file could not be uploaded.|||Faili ya ushahidi haikuweza kupakiwa.
+The evidence file could not be uploaded. Try a smaller picture.|||Faili ya ushahidi haikuweza kupakiwa. Jaribu picha ndogo zaidi.
+The evidence picture is too big (5 MB at most).|||Picha ya ushahidi ni kubwa mno (MB 5 kwa juu).
+This case is already finished.|||Kesi hii imeshakamilika.
+This request has already been answered.|||Ombi hili limeshajibiwa.
+Write the reason for closing (at least 5 characters). The guest and host will read it.|||Andika sababu ya kufunga (angalau herufi 5). Mgeni na mwenyeji wataisoma.
+You can ask for a refund once the booking is cancelled.|||Unaweza kuomba marejesho baada ya uhifadhi kughairiwa.
+You can ask the admin to look at it.|||Unaweza kumwomba msimamizi aliangalie.
+Refund requested|||Marejesho yameombwa
+Refund request declined|||Ombi la marejesho limekataliwa
+Refund recorded by the admin|||Marejesho yameandikwa na msimamizi
+Host recorded a refund|||Mwenyeji ameandika marejesho
+Host declined a refund|||Mwenyeji amekataa marejesho
+Guest asked the admin about a refund|||Mgeni amemuuliza msimamizi kuhusu marejesho
+Closed by the admin|||Imefungwa na msimamizi
+Declined by the host|||Imekataliwa na mwenyeji
+Check refund|||Kagua marejesho
+Confirm money received|||Thibitisha pesa zimepokelewa
+: cannot be marked received. Use Check refund if the guest paid.|||: haiwezi kuwekwa kuwa imepokelewa. Tumia Kagua marejesho ikiwa mgeni alilipa.
+Some rates are more than 7 days old|||Baadhi ya viwango vina zaidi ya siku 7
+Check them against a current exchange rate and press Save.|||Vilinganishe na kiwango cha sasa cha ubadilishaji kisha bonyeza Hifadhi.
+Refunds to guests recorded|||Marejesho kwa wageni yaliyoandikwa
+Refunded to guests|||Yaliyorejeshewa wageni
+Look this area up on Google Maps|||Tafuta eneo hili kwenye Google Maps
+Map not loading places?|||Ramani haipakii maeneo?
+(opens a new tab, free), then use "Add attraction" on the Manage attractions page to add what you find.|||(hufunguka kwenye kichupo kipya, bila malipo), kisha tumia "Ongeza kivutio" kwenye ukurasa wa Simamia vivutio kuongeza ulichopata.
+Try a smaller radius or one place type, wait a minute, or use the Google Maps link below.|||Jaribu eneo dogo zaidi au aina moja ya mahali, subiri dakika moja, au tumia kiungo cha Google Maps hapa chini.
+Period|||Kipindi
+Show as table|||Onyesha kama jedwali
+Nothing to show for this period yet.|||Hakuna cha kuonyesha kwa kipindi hiki bado.
+Back to overview|||Rudi kwenye muhtasari
+Fresh listings from our hosts in the last two weeks.|||Matangazo mapya kutoka kwa wenyeji wetu katika wiki mbili zilizopita.
+Listing changed: approval needed|||Tangazo limebadilishwa: linahitaji idhini
+A stay can have at most 10 photos. Remove some or add fewer.|||Malazi yanaweza kuwa na picha 10 kwa juu. Ondoa baadhi au ongeza chache.
+A stay needs at least one photo. Add a new photo before removing the last one.|||Malazi yanahitaji angalau picha moja. Ongeza picha mpya kabla ya kuondoa ya mwisho.
+Listing updated. The photo changes were saved and the listing was resubmitted for approval, so it stays hidden from guests until an admin approves it.|||Tangazo limesasishwa. Mabadiliko ya picha yamehifadhiwa na tangazo limewasilishwa tena kwa idhini, kwa hivyo litafichwa kwa wageni hadi msimamizi aliidhinishe.
+Changing the title, description, price or photos (adding, removing or choosing a different main photo) will resubmit the listing for admin approval before going live again.|||Kubadilisha kichwa, maelezo, bei au picha (kuongeza, kuondoa au kuchagua picha kuu tofauti) kutawasilisha tangazo tena kwa idhini ya msimamizi kabla halijaonekana tena.
+Make this the main photo|||Fanya hii kuwa picha kuu
+Delete this photo|||Futa picha hii
+Private note|||Maelezo ya faragha
+Private notes|||Maelezo ya faragha
+Add a private note|||Ongeza maelezo ya faragha
+Save note|||Hifadhi maelezo
+Save private note|||Hifadhi maelezo ya faragha
+Private note saved. Only admins can see it.|||Maelezo ya faragha yamehifadhiwa. Wasimamizi pekee wanaweza kuyaona.
+Only admins see these. They are never sent to the customer. Changes to status, priority, category and assignment are recorded here automatically.|||Wasimamizi pekee wanaona haya. Hayatumwi kamwe kwa mteja. Mabadiliko ya hali, kipaumbele, kundi na ugawaji hurekodiwa hapa kiotomatiki.
+Write a note between 1 and 2,000 characters.|||Andika maelezo yenye herufi 1 hadi 2,000.
+Write the note first.|||Andika maelezo kwanza.
+Priority|||Kipaumbele
+All categories|||Makundi yote
+All priorities|||Vipaumbele vyote
+Anyone|||Yeyote
+Assigned to me|||Nilizopewa mimi
+Assigned to:|||Aliyepewa:
+Unassigned|||Haijagawiwa
+Take this ticket|||Chukua tiketi hii
+Release it|||Iachilie
+Filter|||Chuja
+Guests and hosts|||Wageni na wenyeji
+Waiting for the customer|||Inasubiri mteja
+A safety concern|||Wasiwasi wa usalama
+Commission or fees (hosts)|||Kamisheni au ada (wenyeji)
+ID verification|||Uthibitishaji wa kitambulisho
+Support is working on your request|||Huduma kwa wateja inashughulikia ombi lako
+You are sending messages very quickly. Please wait a moment and try again.|||Unatuma ujumbe haraka mno. Tafadhali subiri kidogo kisha ujaribu tena.
+You can still read this conversation.|||Bado unaweza kusoma mazungumzo haya.
+Outcome:|||Matokeo:
+Outcome when you close it|||Matokeo unapoifunga
+Upheld: the report was confirmed|||Imethibitishwa: ripoti ilithibitishwa
+Not upheld: no problem found|||Haikuthibitishwa: hakuna tatizo lililopatikana
+Inconclusive: not enough evidence|||Haijabainika: hakuna ushahidi wa kutosha
+False or malicious report|||Ripoti ya uongo au ya nia mbaya
+No action needed|||Hakuna hatua inayohitajika
+Start investigation|||Anza uchunguzi
+Before you suspend the listing:|||Kabla ya kusimamisha tangazo:
+Reporter record:|||Rekodi ya mwenye kuripoti:
+Automatic suspension after a critical incident:|||Kusimamisha kiotomatiki baada ya tukio hatari:
+Automatic suspension is OFF: critical incidents alert you but you decide whether to suspend.|||Kusimamisha kiotomatiki kumezimwa: matukio hatari yanakuarifu lakini wewe unaamua kusimamisha.
+Automatic suspension is ON: a critical incident suspends the listing immediately.|||Kusimamisha kiotomatiki kumewashwa: tukio hatari husimamisha tangazo mara moja.
+Marked as under investigation. The reporter was told.|||Imewekwa kuwa inachunguzwa. Mwenye kuripoti ameambiwa.
+This report is already being investigated or has been closed.|||Ripoti hii tayari inachunguzwa au imefungwa.
+Thank you for helping keep the platform safe.|||Asante kwa kusaidia kuweka jukwaa salama.
+Your report was resolved|||Ripoti yako imetatuliwa
+Your report was reviewed|||Ripoti yako imekaguliwa
+We are looking into your report|||Tunaangalia ripoti yako
+Your listing was suspended|||Tangazo lako limesimamishwa
+Your listing is live again|||Tangazo lako linaonekana tena
+Your report was upheld.|||Ripoti yako imethibitishwa.
+We could not confirm the problem with the evidence available.|||Hatukuweza kuthibitisha tatizo kwa ushahidi uliopo.
+We did not find a problem that needs action.|||Hatukupata tatizo linalohitaji hatua.
+New report to review|||Ripoti mpya ya kukagua
+Please review it.|||Tafadhali ikague.
+Received. Waiting for review.|||Imepokelewa. Inasubiri ukaguzi.
+Under investigation.|||Inachunguzwa.
+Your previous reports|||Ripoti zako za awali
+Sent|||Imetumwa
+New listing to approve|||Tangazo jipya la kuidhinisha
+The host replied to your review|||Mwenyeji amejibu maoni yako
+Reason for reversal|||Sababu ya kutengua
+Reverse|||Tengua
+Record payment|||Andika malipo
+Record a commission payment received|||Andika malipo ya kamisheni yaliyopokelewa
+Recent finance activity (audit trail)|||Shughuli za hivi karibuni za fedha (rekodi ya ukaguzi)
+Every accept, reject, refund and manual recording, with who did it. Entries cannot be edited.|||Kila kukubali, kukataa, kurejesha na kuandika kwa mkono, pamoja na aliyefanya. Rekodi haziwezi kuhaririwa.
+Choose a host|||Chagua mwenyeji
+Choose a host.|||Chagua mwenyeji.
+Amount received (KES)|||Kiasi kilichopokelewa (KES)
+Enter the amount received.|||Weka kiasi kilichopokelewa.
+Reference on your statement|||Kumbukumbu kwenye taarifa yako
+Payment not found.|||Malipo hayajapatikana.
+Commission payment reversed|||Malipo ya kamisheni yametenguliwa
+Payment reversed. The host's balance has been updated and the host has been told.|||Malipo yametenguliwa. Salio la mwenyeji limesasishwa na mwenyeji ameambiwa.
+Could not record the payment. Nothing was saved.|||Imeshindwa kuandika malipo. Hakuna kilichohifadhiwa.
+That reference is already recorded for a payment.|||Kumbukumbu hiyo tayari imeandikwa kwa malipo.
+This payment was already handled or could not be saved, so nothing changed.|||Malipo haya yalishashughulikiwa au hayakuweza kuhifadhiwa, kwa hivyo hakuna kilichobadilika.
+Add a short note saying why you are recording this yourself (at least 3 characters).|||Ongeza maelezo mafupi yanayosema kwa nini unaandika hili mwenyewe (angalau herufi 3).
+Choose M-Pesa or bank transfer and enter the reference from your statement (at least 4 characters).|||Chagua M-Pesa au uhamisho wa benki na uweke kumbukumbu kutoka kwenye taarifa yako (angalau herufi 4).
+Give a short reason for the reversal (at least 3 characters). It is kept in the audit trail.|||Toa sababu fupi ya kutengua (angalau herufi 3). Inahifadhiwa kwenye rekodi ya ukaguzi.
+Only a confirmed payment can be reversed, and this one was already changed or could not be saved.|||Malipo yaliyothibitishwa pekee ndiyo yanaweza kutenguliwa, na haya yalishabadilishwa au hayakuweza kuhifadhiwa.
+Note (the host can read this, and it is kept in the audit trail)|||Maelezo (mwenyeji anaweza kuyasoma, na yanahifadhiwa kwenye rekodi ya ukaguzi)
+Use this when a host paid you but did not report it (for example a bank deposit you found on your statement). It counts immediately toward that host's balance and is written to the audit trail with your name and note.|||Tumia hili wakati mwenyeji amekulipa lakini hakuripoti (kwa mfano amana ya benki uliyoiona kwenye taarifa yako). Inahesabiwa mara moja kwenye salio la mwenyeji huyo na huandikwa kwenye rekodi ya ukaguzi pamoja na jina lako na maelezo.
+Reconciliation note:|||Maelezo ya ulinganisho:
+Recorded by admin:|||Imeandikwa na msimamizi:
+Reversed by admin|||Imetenguliwa na msimamizi
+Reversed by admin:|||Imetenguliwa na msimamizi:
+What|||Nini
+Note from StayExplore Kenya:|||Maelezo kutoka StayExplore Kenya:
+Your stay is complete|||Kukaa kwako kumekamilika
+Marked as a no-show|||Imewekwa kuwa hakufika
+No-show recorded|||Kutofika kumerekodiwa
+(recorded by the admin)|||(imeandikwa na msimamizi)
+, recorded by the admin|||, imeandikwa na msimamizi
+When a guest reports a payment while viewing another currency, that currency and the rate at that moment are saved on the payment. Receipts and emails then show "about USD 93 at KES 129 per USD". Changing a rate here never changes what was already saved.|||Mgeni anaporipoti malipo huku akiangalia sarafu nyingine, sarafu hiyo na kiwango cha wakati huo huhifadhiwa kwenye malipo. Risiti na barua pepe kisha huonyesha "takriban USD 93 kwa KES 129 kwa kila USD". Kubadilisha kiwango hapa hakubadilishi kamwe kilichokwisha hifadhiwa.
+of confirmed host payments is not matched to any live invoice (an overpayment, or the invoice was voided after payment). Check these hosts before refunding or carrying the credit forward.|||ya malipo ya wenyeji yaliyothibitishwa hayalingani na ankara yoyote hai (malipo ya ziada, au ankara ilifutwa baada ya malipo). Kagua wenyeji hawa kabla ya kurejesha au kuendeleza salio.
+Resolve and suspend accept the first two; Dismiss accepts the last three. Three false reports in 180 days pause that person from filing more.|||Tatua na usimamishe hukubali chaguo mbili za kwanza; Tupilia mbali hukubali tatu za mwisho. Ripoti tatu za uongo ndani ya siku 180 humzuia mtu huyo kuwasilisha nyingine.
+photo guests see first, or tick the red box under a photo to delete it. Any photo change needs admin approval.|||ambayo wageni huona kwanza, au weka tiki kwenye kisanduku chekundu chini ya picha ili kuifuta. Mabadiliko yoyote ya picha yanahitaji idhini ya msimamizi.
+host|||mwenyeji
+admin|||msimamizi

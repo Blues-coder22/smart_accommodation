@@ -22,6 +22,16 @@ PATTERNS = [
  (r'^Unanswered \((\d+)\)$','Hayajajibiwa ({1})'),(r'^(\d+) stays? found$','malazi {1} yamepatikana'),(r'^(\d+) attractions? found$','vivutio {1} vimepatikana'),
  (r'^Member since (.+)$','Mwanachama tangu {1}'),(r'^Total: (.+)$','Jumla: {1}'),(r'^Showing (\d+) of (\d+)$','Inaonyesha {1} kati ya {2}'),
 ]
+# v9.39: extra sentence-shaped patterns live in i18n/patterns_sw.txt (one per line:  regex|||Kiswahili with {1} {2}).
+# They are appended after the patterns above, so the short exact patterns still win first.
+if os.path.exists('i18n/patterns_sw.txt'):
+    for n, line in enumerate(open('i18n/patterns_sw.txt', encoding='utf-8'), 1):
+        line = line.rstrip('\n')
+        if not line.strip() or '|||' not in line: continue
+        rx, tpl = line.split('|||', 1)
+        try: re.compile(rx)
+        except re.error: print('bad pattern, skipped: patterns_sw.txt:%d' % n); continue
+        PATTERNS.append((rx.replace('/', '\\/'), tpl.strip()))
 js = ('/* StayExplore Kenya - Kiswahili word list. Used offline by se-i18n.js. Generated from i18n/sw_*.txt by tools/build_sw_wordlist.py.\n'
       ' * Anything not listed here stays in English. A native Kiswahili speaker should review it before launch. */\n')
 js += 'window.SE_SW=' + json.dumps(d, ensure_ascii=False, indent=0, sort_keys=True) + ';\n'

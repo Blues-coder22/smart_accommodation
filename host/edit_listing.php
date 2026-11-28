@@ -5,6 +5,7 @@ require_once '../includes/db.php';
 require_once '../includes/onsite_experience.php';
 ensureOnsiteExperienceColumns($pdo);
 require_once '../includes/upload_helpers.php';
+require_once '../includes/notifications.php';
 
 if (session_status() === PHP_SESSION_NONE) session_start();
 
@@ -79,14 +80,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($latitude == 0 || $longitude == 0)
         $errors[] = 'Please pin your property on the map.';
 
+    // ---- Photo gallery changes (checked before anything is saved) ----
+    $existingIds = array_map('intval', array_column($photos, 'photo_id'));
+    $currentMain = 0;
+    foreach ($photos as $ph) { if (!empty($ph['is_primary'])) $currentMain = (int)$ph['photo_id']; }
+    $delIds   = array_values(array_intersect($existingIds, array_map('intval', (array)($_POST['delete_photos'] ?? []))));
+    $keepIds  = array_values(array_diff($existingIds, $delIds));
+    $newCount = 0;
+    if (!empty($_FILES['photos']['name'][0])) {
+        foreach ((array)$_FILES['photos']['error'] as $e) { if ($e === UPLOAD_ERR_OK) $newCount++; }
+    }
+    $wantMain = (int)($_POST['main_photo'] ?? 0);
+    if (!in_array($wantMain, $keepIds, true)) $wantMain = 0;
+    $mainChanged = ($wantMain > 0 && $wantMain !== $currentMain);
+    if (count($keepIds) + $newCount > 10)
+        $errors[] = 'A stay can have at most 10 photos. Remove some or add fewer.';
+    if (count($keepIds) + $newCount < 1)
+        $errors[] = 'A stay needs at least one photo. Add a new photo before removing the last one.';
+    $photosChanged = ($delIds || $newCount > 0 || $mainChanged);
+
     if (empty($errors)) {
         // Update listing
-        // Reset to pending if major details changed
-        $needs_review = (
+        // Reset to pending if major details or any photo changed (the admin approves the new version)
+        $textChanged = (
             $listing['title'] !== $title
             || $listing['description'] !== $description
             || $listing['price_per_night'] != $price
         );
+        $needs_review = $textChanged || $photosChanged;
 
         $new_status = $needs_review
             ? 'pending' : $listing['status'];
@@ -188,6 +209,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
+        // The host chose a different main photo
+        if ($mainChanged && $wantMain > 0) {
+            $pdo->prepare('UPDATE accommodation_photos SET is_primary = 0 WHERE accommodation_id = ?')->execute([$lid]);
+            $pdo->prepare('UPDATE accommodation_photos SET is_primary = 1 WHERE accommodation_id = ? AND photo_id = ?')->execute([$lid, $wantMain]);
+        }
+
         // Always keep one main photo: if the main one was removed (or none was ever set), promote the oldest remaining photo
         $hasPrimary = $pdo->prepare('SELECT COUNT(*) FROM accommodation_photos WHERE accommodation_id = ? AND is_primary = 1');
         $hasPrimary->execute([$lid]);
@@ -197,9 +224,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         try { mediaSelfHeal($pdo, true); } catch (Throwable $e) {}   // back up the new photos and drop identical ones straight away
 
+        if ($needs_review && $listing['status'] !== 'pending') {
+            $what = [];
+            if ($textChanged) $what[] = 'details';
+            if ($photosChanged) $what[] = 'photos';
+            try {
+                notifyAdmins($pdo, 'Listing changed: approval needed',
+                    'A host changed the ' . implode(' and ', $what) . ' of "' . $title . '". It is waiting for your approval before it shows to guests again.',
+                    'listings.php');
+            } catch (Throwable $e) {}
+        }
         if ($needs_review) {
             setFlash('success',
-                'Listing updated and resubmitted for approval.');
+                $photosChanged
+                    ? 'Listing updated. The photo changes were saved and the listing was resubmitted for approval, so it stays hidden from guests until an admin approves it.'
+                    : 'Listing updated and resubmitted for approval.');
         } else {
             setFlash('success', 'Listing updated successfully.');
         }
@@ -318,8 +357,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </p>
 
         <div class="resubmit-notice">
-            Changing the title, description, or price will
-            resubmit the listing for admin approval before
+            Changing the title, description, price or photos
+            (adding, removing or choosing a different main photo)
+            will resubmit the listing for admin approval before
             going live again.
         </div>
 
@@ -473,7 +513,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <?php if (!empty($photos)): ?>
                 <p style="font-size:13px;color:var(--text-secondary);
                            margin-bottom:10px">
-                    Existing photos — check the box to delete
+                    Your gallery (<?= count($photos) ?> of 10 photos). Choose the <strong>Main</strong> photo guests see first,
+                    or tick the red box under a photo to delete it. Any photo change needs admin approval.
                 </p>
                 <div class="photo-grid">
                     <?php foreach ($photos as $p): ?>
@@ -483,7 +524,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <?php if ($p['is_primary']): ?>
                         <span class="photo-primary">Main</span>
                         <?php endif; ?>
-                        <label style="position:absolute;
+                        <label title="Make this the main photo" style="position:absolute;bottom:-2px;left:-2px;background:#fff;border-radius:4px;padding:0 2px;font-size:11px;line-height:14px">
+                            <input type="radio" name="main_photo" value="<?= (int)$p['photo_id'] ?>" <?= $p['is_primary'] ? 'checked' : '' ?> style="width:12px;height:12px;vertical-align:middle">
+                        </label>
+                        <label title="Delete this photo" style="position:absolute;
                                       bottom:-2px;right:-2px">
                             <input type="checkbox"
                                    name="delete_photos[]"
