@@ -8,6 +8,23 @@
  * Role checks (requireRole) are still enforced on every page; a cookie from one role never gives access to another role's pages.
  * Limit: one account per role per browser. Use a private window or another browser for a second tourist.
  */
+/**
+ * v9.41: browser security headers on every page that starts a session (the .htaccess adds the same ones for static files).
+ * They stop the site being shown inside another site's frame (clickjacking), stop browsers guessing file types, limit what
+ * the Referer header reveals, and limit where forms can post. Geolocation stays allowed because the map uses it.
+ */
+if (!function_exists('seSendSecurityHeaders')) {
+    function seSendSecurityHeaders() {
+        if (PHP_SAPI === 'cli' || headers_sent()) return;
+        header('X-Frame-Options: SAMEORIGIN');
+        header('X-Content-Type-Options: nosniff');
+        header('Referrer-Policy: strict-origin-when-cross-origin');
+        header('Permissions-Policy: geolocation=(self), camera=(), microphone=(), payment=()');
+        header("Content-Security-Policy: frame-ancestors 'self'; base-uri 'self'; form-action 'self'; object-src 'none'");
+        if (!empty($_SERVER['HTTPS'])) header('Strict-Transport-Security: max-age=31536000');
+    }
+    seSendSecurityHeaders();
+}
 if (!defined('SE_ROLES')) define('SE_ROLES', ['admin', 'host', 'tourist']);
 if (!defined('SE_GUEST_PAGES')) define('SE_GUEST_PAGES', ['login.php', 'register.php', 'forgot-password.php', 'reset-password.php', 'resend-verification.php',
                             'verify_wait.php', 'verify_status.php', 'verify_continue.php', 'verify.php', 'mailbox.php']);

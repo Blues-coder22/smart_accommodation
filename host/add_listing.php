@@ -48,8 +48,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'Location is required.';
     if ($latitude == 0 || $longitude == 0)
         $errors[] = 'Please pick your property location on the map.';
-    if (empty($_FILES['photos']['name'][0]))
-        $errors[] = 'Please upload at least one photo.';
+    // At least 3 usable photos (JPG, PNG or WebP, up to 5 MB each)
+    $validPhotos = 0;
+    if (!empty($_FILES['photos']['name'][0])) {
+        foreach ((array)$_FILES['photos']['tmp_name'] as $i => $tmpName) {
+            if (($_FILES['photos']['error'][$i] ?? 1) !== UPLOAD_ERR_OK) continue;
+            if (($_FILES['photos']['size'][$i] ?? 0) > 5 * 1024 * 1024) continue;
+            if (!in_array(mime_content_type($tmpName), ['image/jpeg', 'image/png', 'image/webp'], true)) continue;
+            $validPhotos++;
+        }
+    }
+    if ($validPhotos < 3)
+        $errors[] = 'Please upload at least 3 clear photos (JPG, PNG or WebP, up to 5 MB each).';
 
     if (empty($errors)) {
         // Insert listing
@@ -101,10 +111,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($uploaded >= 10) break;
         }
 
-        if ($uploaded === 0) {
+        if ($uploaded < 3) {
+            // Not enough photos could be saved: remove what was saved, then the half-created listing
+            $saved = $pdo->prepare('SELECT photo_path FROM accommodation_photos WHERE accommodation_id = ?');
+            $saved->execute([$accommodation_id]);
+            foreach ($saved->fetchAll(PDO::FETCH_COLUMN) as $pp) {
+                $f = dirname(__DIR__) . '/uploads/accommodations/' . basename((string)$pp);
+                if (is_file($f)) @unlink($f);
+            }
+            $pdo->prepare('DELETE FROM accommodation_photos WHERE accommodation_id = ?')->execute([$accommodation_id]);
             $pdo->prepare('DELETE FROM accommodations WHERE accommodation_id = ?')
                 ->execute([$accommodation_id]);
-            $errors[] = 'We could not save any of those photos. Please use JPG, PNG or WebP images under 5 MB and try again.';
+            $errors[] = 'We could save only ' . $uploaded . ' of your photos, and a stay needs at least 3. Please use JPG, PNG or WebP images under 5 MB and try again.';
         }
 
         if ($uploaded > 0) {

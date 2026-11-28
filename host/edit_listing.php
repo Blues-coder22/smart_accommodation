@@ -95,8 +95,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $mainChanged = ($wantMain > 0 && $wantMain !== $currentMain);
     if (count($keepIds) + $newCount > 10)
         $errors[] = 'A stay can have at most 10 photos. Remove some or add fewer.';
-    if (count($keepIds) + $newCount < 1)
-        $errors[] = 'A stay needs at least one photo. Add a new photo before removing the last one.';
+    if (count($keepIds) + $newCount < 3)
+        $errors[] = 'A stay needs at least 3 photos. Add new photos before removing any, so that at least 3 remain.';
     $photosChanged = ($delIds || $newCount > 0 || $mainChanged);
 
     if (empty($errors)) {
